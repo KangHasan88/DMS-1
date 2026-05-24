@@ -151,8 +151,11 @@ class SupplierController extends Controller
      */
     public function destroy(Supplier $supplier)
     {
-        // Check if supplier has purchase orders
-        if ($supplier->purchaseOrders()->count() > 0) {
+        if (
+            $supplier->purchaseOrders()->exists()
+            || $supplier->directPurchases()->exists()
+            || $supplier->consignments()->exists()
+        ) {
             return back()->with('error', 'Supplier tidak dapat dihapus karena memiliki riwayat pembelian');
         }
         

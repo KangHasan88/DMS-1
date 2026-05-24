@@ -268,6 +268,16 @@ class RolePermissionSeeder extends Seeder
             'view sync status',
         ]);
 
+        // ROLE: KURIR
+        $kurir = Role::firstOrCreate(['name' => 'kurir']);
+        $kurir->syncPermissions([
+            'view dashboard',
+            'view deliveries',
+            'process deliveries',
+            'download apk',
+            'view sync status',
+        ]);
+
         // ROLE: CUSTOMER
         $customer = Role::firstOrCreate(['name' => 'customer']);
         $customer->syncPermissions([

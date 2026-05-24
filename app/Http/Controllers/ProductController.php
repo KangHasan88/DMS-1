@@ -185,6 +185,10 @@ class ProductController extends Controller
      */
     public function destroy(Product $product)
     {
+        if ($product->orderItems()->exists() || $product->stockMovements()->exists()) {
+            return back()->with('error', 'Produk tidak dapat dihapus karena sudah memiliki riwayat transaksi. Nonaktifkan produk jika tidak dipakai lagi.');
+        }
+
         // Delete image if exists
         if ($product->image) {
             Storage::disk('public')->delete($product->image);

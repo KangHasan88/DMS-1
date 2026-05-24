@@ -16,6 +16,10 @@ class DeliveryController extends Controller
     public function index(Request $request)
     {
         $query = Delivery::with('order', 'kurir');
+
+        if ($this->isKurirOnly()) {
+            $query->where('kurir_id', auth()->id());
+        }
         
         // Search by order number or kurir
         if ($request->filled('search')) {
@@ -116,6 +120,8 @@ class DeliveryController extends Controller
      */
     public function show(Delivery $delivery)
     {
+        $this->authorizeKurirDelivery($delivery);
+
         $delivery->load('order.user', 'kurir', 'order.items.product');
         
         return view('deliveries.show', compact('delivery'));
@@ -126,6 +132,8 @@ class DeliveryController extends Controller
      */
     public function edit(Delivery $delivery)
     {
+        $this->authorizeKurirDelivery($delivery);
+
         $orders = Order::where('status', Order::STATUS_READY)
             ->whereDoesntHave('delivery')
             ->orderBy('created_at', 'desc')
@@ -141,6 +149,8 @@ class DeliveryController extends Controller
      */
     public function update(Request $request, Delivery $delivery)
     {
+        $this->authorizeKurirDelivery($delivery);
+
         $validated = $request->validate([
             'kurir_id' => 'required|exists:users,id',
             'notes' => 'nullable|string',
@@ -160,6 +170,8 @@ class DeliveryController extends Controller
      */
     public function destroy(Delivery $delivery)
     {
+        $this->authorizeKurirDelivery($delivery);
+
         if ($delivery->status !== Delivery::STATUS_ASSIGNED) {
             return back()->with('error', 'Pengiriman tidak dapat dihapus karena sudah diproses');
         }
@@ -175,6 +187,8 @@ class DeliveryController extends Controller
      */
     public function updateStatus(Request $request, Delivery $delivery)
     {
+        $this->authorizeKurirDelivery($delivery);
+
         $validated = $request->validate([
             'status' => 'required|in:' . implode(',', array_keys(Delivery::STATUS_LIST)),
             'proof_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
@@ -266,6 +280,8 @@ class DeliveryController extends Controller
      */
     public function updateLocation(Request $request, Delivery $delivery)
     {
+        $this->authorizeKurirDelivery($delivery);
+
         $validated = $request->validate([
             'latitude' => 'required|string',
             'longitude' => 'required|string',
@@ -280,5 +296,19 @@ class DeliveryController extends Controller
             'success' => true,
             'message' => 'Lokasi berhasil diupdate'
         ]);
+    }
+
+    private function isKurirOnly(): bool
+    {
+        $user = auth()->user();
+
+        return $user?->hasRole('kurir') && !$user->hasAnyRole(['super-admin', 'admin', 'manager']);
+    }
+
+    private function authorizeKurirDelivery(Delivery $delivery): void
+    {
+        if ($this->isKurirOnly() && $delivery->kurir_id !== auth()->id()) {
+            abort(403);
+        }
     }
 }

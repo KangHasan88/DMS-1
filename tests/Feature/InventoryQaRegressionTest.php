@@ -3,11 +3,14 @@
 namespace Tests\Feature;
 
 use App\Models\Delivery;
+use App\Models\DirectPurchase;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\OutboundFoc;
 use App\Models\Product;
 use App\Models\ProductStock;
 use App\Models\StockMovement;
+use App\Models\Supplier;
 use App\Models\Unit;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
@@ -139,21 +142,135 @@ class InventoryQaRegressionTest extends TestCase
         $this->assertFalse(Route::has('outbound-returns.destroy'));
     }
 
+    public function test_product_with_transaction_history_cannot_be_deleted(): void
+    {
+        $user = $this->superAdmin();
+        $product = Product::create([
+            'name' => 'Bayam History',
+            'category' => 'Sayur',
+            'price' => 5000,
+            'base_price' => 3000,
+            'is_active' => true,
+        ]);
+        $order = $this->createOrder(Order::STATUS_PENDING_PAYMENT);
+
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'product_name' => $product->name,
+            'price' => 5000,
+            'discount' => 0,
+            'quantity' => 1,
+            'subtotal' => 5000,
+            'is_available' => true,
+            'fulfillment_status' => OrderItem::FULFILLMENT_PENDING,
+        ]);
+
+        $this->actingAs($user)
+            ->from('/products')
+            ->delete(route('products.destroy', $product))
+            ->assertRedirect('/products')
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('products', ['id' => $product->id]);
+    }
+
+    public function test_supplier_with_direct_purchase_history_cannot_be_deleted(): void
+    {
+        $user = $this->superAdmin();
+        $supplier = Supplier::create([
+            'name' => 'Supplier History',
+            'phone' => '081299900001',
+            'category' => 'sayur',
+            'is_active' => true,
+        ]);
+
+        DirectPurchase::create([
+            'invoice_number' => 'DPTEST0001',
+            'supplier_id' => $supplier->id,
+            'supplier_name' => $supplier->name,
+            'purchase_date' => now()->toDateString(),
+            'subtotal' => 0,
+            'total' => 0,
+            'purchase_type' => DirectPurchase::TYPE_CASH,
+            'created_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->from('/suppliers')
+            ->delete(route('suppliers.destroy', $supplier))
+            ->assertRedirect('/suppliers')
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseHas('suppliers', ['id' => $supplier->id]);
+    }
+
+    public function test_kurir_cannot_access_another_kurir_delivery(): void
+    {
+        $kurirA = $this->userWithRole('kurir', 'kurir-a@example.test');
+        $kurirB = $this->userWithRole('kurir', 'kurir-b@example.test');
+        $delivery = Delivery::create([
+            'order_id' => $this->createOrder(Order::STATUS_SHIPPED)->id,
+            'kurir_id' => $kurirB->id,
+            'status' => Delivery::STATUS_ASSIGNED,
+            'assigned_at' => now(),
+        ]);
+
+        $this->actingAs($kurirA)
+            ->get(route('deliveries.show', $delivery))
+            ->assertForbidden();
+
+        $this->actingAs($kurirA)
+            ->post(route('deliveries.update-status', $delivery), [
+                'status' => Delivery::STATUS_PICKED_UP,
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_kurir_delivery_index_only_shows_own_deliveries(): void
+    {
+        $kurirA = $this->userWithRole('kurir', 'kurir-index-a@example.test');
+        $kurirB = $this->userWithRole('kurir', 'kurir-index-b@example.test');
+        $ownDelivery = Delivery::create([
+            'order_id' => $this->createOrder(Order::STATUS_SHIPPED, 'KMGOWN0001')->id,
+            'kurir_id' => $kurirA->id,
+            'status' => Delivery::STATUS_ASSIGNED,
+            'assigned_at' => now(),
+        ]);
+        $otherDelivery = Delivery::create([
+            'order_id' => $this->createOrder(Order::STATUS_SHIPPED, 'KMGOTHER0001')->id,
+            'kurir_id' => $kurirB->id,
+            'status' => Delivery::STATUS_ASSIGNED,
+            'assigned_at' => now(),
+        ]);
+
+        $this->actingAs($kurirA)
+            ->get('/deliveries')
+            ->assertOk()
+            ->assertSee(route('deliveries.show', $ownDelivery), false)
+            ->assertDontSee(route('deliveries.show', $otherDelivery), false);
+    }
+
     private function superAdmin(string $email = 'admin@example.test'): User
     {
+        return $this->userWithRole('super-admin', $email);
+    }
+
+    private function userWithRole(string $role, string $email): User
+    {
         $user = User::factory()->create(['email' => $email]);
-        $user->assignRole('super-admin');
+        $user->assignRole($role);
 
         return $user;
     }
 
-    private function createOrder(string $status): Order
+    private function createOrder(string $status, string $orderNumber = 'KMGTEST0001'): Order
     {
-        $customer = User::factory()->create(['email' => 'customer@example.test']);
+        $customer = User::factory()->create();
 
         return Order::create([
             'user_id' => $customer->id,
-            'order_number' => 'KMGTEST0001',
+            'order_number' => $orderNumber,
             'delivery_date' => now()->addDay()->toDateString(),
             'delivery_time_slot' => '06:00-09:00',
             'address' => 'Jl. Test No. 1',

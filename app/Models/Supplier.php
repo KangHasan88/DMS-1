@@ -58,6 +58,16 @@ class Supplier extends Model
         return $this->hasMany(PurchaseOrder::class);
     }
 
+    public function directPurchases(): HasMany
+    {
+        return $this->hasMany(DirectPurchase::class);
+    }
+
+    public function consignments(): HasMany
+    {
+        return $this->hasMany(Consignment::class);
+    }
+
     // ===================== ACCESSORS =====================
     
     public function getPhotoUrlAttribute(): string
