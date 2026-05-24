@@ -100,11 +100,15 @@ class OutboundFocController extends Controller
                 OutboundFocItem::create($item);
                 
                 $product = Product::find($item['product_id']);
-                $product->reduceForFocOut(
+                $stockReduced = $product->reduceForFocOut(
                     $item['quantity'],
                     $foc->id,
                     'FOC Out: ' . $validated['reason'] . ' - ' . ($validated['reason_detail'] ?? '')
                 );
+
+                if (!$stockReduced) {
+                    throw new \Exception("Stock {$product->name} tidak mencukupi untuk FOC. Tersedia: {$product->current_stock}");
+                }
             }
             
             DB::commit();

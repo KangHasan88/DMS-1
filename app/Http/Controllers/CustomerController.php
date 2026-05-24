@@ -3,10 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\Wallet;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class CustomerController extends Controller
 {
@@ -58,8 +59,8 @@ class CustomerController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20|unique:customers,phone',
-            'email' => 'nullable|email|max:255|unique:customers,email',
+            'phone' => ['required', 'string', 'max:20', 'unique:customers,phone', 'unique:users,phone'],
+            'email' => ['nullable', 'email', 'max:255', 'unique:customers,email', 'unique:users,email'],
             'address' => 'nullable|string',
             'latitude' => 'nullable|string',
             'longitude' => 'nullable|string',
@@ -126,8 +127,20 @@ class CustomerController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20|unique:customers,phone,' . $customer->id,
-            'email' => 'nullable|email|max:255|unique:customers,email,' . $customer->id,
+            'phone' => [
+                'required',
+                'string',
+                'max:20',
+                Rule::unique('customers', 'phone')->ignore($customer->id),
+                Rule::unique('users', 'phone')->ignore($customer->user_id),
+            ],
+            'email' => [
+                'nullable',
+                'email',
+                'max:255',
+                Rule::unique('customers', 'email')->ignore($customer->id),
+                Rule::unique('users', 'email')->ignore($customer->user_id),
+            ],
             'address' => 'nullable|string',
             'latitude' => 'nullable|string',
             'longitude' => 'nullable|string',
@@ -230,8 +243,11 @@ class CustomerController extends Controller
             return back()->with('error', 'Customer tidak memiliki akun user');
         }
         
-        $wallet = $customer->user->initWallet();
-        $wallet->addBalance($validated['amount'], null, $validated['notes'] ?? 'Topup via admin');
+        DB::transaction(function () use ($customer, $validated) {
+            $wallet = $customer->user->initWallet();
+            $wallet = Wallet::whereKey($wallet->id)->lockForUpdate()->firstOrFail();
+            $wallet->addBalance($validated['amount'], null, $validated['notes'] ?? 'Topup via admin');
+        });
         
         return redirect()->route('customers.show', $customer)
             ->with('success', 'Topup Rp ' . number_format($validated['amount'], 0, ',', '.') . ' berhasil');

@@ -78,26 +78,37 @@ class DeliveryController extends Controller
             'kurir_id' => 'required|exists:users,id',
             'notes' => 'nullable|string',
         ]);
-        
-        // Check if order already has delivery
-        if (Delivery::where('order_id', $validated['order_id'])->exists()) {
-            return back()->with('error', 'Order sudah memiliki pengiriman');
+
+        try {
+            $delivery = DB::transaction(function () use ($validated) {
+                $order = Order::lockForUpdate()->findOrFail($validated['order_id']);
+
+                if ($order->status !== Order::STATUS_READY) {
+                    throw new \Exception('Order harus berstatus siap kirim sebelum dibuatkan pengiriman');
+                }
+
+                if (Delivery::where('order_id', $order->id)->exists()) {
+                    throw new \Exception('Order sudah memiliki pengiriman');
+                }
+
+                $delivery = Delivery::create([
+                    'order_id' => $order->id,
+                    'kurir_id' => $validated['kurir_id'],
+                    'status' => Delivery::STATUS_ASSIGNED,
+                    'assigned_at' => now(),
+                    'notes' => $validated['notes'],
+                ]);
+
+                $order->updateStatus(Order::STATUS_SHIPPED, 'Pengiriman diassign ke kurir');
+
+                return $delivery;
+            });
+
+            return redirect()->route('deliveries.show', $delivery)
+                ->with('success', 'Pengiriman berhasil diassign');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal membuat pengiriman: ' . $e->getMessage());
         }
-        
-        $delivery = Delivery::create([
-            'order_id' => $validated['order_id'],
-            'kurir_id' => $validated['kurir_id'],
-            'status' => Delivery::STATUS_ASSIGNED,
-            'assigned_at' => now(),
-            'notes' => $validated['notes'],
-        ]);
-        
-        // Update order status
-        $order = Order::find($validated['order_id']);
-        $order->updateStatus(Order::STATUS_SHIPPED, 'Pengiriman diassign ke kurir');
-        
-        return redirect()->route('deliveries.show', $delivery)
-            ->with('success', 'Pengiriman berhasil diassign');
     }
 
     /**
@@ -176,6 +187,18 @@ class DeliveryController extends Controller
         
         try {
             $oldStatus = $delivery->status;
+
+            $allowedTransitions = [
+                Delivery::STATUS_ASSIGNED => [Delivery::STATUS_PICKED_UP],
+                Delivery::STATUS_PICKED_UP => [Delivery::STATUS_IN_TRANSIT],
+                Delivery::STATUS_IN_TRANSIT => [Delivery::STATUS_COMPLETED],
+                Delivery::STATUS_COMPLETED => [],
+            ];
+
+            if (!in_array($validated['status'], $allowedTransitions[$oldStatus] ?? [], true)) {
+                throw new \Exception('Perubahan status pengiriman tidak valid');
+            }
+
             $delivery->status = $validated['status'];
             
             // Update timestamp based on status

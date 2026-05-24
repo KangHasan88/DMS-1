@@ -54,7 +54,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['role:super-admin,admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::resource('users', UserController::class);
         Route::post('users/{user}/toggle-status', [UserController::class, 'toggleActive'])->name('users.toggle-status');
-        Route::delete('users/bulk-destroy', [UserController::class, 'bulkDestroy'])->name('users.bulk-destroy');
     });
     
     // ============= ROLE & PERMISSION MANAGEMENT =============
@@ -117,19 +116,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('purchase-orders/{purchaseOrder}/cancel', [PurchaseOrderController::class, 'cancel'])->middleware('permission:delete purchase order')->name('purchase-orders.cancel');
     Route::get('purchase-orders/{purchaseOrder}/receive', [PurchaseOrderController::class, 'receiveForm'])->middleware('permission:edit purchase order')->name('purchase-orders.receive-form');
     Route::post('purchase-orders/{purchaseOrder}/receive', [PurchaseOrderController::class, 'receive'])->middleware('permission:edit purchase order')->name('purchase-orders.receive');
-    Route::get('purchase-orders/{purchaseOrder}/payment', [PurchaseOrderController::class, 'paymentForm'])->middleware('permission:process payment')->name('purchase-orders.payment-form');
-    Route::post('purchase-orders/{purchaseOrder}/payment', [PurchaseOrderController::class, 'processPayment'])->middleware('permission:process payment')->name('purchase-orders.payment');
-    
     // ============= DIRECT PURCHASE MANAGEMENT =============
     Route::resource('direct-purchases', DirectPurchaseController::class)->only(['create', 'store'])->middleware('permission:create direct purchase');
     Route::resource('direct-purchases', DirectPurchaseController::class)->only(['index', 'show'])->middleware('permission:view direct purchase');
-    Route::resource('direct-purchases', DirectPurchaseController::class)->only(['edit', 'update'])->middleware('permission:edit direct purchase');
     Route::resource('direct-purchases', DirectPurchaseController::class)->only(['destroy'])->middleware('permission:delete direct purchase');
     
     // ============= CONSIGNMENT MANAGEMENT =============
     Route::resource('consignments', ConsignmentController::class)->only(['create', 'store'])->middleware('permission:create consignments');
     Route::resource('consignments', ConsignmentController::class)->only(['index', 'show'])->middleware('permission:view consignments');
-    Route::resource('consignments', ConsignmentController::class)->only(['edit', 'update'])->middleware('permission:edit consignments');
     Route::resource('consignments', ConsignmentController::class)->only(['destroy'])->middleware('permission:delete consignments');
     Route::get('consignments/{consignment}/return', [ConsignmentController::class, 'returnForm'])->middleware('permission:edit consignments')->name('consignments.return-form');
     Route::post('consignments/{consignment}/return', [ConsignmentController::class, 'processReturn'])->middleware('permission:edit consignments')->name('consignments.return');
@@ -174,13 +168,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ============= OUTBOUND FOC (HADIAH) =============
     Route::resource('outbound-focs', OutboundFocController::class)->only(['create', 'store'])->middleware('permission:create outbound foc');
     Route::resource('outbound-focs', OutboundFocController::class)->only(['index', 'show'])->middleware('permission:view outbound foc');
-    Route::resource('outbound-focs', OutboundFocController::class)->only(['edit', 'update'])->middleware('permission:edit outbound foc');
     Route::resource('outbound-focs', OutboundFocController::class)->only(['destroy'])->middleware('permission:delete outbound foc');
     
     // ============= OUTBOUND RETURN (RETUR) =============
     Route::resource('outbound-returns', OutboundReturnController::class)->only(['create', 'store'])->middleware('permission:create outbound return');
     Route::resource('outbound-returns', OutboundReturnController::class)->only(['index', 'show'])->middleware('permission:view outbound return');
-    Route::resource('outbound-returns', OutboundReturnController::class)->only(['edit', 'update'])->middleware('permission:edit outbound return');
     Route::resource('outbound-returns', OutboundReturnController::class)->only(['destroy'])->middleware('permission:delete outbound return');
     
     // ============= REPORTS =============

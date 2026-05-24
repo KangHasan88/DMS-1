@@ -104,11 +104,15 @@ class OutboundReturnController extends Controller
                 OutboundReturnItem::create($item);
                 
                 $product = Product::find($item['product_id']);
-                $product->reduceForReturnOut(
+                $stockReduced = $product->reduceForReturnOut(
                     $item['quantity'],
                     $return->id,
                     'Return Out: ' . $validated['return_type'] . ' - ' . ($validated['reason_detail'] ?? '')
                 );
+
+                if (!$stockReduced) {
+                    throw new \Exception("Stock {$product->name} tidak mencukupi untuk return. Tersedia: {$product->current_stock}");
+                }
             }
             
             DB::commit();

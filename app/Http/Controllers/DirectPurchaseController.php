@@ -10,7 +10,6 @@ use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 
 class DirectPurchaseController extends Controller
 {
@@ -50,8 +49,6 @@ class DirectPurchaseController extends Controller
 
     public function store(Request $request)
     {
-        Log::info('Direct Purchase Request:', $request->all());
-        
         $validated = $request->validate([
             'purchase_type' => 'required|in:cash,foc',
             'reference_po' => 'nullable|string|max:100',
@@ -66,8 +63,6 @@ class DirectPurchaseController extends Controller
             'items.*.price' => 'required|numeric|min:0',
             'items.*.notes' => 'nullable|string',
         ]);
-        
-        Log::info('Validation passed');
         
         DB::beginTransaction();
         
@@ -91,9 +86,6 @@ class DirectPurchaseController extends Controller
             }
             
             $invoiceNumber = DirectPurchase::generateInvoiceNumber($request->purchase_type);
-            Log::info('Invoice Number: ' . $invoiceNumber);
-            Log::info('User ID: ' . Auth::id());
-            Log::info('User: ' . Auth::user()->name);
             
             $purchase = DirectPurchase::create([
                 'invoice_number' => $invoiceNumber,
@@ -109,12 +101,9 @@ class DirectPurchaseController extends Controller
                 'created_by' => Auth::id(),
             ]);
             
-            Log::info('Purchase created with ID: ' . $purchase->id);
-            
             foreach ($items as $item) {
                 $item['direct_purchase_id'] = $purchase->id;
                 DirectPurchaseItem::create($item);
-                Log::info('Item created for product: ' . $item['product_id']);
                 
                 $product = Product::find($item['product_id']);
                 $reason = $isFoc 
@@ -130,20 +119,16 @@ class DirectPurchaseController extends Controller
             
             DB::commit();
             
-            Log::info('Direct Purchase completed successfully');
-            
             $message = $isFoc 
-                ? '? FOC (Free of Charge) berhasil dicatat. Stock gratis bertambah!'
-                : '? Pembelian langsung berhasil dicatat. Stock bertambah!';
+                ? 'FOC (Free of Charge) berhasil dicatat. Stock gratis bertambah!'
+                : 'Pembelian langsung berhasil dicatat. Stock bertambah!';
             
             return redirect()->route('direct-purchases.index')
                 ->with('success', $message);
                 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Direct Purchase Error: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
-            return back()->with('error', '? Gagal mencatat: ' . $e->getMessage());
+            return back()->with('error', 'Gagal mencatat: ' . $e->getMessage());
         }
     }
 
@@ -159,6 +144,6 @@ class DirectPurchaseController extends Controller
         $directPurchase->delete();
         
         return redirect()->route('direct-purchases.index')
-            ->with('success', '? Pembelian langsung berhasil dihapus');
+            ->with('success', 'Pembelian langsung berhasil dihapus');
     }
 }
