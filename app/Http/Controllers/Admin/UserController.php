@@ -46,7 +46,7 @@ class UserController extends Controller
      */
     public function create()
     {
-        $roles = Role::all();
+        $roles = $this->availableRoles();
         $supervisors = User::role(['manager', 'admin'])->get();
         
         return view('admin.users.create', compact('roles', 'supervisors'));
@@ -104,7 +104,7 @@ class UserController extends Controller
      */
     public function edit(User $user)
     {
-        $roles = Role::all();
+        $roles = $this->availableRoles();
         $supervisors = User::role(['manager', 'admin'])->where('id', '!=', $user->id)->get();
         
         return view('admin.users.edit', compact('user', 'roles', 'supervisors'));
@@ -190,7 +190,14 @@ class UserController extends Controller
      */
     public function toggleActive(User $user)
     {
-        if ($user->hasRole('super-admin') && $user->id !== auth()->id()) {
+        if ($user->id === auth()->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak dapat mengubah status akun sendiri.'
+            ]);
+        }
+
+        if ($user->hasRole('super-admin')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Tidak dapat mengubah status Super Admin.'
@@ -205,5 +212,12 @@ class UserController extends Controller
             'message' => 'Status user berhasil diubah.',
             'is_active' => $user->is_active
         ]);
+    }
+
+    private function availableRoles()
+    {
+        return Role::query()
+            ->when(!auth()->user()?->hasRole('super-admin'), fn ($query) => $query->where('name', '!=', 'super-admin'))
+            ->get();
     }
 }

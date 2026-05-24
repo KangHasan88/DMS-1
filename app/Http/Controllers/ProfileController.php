@@ -129,6 +129,8 @@ class ProfileController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        abort(403, 'Akun internal tidak dapat dihapus dari halaman profil.');
+
         $request->validate([
             'password' => ['required', 'current_password'],
         ]);

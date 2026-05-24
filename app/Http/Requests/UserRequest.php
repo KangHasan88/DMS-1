@@ -86,6 +86,23 @@ class UserRequest extends FormRequest
         ];
     }
 
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $currentUser = $this->user();
+            $targetUser = $this->route('user');
+            $roles = collect($this->input('roles', []));
+
+            if (!$currentUser?->hasRole('super-admin') && $roles->contains('super-admin')) {
+                $validator->errors()->add('roles', 'Hanya Super Admin yang dapat memberikan role Super Admin.');
+            }
+
+            if ($targetUser?->hasRole('super-admin') && !$currentUser?->hasRole('super-admin')) {
+                $validator->errors()->add('roles', 'Hanya Super Admin yang dapat mengubah akun Super Admin.');
+            }
+        });
+    }
+
     protected function prepareForValidation(): void
     {
         // Handle roles - pastikan roles berupa array

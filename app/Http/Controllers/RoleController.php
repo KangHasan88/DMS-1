@@ -99,11 +99,10 @@ class RoleController extends Controller
      */
     public function edit(Role $role)
     {
-        // Prevent editing super-admin
-        if ($role->name === 'super-admin' && !auth()->user()->hasRole('super-admin')) {
+        if ($this->isProtectedRole($role)) {
             return redirect()
                 ->route('roles.index')
-                ->with('error', 'Tidak dapat mengedit role Super Admin.');
+                ->with('error', 'Role sistem tidak dapat diedit.');
         }
 
         $permissions = Permission::orderBy('name')->get()->groupBy(function($permission) {
@@ -121,11 +120,10 @@ class RoleController extends Controller
      */
     public function update(Request $request, Role $role)
     {
-        // Prevent editing super-admin
-        if ($role->name === 'super-admin' && !auth()->user()->hasRole('super-admin')) {
+        if ($this->isProtectedRole($role)) {
             return redirect()
                 ->route('roles.index')
-                ->with('error', 'Tidak dapat mengedit role Super Admin.');
+                ->with('error', 'Role sistem tidak dapat diedit.');
         }
 
         $request->validate([
@@ -199,11 +197,10 @@ class RoleController extends Controller
      */
     public function permissions(Role $role)
     {
-        // Prevent editing super-admin permissions
-        if ($role->name === 'super-admin' && !auth()->user()->hasRole('super-admin')) {
+        if ($this->isProtectedRole($role)) {
             return redirect()
                 ->route('roles.index')
-                ->with('error', 'Tidak dapat mengubah permission Super Admin.');
+                ->with('error', 'Permission role sistem tidak dapat diubah.');
         }
 
         $allPermissions = Permission::orderBy('name')->get()->groupBy(function($permission) {
@@ -221,11 +218,10 @@ class RoleController extends Controller
      */
     public function updatePermissions(Request $request, Role $role)
     {
-        // Prevent editing super-admin permissions
-        if ($role->name === 'super-admin' && !auth()->user()->hasRole('super-admin')) {
+        if ($this->isProtectedRole($role)) {
             return redirect()
                 ->route('roles.index')
-                ->with('error', 'Tidak dapat mengubah permission Super Admin.');
+                ->with('error', 'Permission role sistem tidak dapat diubah.');
         }
 
         $request->validate([
@@ -243,5 +239,10 @@ class RoleController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal mengupdate permission: ' . $e->getMessage());
         }
+    }
+
+    private function isProtectedRole(Role $role): bool
+    {
+        return $role->name === 'super-admin';
     }
 }
