@@ -444,31 +444,52 @@ class OrderController extends Controller
             'status' => 'required|in:' . implode(',', array_keys(Order::STATUS_LIST)),
             'notes' => 'nullable|string',
         ]);
+
+        if ($validated['status'] === $order->status) {
+            return back()->with('error', 'Status order sudah berada di ' . Order::STATUS_LIST[$order->status]);
+        }
+
+        if (!$order->canTransitionTo($validated['status'])) {
+            return back()->with('error', 'Perubahan status dari ' . $order->status_label . ' ke ' . Order::STATUS_LIST[$validated['status']] . ' tidak valid');
+        }
+
+        if ($validated['status'] === Order::STATUS_CANCELLED) {
+            DB::transaction(function () use ($order, $validated) {
+                $order->restoreAllocatedStock($validated['notes'] ?? null);
+                $order->updateStatus(Order::STATUS_CANCELLED, $validated['notes'] ?? 'Order dibatalkan');
+            });
+
+            return redirect()->route('orders.show', $order)
+                ->with('success', 'Order dibatalkan dan stock yang sudah dialokasikan dikembalikan.');
+        }
         
         // Handle status PAID
         if ($validated['status'] === Order::STATUS_PAID) {
-            
-            if ($order->useStockMode()) {
-                // Mode Stock: Cek Stock dulu
-                $order->updateStatus(Order::STATUS_CHECKING_STOCK, 'Memeriksa ketersediaan stock');
-                
-                // Proses stock reduction
-                $allAvailable = $order->processStockReduction();
-                
-                if ($allAvailable) {
-                    // Semua stock tersedia, lanjut ke repacking
-                    $order->updateStatus(Order::STATUS_REPACKING, 'Stock tersedia, lanjut repack');
-                } else {
-                    session()->flash('warning', 'Beberapa item tidak tersedia di stock dan telah ditandai untuk refund.');
-                }
-                
-            } elseif ($order->useJitMode()) {
-                // Mode JIT: Langsung ke status procuring
-                $order->updateStatus(Order::STATUS_PROCURING, 'Menunggu input data belanja');
-            }
+            $order->updateStatus(Order::STATUS_PAID, $validated['notes'] ?? 'Pembayaran dikonfirmasi');
             
             return redirect()->route('orders.show', $order)
                 ->with('success', 'Pembayaran dikonfirmasi.');
+        }
+
+        if ($validated['status'] === Order::STATUS_CHECKING_STOCK) {
+            DB::transaction(function () use ($order) {
+                $order->updateStatus(Order::STATUS_CHECKING_STOCK, 'Memeriksa ketersediaan stock');
+                $allAvailable = $order->processStockReduction();
+
+                if (!$allAvailable) {
+                    session()->flash('warning', 'Beberapa item tidak tersedia di stock dan telah ditandai untuk refund.');
+                }
+            });
+
+            return redirect()->route('orders.show', $order)
+                ->with('success', 'Stock berhasil dicek dan dialokasikan.');
+        }
+
+        if ($validated['status'] === Order::STATUS_PROCURING) {
+            $order->updateStatus(Order::STATUS_PROCURING, $validated['notes'] ?? 'Menunggu input data belanja');
+
+            return redirect()->route('orders.show', $order)
+                ->with('success', 'Order masuk ke proses belanja');
         }
         
         // Handle status REPACKING (untuk mode stock yang sudah di-check)

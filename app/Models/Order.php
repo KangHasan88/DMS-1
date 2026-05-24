@@ -236,6 +236,27 @@ class Order extends Model
         return $this->save();
     }
 
+    public function canTransitionTo(string $newStatus): bool
+    {
+        if ($newStatus === self::STATUS_CANCELLED) {
+            return !in_array($this->status, [self::STATUS_SHIPPED, self::STATUS_DELIVERED, self::STATUS_CANCELLED], true);
+        }
+
+        $allowed = [
+            self::STATUS_PENDING_PAYMENT => [self::STATUS_PAID],
+            self::STATUS_PAID => [
+                $this->useStockMode() ? self::STATUS_CHECKING_STOCK : self::STATUS_PROCURING,
+            ],
+            self::STATUS_CHECKING_STOCK => [self::STATUS_REPACKING],
+            self::STATUS_PROCURING => [self::STATUS_REPACKING],
+            self::STATUS_REPACKING => [self::STATUS_READY],
+            self::STATUS_READY => [self::STATUS_SHIPPED],
+            self::STATUS_SHIPPED => [self::STATUS_DELIVERED],
+        ];
+
+        return in_array($newStatus, $allowed[$this->status] ?? [], true);
+    }
+
     public function recalculateTotal(): void
     {
         $this->subtotal = $this->items->sum('subtotal');
@@ -281,6 +302,10 @@ class Order extends Model
         $allAvailable = true;
         
         foreach ($this->items as $item) {
+            if ($item->fulfillment_status === OrderItem::FULFILLMENT_FULFILLED) {
+                continue;
+            }
+
             $product = $item->product;
             if (!$product->hasStock($item->quantity)) {
                 $allAvailable = false;
@@ -302,6 +327,32 @@ class Order extends Model
         $this->recalculateTotal();
         
         return $allAvailable;
+    }
+
+    public function restoreAllocatedStock(?string $reason = null): void
+    {
+        if (!$this->useStockMode()) {
+            return;
+        }
+
+        $this->loadMissing('items.product.stock');
+
+        foreach ($this->items as $item) {
+            if ($item->fulfillment_status !== OrderItem::FULFILLMENT_FULFILLED || !$item->product) {
+                continue;
+            }
+
+            $item->product->restoreForOrder(
+                $item->quantity,
+                $this->id,
+                $reason ?? 'Order #' . $this->order_number . ' dibatalkan'
+            );
+
+            $item->update([
+                'fulfillment_status' => OrderItem::FULFILLMENT_PENDING,
+                'stock_movement_id' => null,
+            ]);
+        }
     }
 
     public function isFullyFulfilled(): bool

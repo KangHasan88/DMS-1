@@ -130,6 +130,16 @@ class Product extends Model
         
         return $this->stock->reduceForOrder($quantity, $orderId, $reason);
     }
+
+    public function restoreForOrder(int $quantity, int $orderId, ?string $reason = null): void
+    {
+        if (!$this->stock) {
+            $this->stock()->create(['quantity' => 0]);
+            $this->refresh();
+        }
+
+        $this->stock->restoreForOrder($quantity, $orderId, $reason);
+    }
     
     public function reduceForFocOut(int $quantity, int $focId, ?string $reason = null): bool
     {

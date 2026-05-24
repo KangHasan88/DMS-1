@@ -191,6 +191,31 @@ class ProductStock extends Model
     }
 
     /**
+     * Restore stock when a sales order is cancelled after stock was allocated.
+     */
+    public function restoreForOrder(int $quantity, int $orderId, ?string $reason = null): void
+    {
+        $before = $this->quantity;
+        $this->quantity += $quantity;
+        $this->last_updated_at = now();
+        $this->updated_by = auth()->id();
+        $this->save();
+
+        StockMovement::create([
+            'product_id' => $this->product_id,
+            'order_id' => $orderId,
+            'source_type' => StockMovement::SOURCE_ORDER,
+            'source_id' => $orderId,
+            'type' => StockMovement::TYPE_IN,
+            'quantity' => $quantity,
+            'before_quantity' => $before,
+            'after_quantity' => $this->quantity,
+            'reason' => $reason ?? 'Restore cancelled order #' . $orderId,
+            'created_by' => auth()->id(),
+        ]);
+    }
+
+    /**
      * Reduce stock from FOC Out (Hadiah)
      */
     public function reduceForFocOut(int $quantity, int $focId, ?string $reason = null): bool
