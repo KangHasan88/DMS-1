@@ -109,15 +109,19 @@
                             <a href="{{ route('stock.show', $product) }}" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem;" title="Detail Stok">
                                 <i class="bi bi-eye"></i>
                             </a>
+                            @can('create stock movement')
                             <a href="{{ route('stock.add-form', $product) }}" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem;" title="Tambah Stok">
                                 <i class="bi bi-plus-circle"></i>
                             </a>
                             <a href="{{ route('stock.reduce-form', $product) }}" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem;" title="Kurangi Stok">
                                 <i class="bi bi-dash-circle"></i>
                             </a>
+                            @endcan
+                            @can('manage warehouse')
                             <a href="{{ route('stock.adjustment-form', $product) }}" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem;" title="Penyesuaian Stok">
                                 <i class="bi bi-sliders2"></i>
                             </a>
+                            @endcan
                         </div>
                     </td>
                 </tr>

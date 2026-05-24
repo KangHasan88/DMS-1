@@ -12,9 +12,11 @@
                 Catatan pengeluaran barang untuk retur customer, barang rusak, atau ganti rugi.
             </p>
         </div>
+        @can('create outbound return')
         <a href="{{ route('outbound-returns.create') }}" class="dms-btn dms-btn-primary">
             <i class="bi bi-plus-circle"></i> Tambah Return
         </a>
+        @endcan
     </div>
 
     <!-- Filter -->
@@ -105,9 +107,11 @@
                     <td colspan="8" style="text-align: center; padding: 3rem;">
                         <i class="bi bi-arrow-return-left" style="font-size: 3rem; color: var(--k-gray-300);"></i>
                         <p style="margin-top: 1rem; color: var(--k-gray-500);">Belum ada data Return Out</p>
+                        @can('create outbound return')
                         <a href="{{ route('outbound-returns.create') }}" class="dms-btn dms-btn-primary" style="margin-top: 1rem;">
                             <i class="bi bi-plus-circle"></i> Tambah Return
                         </a>
+                        @endcan
                     </thead>
                 </thead>
                 @endforelse

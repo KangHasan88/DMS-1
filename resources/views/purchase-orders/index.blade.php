@@ -10,10 +10,12 @@
             <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">Daftar Purchase Order</h3>
             <p style="font-size: 0.85rem; color: var(--k-gray-500);">Kelola semua pembelian ke supplier</p>
         </div>
+        @can('create purchase order')
         <a href="{{ route('purchase-orders.create') }}" class="dms-btn dms-btn-primary">
             <i class="bi bi-plus-circle"></i>
             Buat PO Baru
         </a>
+        @endcan
     </div>
 
     <!-- Search & Filter -->
@@ -114,16 +116,20 @@
                             <a href="{{ route('purchase-orders.show', $po) }}" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem;" title="Detail">
                                 <i class="bi bi-eye"></i>
                             </a>
+                            @can('edit purchase order')
                             @if(in_array($po->status, ['draft', 'pending']))
                             <a href="{{ route('purchase-orders.edit', $po) }}" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem;" title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </a>
                             @endif
+                            @endcan
+                            @can('delete purchase order')
                             @if($po->status == 'draft')
                             <button onclick="deletePO({{ $po->id }}, '{{ $po->po_number }}')" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem; color: var(--k-red);" title="Hapus">
                                 <i class="bi bi-trash"></i>
                             </button>
                             @endif
+                            @endcan
                         </div>
                     </td>
                   </tr>
@@ -132,9 +138,11 @@
                     <td colspan="7" style="text-align: center; padding: 3rem;">
                         <i class="bi bi-receipt" style="font-size: 3rem; color: var(--k-gray-300);"></i>
                         <p style="margin-top: 1rem; color: var(--k-gray-500);">Tidak ada data Purchase Order</p>
+                        @can('create purchase order')
                         <a href="{{ route('purchase-orders.create') }}" class="dms-btn dms-btn-primary" style="margin-top: 1rem;">
                             <i class="bi bi-plus-circle"></i> Buat PO Pertama
                         </a>
+                        @endcan
                     </td>
                   </tr>
                 @endforelse
@@ -154,10 +162,12 @@
 </div>
 
 <!-- Hidden Form for Delete -->
+@can('delete purchase order')
 <form id="delete-form" method="POST" style="display: none;">
     @csrf
     @method('DELETE')
 </form>
+@endcan
 
 <script>
 function deletePO(poId, poNumber) {

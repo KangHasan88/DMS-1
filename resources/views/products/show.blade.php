@@ -11,9 +11,11 @@
             <p style="font-size: 0.85rem; color: var(--k-gray-500);">Informasi lengkap produk</p>
         </div>
         <div style="display: flex; gap: 0.5rem;">
+            @can('edit products')
             <a href="{{ route('products.edit', $product) }}" class="dms-btn dms-btn-primary">
                 <i class="bi bi-pencil"></i> Edit
             </a>
+            @endcan
             <a href="{{ route('products.index') }}" class="dms-btn dms-btn-outline">
                 <i class="bi bi-arrow-left"></i> Kembali
             </a>
@@ -169,6 +171,7 @@
 
     <!-- Action Buttons (Bottom) -->
     <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--k-gray-200);">
+        @can('delete products')
         <form action="{{ route('products.destroy', $product) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus produk {{ $product->name }}?')">
             @csrf
             @method('DELETE')
@@ -176,9 +179,12 @@
                 <i class="bi bi-trash"></i> Hapus Produk
             </button>
         </form>
+        @endcan
+        @can('edit products')
         <a href="{{ route('products.edit', $product) }}" class="dms-btn dms-btn-primary">
             <i class="bi bi-pencil"></i> Edit Produk
         </a>
+        @endcan
     </div>
 </div>
 @endsection

@@ -16,11 +16,13 @@
             </p>
         </div>
         <div style="display: flex; gap: 0.5rem;">
+            @can('edit sales order')
             @if($order->canUpdateStatus())
             <a href="{{ route('orders.edit', $order) }}" class="dms-btn dms-btn-primary">
                 <i class="bi bi-pencil"></i> Edit
             </a>
             @endif
+            @endcan
             <a href="{{ route('orders.index') }}" class="dms-btn dms-btn-outline">
                 <i class="bi bi-arrow-left"></i> Kembali
             </a>
@@ -317,6 +319,7 @@
 <div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: flex-end; flex-wrap: wrap;">
     
     {{-- Konfirmasi Pembayaran --}}
+    @can('process orders')
     @if($order->status == 'pending_payment')
     <form action="{{ route('orders.update-status', $order) }}" method="POST">
         @csrf
@@ -327,15 +330,19 @@
         </button>
     </form>
     @endif
+    @endcan
     
     {{-- HANYA untuk mode JIT: Input Data Belanja --}}
+    @can('process orders')
     @if($order->status == 'procuring' && $order->useJitMode())
     <button onclick="openProcurementModal()" class="dms-btn dms-btn-primary">
         <i class="bi bi-cart"></i> Input Data Belanja
     </button>
     @endif
+    @endcan
     
     {{-- Proses Repack (untuk mode stock setelah checking_stock) --}}
+    @can('process orders')
     @if($order->status == 'checking_stock' && $order->useStockMode())
     <form action="{{ route('orders.process-repack', $order) }}" method="POST">
         @csrf
@@ -344,8 +351,10 @@
         </button>
     </form>
     @endif
+    @endcan
     
     {{-- Proses Repack (untuk mode JIT setelah procurement selesai) --}}
+    @can('process orders')
     @if($order->status == 'procuring' && $order->useJitMode() && $order->items()->where('fulfillment_status', 'pending')->count() == 0)
     <form action="{{ route('orders.process-repack', $order) }}" method="POST">
         @csrf
@@ -354,8 +363,10 @@
         </button>
     </form>
     @endif
+    @endcan
     
     {{-- Siap Kirim --}}
+    @can('process orders')
     @if($order->status == 'repacking')
     <form action="{{ route('orders.mark-ready', $order) }}" method="POST">
         @csrf
@@ -364,15 +375,19 @@
         </button>
     </form>
     @endif
+    @endcan
     
     {{-- Kirim Order --}}
+    @can('process deliveries')
     @if($order->status == 'ready')
     <button onclick="openShippingModal()" class="dms-btn dms-btn-primary">
         <i class="bi bi-truck"></i> Kirim Order
     </button>
     @endif
+    @endcan
     
     {{-- Selesaikan Order --}}
+    @can('process deliveries')
     @if($order->status == 'shipped')
     <form action="{{ route('orders.mark-delivered', $order) }}" method="POST">
         @csrf
@@ -381,10 +396,12 @@
         </button>
     </form>
     @endif
+    @endcan
 </div>
 @endif
 
 <!-- Procurement Modal (untuk JIT) -->
+@can('process orders')
 <div id="procurementModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
     <div style="background: white; border-radius: 12px; padding: 1.5rem; width: 600px; max-width: 90%;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
@@ -424,8 +441,10 @@
         </form>
     </div>
 </div>
+@endcan
 
 <!-- Shipping Modal -->
+@can('process deliveries')
 <div id="shippingModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
     <div style="background: white; border-radius: 12px; padding: 1.5rem; width: 400px; max-width: 90%;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
@@ -447,6 +466,7 @@
         </form>
     </div>
 </div>
+@endcan
 
 <script>
 function openProcurementModal() {
@@ -466,17 +486,23 @@ function closeShippingModal() {
 }
 
 // Close modal when clicking outside
-document.getElementById('procurementModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeProcurementModal();
-    }
-});
+const procurementModal = document.getElementById('procurementModal');
+if (procurementModal) {
+    procurementModal.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeProcurementModal();
+        }
+    });
+}
 
-document.getElementById('shippingModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeShippingModal();
-    }
-});
+const shippingModal = document.getElementById('shippingModal');
+if (shippingModal) {
+    shippingModal.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeShippingModal();
+        }
+    });
+}
 </script>
 
 <style>

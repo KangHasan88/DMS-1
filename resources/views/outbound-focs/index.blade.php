@@ -12,9 +12,11 @@
                 Catatan pengeluaran barang untuk hadiah, sample, support customer, atau kompensasi.
             </p>
         </div>
+        @can('create outbound foc')
         <a href="{{ route('outbound-focs.create') }}" class="dms-btn dms-btn-primary">
             <i class="bi bi-plus-circle"></i> Tambah FOC
         </a>
+        @endcan
     </div>
 
     <!-- Filter -->
@@ -99,9 +101,11 @@
                     <td colspan="7" style="text-align: center; padding: 3rem;">
                         <i class="bi bi-gift" style="font-size: 3rem; color: var(--k-gray-300);"></i>
                         <p style="margin-top: 1rem; color: var(--k-gray-500);">Belum ada data FOC Out</p>
+                        @can('create outbound foc')
                         <a href="{{ route('outbound-focs.create') }}" class="dms-btn dms-btn-primary" style="margin-top: 1rem;">
                             <i class="bi bi-plus-circle"></i> Tambah FOC
                         </a>
+                        @endcan
                     </thead>
                 </thead>
                 @endforelse

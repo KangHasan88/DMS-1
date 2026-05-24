@@ -10,9 +10,11 @@
             <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">Daftar Order</h3>
             <p style="font-size: 0.85rem; color: var(--k-gray-500);">Kelola semua order KurmiGO</p>
         </div>
+        @can('create sales order')
         <a href="{{ route('orders.create') }}" class="dms-btn dms-btn-primary">
             <i class="bi bi-plus-circle"></i> Tambah Order
         </a>
+        @endcan
     </div>
 
     <!-- Search Form -->
@@ -160,16 +162,20 @@
                             <a href="{{ route('orders.show', $order) }}" class="dms-btn dms-btn-outline" style="padding: 0.25rem 0.7rem; font-size: 0.65rem; text-decoration: none;" title="Detail">
                                 <i class="bi bi-eye"></i>
                             </a>
+                            @can('edit sales order')
                             @if($order->canUpdateStatus())
                             <a href="{{ route('orders.edit', $order) }}" class="dms-btn dms-btn-outline" style="padding: 0.25rem 0.7rem; font-size: 0.65rem; text-decoration: none;" title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </a>
                             @endif
+                            @endcan
+                            @can('delete sales order')
                             @if($order->status == 'pending_payment')
                             <button onclick="deleteOrder({{ $order->id }}, '{{ $order->order_number }}')" class="dms-btn dms-btn-outline" style="padding: 0.25rem 0.7rem; font-size: 0.65rem; color: var(--k-red);" title="Hapus">
                                 <i class="bi bi-trash"></i>
                             </button>
                             @endif
+                            @endcan
                         </div>
                     </td>
                 </tr>
@@ -178,9 +184,11 @@
                     <td colspan="8" style="text-align: center; padding: 3rem;">
                         <i class="bi bi-inbox" style="font-size: 3rem; color: var(--k-gray-300);"></i>
                         <p style="margin-top: 1rem; color: var(--k-gray-500);">Tidak ada data order</p>
+                        @can('create sales order')
                         <a href="{{ route('orders.create') }}" class="dms-btn dms-btn-primary" style="margin-top: 1rem;">
                             <i class="bi bi-plus-circle"></i> Buat Order Pertama
                         </a>
+                        @endcan
                     </td>
                 </tr>
                 @endforelse
@@ -200,10 +208,12 @@
 </div>
 
 <!-- Hidden Form for Delete -->
+@can('delete sales order')
 <form id="delete-form" method="POST" style="display: none;">
     @csrf
     @method('DELETE')
 </form>
+@endcan
 
 <script>
 function toggleAdvancedSearch() {

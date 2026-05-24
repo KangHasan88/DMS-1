@@ -12,9 +12,11 @@
                 Catatan pembelian barang secara tunai atau FOC (Free of Charge / Bonus) dari supplier.
             </p>
         </div>
+        @can('create direct purchase')
         <a href="{{ route('direct-purchases.create') }}" class="dms-btn dms-btn-primary">
             <i class="bi bi-plus-circle"></i> Tambah Pembelian
         </a>
+        @endcan
     </div>
 
     <!-- Filter -->
@@ -108,9 +110,11 @@
                     <td colspan="6" style="padding: 3rem; text-align: center;">
                         <i class="bi bi-receipt" style="font-size: 3rem; color: var(--k-gray-300);"></i>
                         <p style="margin-top: 1rem; color: var(--k-gray-500);">Belum ada data pembelian langsung</p>
+                        @can('create direct purchase')
                         <a href="{{ route('direct-purchases.create') }}" class="dms-btn dms-btn-primary" style="margin-top: 1rem;">
                             <i class="bi bi-plus-circle"></i> Tambah Pembelian
                         </a>
+                        @endcan
                     </td>
                 </tr>
                 @endforelse

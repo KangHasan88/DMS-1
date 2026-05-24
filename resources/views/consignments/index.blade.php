@@ -12,9 +12,11 @@
                 Kelola barang titipan dari supplier. Barang baru dibayar setelah terjual.
             </p>
         </div>
+        @can('create consignments')
         <a href="{{ route('consignments.create') }}" class="dms-btn dms-btn-primary">
             <i class="bi bi-plus-circle"></i> Tambah Consignment
         </a>
+        @endcan
     </div>
 
     <!-- Filter -->
@@ -93,11 +95,13 @@
                             <a href="{{ route('consignments.show', $cn) }}" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem;" title="Detail">
                                 <i class="bi bi-eye"></i>
                             </a>
+                            @can('edit consignments')
                             @if(in_array($cn->status, ['active', 'partial']))
                             <a href="{{ route('consignments.return-form', $cn) }}" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem;" title="Return">
                                 <i class="bi bi-arrow-return-left"></i>
                             </a>
                             @endif
+                            @endcan
                         </div>
                     
                 </thead>
@@ -106,9 +110,11 @@
                     <td colspan="9" style="text-align: center; padding: 3rem;">
                         <i class="bi bi-hand-thumbs-up" style="font-size: 3rem; color: var(--k-gray-300);"></i>
                         <p style="margin-top: 1rem; color: var(--k-gray-500);">Belum ada data consignment</p>
+                        @can('create consignments')
                         <a href="{{ route('consignments.create') }}" class="dms-btn dms-btn-primary" style="margin-top: 1rem;">
                             <i class="bi bi-plus-circle"></i> Tambah Consignment
                         </a>
+                        @endcan
                     </thead>
                 </thead>
                 @endforelse

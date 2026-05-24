@@ -16,9 +16,11 @@
             </p>
         </div>
         <div style="display: flex; gap: 0.5rem;">
+            @can('edit suppliers')
             <a href="{{ route('suppliers.edit', $supplier) }}" class="dms-btn dms-btn-primary">
                 <i class="bi bi-pencil"></i> Edit
             </a>
+            @endcan
             <a href="{{ route('suppliers.index') }}" class="dms-btn dms-btn-outline">
                 <i class="bi bi-arrow-left"></i> Kembali
             </a>
@@ -195,6 +197,7 @@
 
     <!-- Action Buttons (Bottom) -->
     <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--k-gray-200);">
+        @can('delete suppliers')
         @if($totalTransactions == 0)
         <form action="{{ route('suppliers.destroy', $supplier) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus supplier {{ $supplier->name }}?')">
             @csrf
@@ -204,9 +207,12 @@
             </button>
         </form>
         @endif
+        @endcan
+        @can('edit suppliers')
         <a href="{{ route('suppliers.edit', $supplier) }}" class="dms-btn dms-btn-primary">
             <i class="bi bi-pencil"></i> Edit Supplier
         </a>
+        @endcan
     </div>
 </div>
 @endsection

@@ -10,9 +10,11 @@
             <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">Daftar Pengiriman</h3>
             <p style="font-size: 0.85rem; color: var(--k-gray-500);">Kelola semua pengiriman KurmiGO</p>
         </div>
+        @can('create deliveries')
         <a href="{{ route('deliveries.create') }}" class="dms-btn dms-btn-primary">
             <i class="bi bi-plus-circle"></i> Assign Delivery
         </a>
+        @endcan
     </div>
 
     <!-- Filter -->
@@ -101,9 +103,11 @@
                     <td colspan="6" style="padding: 3rem; text-align: center;">
                         <i class="bi bi-truck" style="font-size: 2.5rem; color: var(--k-gray-300);"></i>
                         <p style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--k-gray-500);">Belum ada data pengiriman</p>
+                        @can('create deliveries')
                         <a href="{{ route('deliveries.create') }}" class="dms-btn dms-btn-primary" style="margin-top: 1rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
                             <i class="bi bi-plus-circle"></i> Assign Delivery
                         </a>
+                        @endcan
                     </td>
                 </tr>
                 @endforelse

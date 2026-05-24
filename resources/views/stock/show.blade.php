@@ -66,15 +66,19 @@
 
     <!-- Action Buttons -->
     <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+        @can('create stock movement')
         <a href="{{ route('stock.add-form', $product) }}" class="dms-btn dms-btn-primary">
             <i class="bi bi-plus-circle"></i> Tambah Stok
         </a>
         <a href="{{ route('stock.reduce-form', $product) }}" class="dms-btn dms-btn-outline">
             <i class="bi bi-dash-circle"></i> Kurangi Stok
         </a>
+        @endcan
+        @can('manage warehouse')
         <a href="{{ route('stock.adjustment-form', $product) }}" class="dms-btn dms-btn-outline">
             <i class="bi bi-sliders2"></i> Penyesuaian Stok
         </a>
+        @endcan
     </div>
 
     <!-- Stock Movement History -->

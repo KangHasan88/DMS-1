@@ -16,9 +16,11 @@
             </p>
         </div>
         <div style="display: flex; gap: 0.5rem;">
+            @can('edit customers')
             <a href="{{ route('customers.edit', $customer) }}" class="dms-btn dms-btn-primary">
                 <i class="bi bi-pencil"></i> Edit
             </a>
+            @endcan
             <a href="{{ route('customers.index') }}" class="dms-btn dms-btn-outline">
                 <i class="bi bi-arrow-left"></i> Kembali
             </a>
@@ -74,9 +76,11 @@
                 <div style="font-size: 1.5rem; font-weight: 700; color: var(--k-green);">
                     Rp {{ number_format($customer->user?->wallet?->balance ?? 0, 0, ',', '.') }}
                 </div>
+                @can('process payment')
                 <button onclick="showTopupModal({{ $customer->id }})" class="dms-btn dms-btn-primary" style="margin-top: 0.5rem; padding: 0.3rem 1rem;">
                     <i class="bi bi-plus-circle"></i> Topup
                 </button>
+                @endcan
             </div>
         </div>
 
@@ -169,6 +173,7 @@
         <a href="{{ route('customers.order-history', $customer) }}" class="dms-btn dms-btn-outline">
             <i class="bi bi-clock-history"></i> Lihat Riwayat Order
         </a>
+        @can('delete customers')
         @if($customer->orders()->count() == 0)
         <form action="{{ route('customers.destroy', $customer) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus customer {{ $customer->name }}?')">
             @csrf
@@ -178,13 +183,17 @@
             </button>
         </form>
         @endif
+        @endcan
+        @can('edit customers')
         <a href="{{ route('customers.edit', $customer) }}" class="dms-btn dms-btn-primary">
             <i class="bi bi-pencil"></i> Edit Customer
         </a>
+        @endcan
     </div>
 </div>
 
 <!-- Topup Modal -->
+@can('process payment')
 <div id="topupModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
     <div style="background: white; border-radius: 12px; padding: 2rem; width: 400px; max-width: 90%;">
         <h3 style="margin-bottom: 1rem;">Topup Saldo</h3>
@@ -206,6 +215,7 @@
         </form>
     </div>
 </div>
+@endcan
 
 <script>
 function showTopupModal(customerId) {

@@ -16,9 +16,11 @@
             </p>
         </div>
         <div style="display: flex; gap: 0.5rem;">
+            @can('edit units')
             <a href="{{ route('units.edit', $unit) }}" class="dms-btn dms-btn-primary">
                 <i class="bi bi-pencil"></i> Edit
             </a>
+            @endcan
             <a href="{{ route('units.index') }}" class="dms-btn dms-btn-outline">
                 <i class="bi bi-arrow-left"></i> Kembali
             </a>
@@ -175,6 +177,7 @@
 
     <!-- Action Buttons (Bottom) -->
     <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--k-gray-200);">
+        @can('delete units')
         @if(($productsCount ?? 0) == 0)
         <form action="{{ route('units.destroy', $unit) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus satuan {{ $unit->name }}?')">
             @csrf
@@ -188,9 +191,12 @@
             <i class="bi bi-info-circle"></i> Tidak dapat dihapus karena digunakan oleh {{ $productsCount }} produk
         </div>
         @endif
+        @endcan
+        @can('edit units')
         <a href="{{ route('units.edit', $unit) }}" class="dms-btn dms-btn-primary">
             <i class="bi bi-pencil"></i> Edit Satuan
         </a>
+        @endcan
     </div>
 </div>
 

@@ -16,6 +16,7 @@
             </p>
         </div>
         <div style="display: flex; gap: 0.5rem;">
+            @can('edit purchase order')
             @if($purchaseOrder->status == 'draft')
                 <form action="{{ route('purchase-orders.approve', $purchaseOrder) }}" method="POST" style="display: inline;">
                     @csrf
@@ -24,17 +25,25 @@
                     </button>
                 </form>
             @endif
+            @endcan
             
+            @can('edit purchase order')
             @if(in_array($purchaseOrder->status, ['pending', 'partially_received']))
                 <a href="{{ route('purchase-orders.receive-form', $purchaseOrder) }}" class="dms-btn dms-btn-primary">
                     <i class="bi bi-box-seam"></i> Receive Barang
                 </a>
             @endif
+            @endcan
             
+            @can('edit purchase order')
             @if(in_array($purchaseOrder->status, ['draft', 'pending']))
                 <a href="{{ route('purchase-orders.edit', $purchaseOrder) }}" class="dms-btn dms-btn-outline">
                     <i class="bi bi-pencil"></i> Edit
                 </a>
+            @endif
+            @endcan
+            @can('delete purchase order')
+            @if(in_array($purchaseOrder->status, ['draft', 'pending']))
                 <form action="{{ route('purchase-orders.cancel', $purchaseOrder) }}" method="POST" style="display: inline;">
                     @csrf
                     <button type="submit" class="dms-btn dms-btn-outline" style="color: var(--k-red);" onclick="return confirm('Yakin ingin membatalkan PO ini?')">
@@ -42,6 +51,7 @@
                     </button>
                 </form>
             @endif
+            @endcan
             
             <a href="{{ route('purchase-orders.index') }}" class="dms-btn dms-btn-outline">
                 <i class="bi bi-arrow-left"></i> Kembali

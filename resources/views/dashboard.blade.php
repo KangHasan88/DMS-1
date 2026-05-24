@@ -154,9 +154,11 @@
 <!-- QUICK ACTIONS -->
 <div class="dms-card" style="margin-bottom: 1.5rem;">
     <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        @can('create sales order')
         <a href="{{ route('orders.create') }}" class="dms-btn dms-btn-primary" style="text-decoration: none;">
             <i class="bi bi-plus-circle"></i> New Order
         </a>
+        @endcan
         <a href="{{ route('deliveries.index') }}" class="dms-btn dms-btn-primary" style="text-decoration: none;">
             <i class="bi bi-truck"></i> Track Delivery
         </a>
@@ -316,9 +318,11 @@
                     <td colspan="6" style="padding: 3rem; text-align: center;">
                         <i class="bi bi-inbox" style="font-size: 2.5rem; color: var(--k-gray-300);"></i>
                         <p style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--k-gray-500);">No recent orders found</p>
+                        @can('create sales order')
                         <a href="{{ route('orders.create') }}" class="dms-btn dms-btn-primary" style="margin-top: 1rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.7rem;">
                             <i class="bi bi-plus-circle"></i> Create First Order
                         </a>
+                        @endcan
                     </td>
                 </tr>
                 @endforelse
