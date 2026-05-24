@@ -20,22 +20,27 @@ class StockController extends Controller
         
         // Search
         if ($request->filled('search')) {
-            $query->where('name', 'like', "%{$request->search}%")
-                  ->orWhere('category', 'like', "%{$request->search}%");
+            $query->where(function ($query) use ($request) {
+                $query->where('name', 'like', "%{$request->search}%")
+                    ->orWhere('category', 'like', "%{$request->search}%");
+            });
         }
         
         // Filter by stock status
         if ($request->filled('stock_status')) {
             if ($request->stock_status == 'out_of_stock') {
-                $query->whereDoesntHave('stock', function($q) {
-                    $q->where('quantity', '>', 0);
-                })->orWhereHas('stock', function($q) {
-                    $q->where('quantity', 0);
+                $query->where(function ($query) {
+                    $query->whereDoesntHave('stock', function($q) {
+                        $q->where('quantity', '>', 0);
+                    })->orWhereHas('stock', function($q) {
+                        $q->where('quantity', 0);
+                    });
                 });
             } elseif ($request->stock_status == 'low_stock') {
                 $query->whereHas('stock', function($q) {
-                    $q->whereRaw('quantity <= min_stock');
-                })->where('quantity', '>', 0);
+                    $q->whereRaw('quantity <= min_stock')
+                        ->where('quantity', '>', 0);
+                });
             } elseif ($request->stock_status == 'in_stock') {
                 $query->whereHas('stock', function($q) {
                     $q->where('quantity', '>', 0);

@@ -21,10 +21,12 @@ class PurchaseOrderController extends Controller
         
         // Search
         if ($request->filled('search')) {
-            $query->where('po_number', 'like', "%{$request->search}%")
-                  ->orWhereHas('supplier', function($q) use ($request) {
-                      $q->where('name', 'like', "%{$request->search}%");
-                  });
+            $query->where(function ($query) use ($request) {
+                $query->where('po_number', 'like', "%{$request->search}%")
+                    ->orWhereHas('supplier', function($q) use ($request) {
+                        $q->where('name', 'like', "%{$request->search}%");
+                    });
+            });
         }
         
         // Filter by status

@@ -17,10 +17,12 @@ class SupplierController extends Controller
         
         // Search
         if ($request->filled('search')) {
-            $query->where('name', 'like', "%{$request->search}%")
-                  ->orWhere('phone', 'like', "%{$request->search}%")
-                  ->orWhere('market_name', 'like', "%{$request->search}%")
-                  ->orWhere('stall_number', 'like', "%{$request->search}%");
+            $query->where(function ($query) use ($request) {
+                $query->where('name', 'like', "%{$request->search}%")
+                    ->orWhere('phone', 'like', "%{$request->search}%")
+                    ->orWhere('market_name', 'like', "%{$request->search}%")
+                    ->orWhere('stall_number', 'like', "%{$request->search}%");
+            });
         }
         
         // Filter by category

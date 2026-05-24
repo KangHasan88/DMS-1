@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class CustomerOrderBoundaryTest extends TestCase
@@ -94,10 +95,39 @@ class CustomerOrderBoundaryTest extends TestCase
         $this->assertSame(11000, $order->grand_total);
     }
 
+    public function test_admin_created_customer_does_not_use_default_password(): void
+    {
+        $admin = $this->superAdmin();
+
+        $this->actingAs($admin)
+            ->post('/customers', [
+                'name' => 'Customer Password Test',
+                'phone' => '081299988877',
+                'email' => 'customer-password@example.test',
+                'address' => 'Jl. Password Test',
+                'customer_type' => 'regular',
+                'is_active' => '1',
+            ])
+            ->assertRedirect('/customers');
+
+        $createdUser = User::where('email', 'customer-password@example.test')->firstOrFail();
+
+        $this->assertFalse(Hash::check('password123', $createdUser->password));
+        $this->assertTrue($createdUser->hasRole('customer'));
+    }
+
     private function customer(string $email): User
     {
         $user = User::factory()->create(['email' => $email]);
         $user->assignRole('customer');
+
+        return $user;
+    }
+
+    private function superAdmin(): User
+    {
+        $user = User::factory()->create(['email' => 'customer-admin@example.test']);
+        $user->assignRole('super-admin');
 
         return $user;
     }

@@ -19,8 +19,10 @@ class ProductController extends Controller
         
         // Search
         if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%')
-                  ->orWhere('category', 'like', '%' . $request->search . '%');
+            $query->where(function ($query) use ($request) {
+                $query->where('name', 'like', '%' . $request->search . '%')
+                    ->orWhere('category', 'like', '%' . $request->search . '%');
+            });
         }
         
         // Filter by category

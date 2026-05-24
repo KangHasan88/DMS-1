@@ -19,10 +19,12 @@ class ConsignmentController extends Controller
         $query = Consignment::with('supplier', 'createdBy');
         
         if ($request->filled('search')) {
-            $query->where('cn_number', 'like', "%{$request->search}%")
-                  ->orWhereHas('supplier', function($q) use ($request) {
-                      $q->where('name', 'like', "%{$request->search}%");
-                  });
+            $query->where(function ($query) use ($request) {
+                $query->where('cn_number', 'like', "%{$request->search}%")
+                    ->orWhereHas('supplier', function($q) use ($request) {
+                        $q->where('name', 'like', "%{$request->search}%");
+                    });
+            });
         }
         
         if ($request->filled('status')) {

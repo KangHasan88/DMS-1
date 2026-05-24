@@ -7,6 +7,7 @@ use App\Models\Wallet;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class CustomerController extends Controller
@@ -77,7 +78,7 @@ class CustomerController extends Controller
                 'name' => $validated['name'],
                 'email' => $validated['email'] ?? $validated['phone'] . '@customer.temp',
                 'phone' => $validated['phone'],
-                'password' => 'password123',
+                'password' => Str::password(32),
                 'is_active' => $validated['is_active'] ?? true,
             ]);
             $user->assignRole('customer');

@@ -256,6 +256,35 @@ class InventoryQaRegressionTest extends TestCase
             ->assertDontSee(route('deliveries.show', $otherDelivery), false);
     }
 
+    public function test_kurir_delivery_search_does_not_escape_own_scope(): void
+    {
+        $kurirA = $this->userWithRole('kurir', 'kurir-search-a@example.test');
+        $kurirB = $this->userWithRole('kurir', 'kurir-search-b@example.test');
+        $ownDelivery = Delivery::create([
+            'order_id' => $this->createOrder(Order::STATUS_SHIPPED, 'KMGSEARCHOWN')->id,
+            'kurir_id' => $kurirA->id,
+            'status' => Delivery::STATUS_ASSIGNED,
+            'assigned_at' => now(),
+        ]);
+        $otherDelivery = Delivery::create([
+            'order_id' => $this->createOrder(Order::STATUS_SHIPPED, 'KMGSEARCHOTHER')->id,
+            'kurir_id' => $kurirB->id,
+            'status' => Delivery::STATUS_ASSIGNED,
+            'assigned_at' => now(),
+        ]);
+
+        $this->actingAs($kurirA)
+            ->get('/deliveries?search=' . urlencode($kurirB->name))
+            ->assertOk()
+            ->assertDontSee(route('deliveries.show', $otherDelivery), false)
+            ->assertDontSee('KMGSEARCHOTHER');
+
+        $this->actingAs($kurirA)
+            ->get('/deliveries?search=KMGSEARCHOWN')
+            ->assertOk()
+            ->assertSee(route('deliveries.show', $ownDelivery), false);
+    }
+
     public function test_delivery_status_change_is_logged(): void
     {
         $kurir = $this->userWithRole('kurir', 'kurir-log@example.test');

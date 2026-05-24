@@ -24,10 +24,12 @@ class DeliveryController extends Controller
         
         // Search by order number or kurir
         if ($request->filled('search')) {
-            $query->whereHas('order', function($q) use ($request) {
-                $q->where('order_number', 'like', "%{$request->search}%");
-            })->orWhereHas('kurir', function($q) use ($request) {
-                $q->where('name', 'like', "%{$request->search}%");
+            $query->where(function ($query) use ($request) {
+                $query->whereHas('order', function($q) use ($request) {
+                    $q->where('order_number', 'like', "%{$request->search}%");
+                })->orWhereHas('kurir', function($q) use ($request) {
+                    $q->where('name', 'like', "%{$request->search}%");
+                });
             });
         }
         
