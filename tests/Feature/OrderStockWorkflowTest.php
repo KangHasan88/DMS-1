@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\ProductStock;
 use App\Models\StockMovement;
 use App\Models\User;
+use App\Models\Wallet;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -81,6 +82,59 @@ class OrderStockWorkflowTest extends TestCase
 
         $order->status = Order::STATUS_DELIVERED;
         $this->assertFalse($order->canTransitionTo(Order::STATUS_CANCELLED));
+    }
+
+    public function test_nominal_discount_is_capped_at_subtotal(): void
+    {
+        $totals = Order::calculateTotals(
+            subtotal: 10000,
+            discountType: Order::DISCOUNT_NOMINAL,
+            discountValue: 50000,
+            shippingType: Order::SHIPPING_FLAT,
+            shippingWeight: null,
+            shippingDistance: null,
+            shippingRate: 5000,
+            packingFee: 1000,
+            includePpn: true,
+            ppnRate: 11
+        );
+
+        $this->assertSame(10000, $totals['discount_amount']);
+        $this->assertSame(0, $totals['after_discount']);
+        $this->assertSame(660, $totals['ppn_amount']);
+        $this->assertSame(6660, $totals['grand_total']);
+    }
+
+    public function test_order_recalculate_total_never_goes_negative(): void
+    {
+        [$order] = $this->createStockOrder(stockQuantity: 10, itemQuantity: 2);
+        $order->update([
+            'discount_type' => Order::DISCOUNT_NOMINAL,
+            'discount_value' => 999999,
+            'shipping_type' => Order::SHIPPING_FLAT,
+            'shipping_rate' => 0,
+            'packing_fee' => 0,
+            'include_ppn' => false,
+        ]);
+
+        $order->refresh()->load('items');
+        $order->recalculateTotal();
+
+        $this->assertSame($order->subtotal, $order->discount_amount);
+        $this->assertSame(0, $order->grand_total);
+        $this->assertSame(0, $order->total);
+    }
+
+    public function test_wallet_cannot_be_deducted_below_zero(): void
+    {
+        $wallet = Wallet::create([
+            'user_id' => User::factory()->create()->id,
+            'balance' => 10000,
+        ]);
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        $wallet->deductBalance(10001, null, 'Test overdraw');
     }
 
     /**

@@ -257,37 +257,72 @@ class Order extends Model
         return in_array($newStatus, $allowed[$this->status] ?? [], true);
     }
 
+    public static function calculateTotals(
+        int|float $subtotal,
+        string $discountType,
+        int|float $discountValue,
+        string $shippingType,
+        int|float|null $shippingWeight,
+        int|float|null $shippingDistance,
+        int|float $shippingRate,
+        int|float $packingFee,
+        bool $includePpn,
+        int|float|null $ppnRate
+    ): array {
+        $subtotal = max(0, (float) $subtotal);
+        $discountValue = max(0, (float) $discountValue);
+        $shippingRate = max(0, (float) $shippingRate);
+        $packingFee = max(0, (float) $packingFee);
+        $ppnRate = max(0, (float) ($ppnRate ?? 0));
+
+        $discountAmount = match ($discountType) {
+            self::DISCOUNT_PERCENT => $subtotal * min($discountValue, 100) / 100,
+            self::DISCOUNT_NOMINAL => min($discountValue, $subtotal),
+            default => 0,
+        };
+
+        $afterDiscount = max(0, $subtotal - $discountAmount);
+        $shippingCost = match ($shippingType) {
+            self::SHIPPING_WEIGHT => max(0, (float) ($shippingWeight ?? 0)) * $shippingRate,
+            self::SHIPPING_DISTANCE => max(0, (float) ($shippingDistance ?? 0)) * $shippingRate,
+            default => $shippingRate,
+        };
+        $taxableAmount = $afterDiscount + $shippingCost + $packingFee;
+        $ppnAmount = $includePpn ? $taxableAmount * min($ppnRate, 100) / 100 : 0;
+        $grandTotal = $taxableAmount + $ppnAmount;
+
+        return [
+            'discount_amount' => (int) round($discountAmount),
+            'after_discount' => (int) round($afterDiscount),
+            'shipping_cost' => (int) round($shippingCost),
+            'ppn_rate' => $includePpn ? min($ppnRate, 100) : 0,
+            'ppn_amount' => (int) round($ppnAmount),
+            'grand_total' => (int) round($grandTotal),
+        ];
+    }
+
     public function recalculateTotal(): void
     {
         $this->subtotal = $this->items->sum('subtotal');
-        
-        // Calculate order discount
-        $discountAmount = 0;
-        if ($this->discount_type === self::DISCOUNT_PERCENT) {
-            $discountAmount = $this->subtotal * $this->discount_value / 100;
-        } elseif ($this->discount_type === self::DISCOUNT_NOMINAL) {
-            $discountAmount = $this->discount_value;
-        }
-        
-        $afterDiscount = $this->subtotal - $discountAmount;
-        
-        // Calculate shipping cost
-        $shippingCost = $this->shipping_rate;
-        if ($this->shipping_type === self::SHIPPING_WEIGHT && $this->shipping_weight) {
-            $shippingCost = $this->shipping_weight * $this->shipping_rate;
-        } elseif ($this->shipping_type === self::SHIPPING_DISTANCE && $this->shipping_distance) {
-            $shippingCost = $this->shipping_distance * $this->shipping_rate;
-        }
-        
-        // Calculate PPN
-        $ppnAmount = 0;
-        if ($this->include_ppn) {
-            $ppnAmount = ($afterDiscount + $shippingCost + $this->packing_fee) * ($this->ppn_rate / 100);
-        }
-        
-        $this->discount_amount = $discountAmount;
-        $this->ppn_amount = $ppnAmount;
-        $this->grand_total = $afterDiscount + $shippingCost + $this->packing_fee + $ppnAmount;
+
+        $totals = self::calculateTotals(
+            $this->subtotal,
+            $this->discount_type,
+            $this->discount_value,
+            $this->shipping_type,
+            $this->shipping_weight,
+            $this->shipping_distance,
+            $this->shipping_rate,
+            $this->packing_fee,
+            $this->include_ppn,
+            $this->ppn_rate
+        );
+
+        $this->delivery_fee = $totals['shipping_cost'];
+        $this->discount_amount = $totals['discount_amount'];
+        $this->ppn_rate = $totals['ppn_rate'];
+        $this->ppn_amount = $totals['ppn_amount'];
+        $this->grand_total = $totals['grand_total'];
         $this->total = $this->grand_total;
         
         $this->save();

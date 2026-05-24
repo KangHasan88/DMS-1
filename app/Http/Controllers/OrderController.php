@@ -168,34 +168,19 @@ class OrderController extends Controller
             }
             
             // Hitung diskon order
-            $orderDiscount = 0;
-            if ($request->discount_type == 'percent') {
-                $orderDiscount = $subtotal * $request->discount_value / 100;
-            } elseif ($request->discount_type == 'nominal') {
-                $orderDiscount = $request->discount_value;
-            }
-            
-            $afterDiscount = $subtotal - $orderDiscount;
-            
-            // Hitung ongkos kirim
-            $shippingCost = $request->shipping_rate;
-            if ($request->shipping_type == 'weight' && $request->shipping_weight) {
-                $shippingCost = $request->shipping_weight * $request->shipping_rate;
-            } elseif ($request->shipping_type == 'distance' && $request->shipping_distance) {
-                $shippingCost = $request->shipping_distance * $request->shipping_rate;
-            }
-            
-            // Biaya repack/packing
             $packingFee = $request->packing_fee ?? 1000;
-            
-            // Hitung PPN
-            $ppnAmount = 0;
-            $ppnRate = $request->include_ppn ? ($request->ppn_rate ?? 11) : 0;
-            if ($request->include_ppn) {
-                $ppnAmount = ($afterDiscount + $shippingCost + $packingFee) * $ppnRate / 100;
-            }
-            
-            $grandTotal = $afterDiscount + $shippingCost + $packingFee + $ppnAmount;
+            $totals = Order::calculateTotals(
+                $subtotal,
+                $request->discount_type,
+                $request->discount_value ?? 0,
+                $request->shipping_type,
+                $request->shipping_weight,
+                $request->shipping_distance,
+                $request->shipping_rate,
+                $packingFee,
+                $request->boolean('include_ppn'),
+                $request->ppn_rate ?? 11
+            );
             
             $paymentMethod = $request->payment_method;
             if ($request->order_source === Order::ORDER_SOURCE_ADMIN && !$paymentMethod) {
@@ -210,21 +195,21 @@ class OrderController extends Controller
                 'address' => $request->address,
                 'latitude' => $request->latitude,
                 'longitude' => $request->longitude,
-                'delivery_fee' => $shippingCost,
+                'delivery_fee' => $totals['shipping_cost'],
                 'packing_fee' => $packingFee,
                 'subtotal' => $subtotal,
-                'total' => $grandTotal,
+                'total' => $totals['grand_total'],
                 'discount_type' => $request->discount_type,
-                'discount_value' => $request->discount_value,
-                'discount_amount' => $orderDiscount,
+                'discount_value' => $request->discount_value ?? 0,
+                'discount_amount' => $totals['discount_amount'],
                 'shipping_type' => $request->shipping_type,
                 'shipping_weight' => $request->shipping_weight,
                 'shipping_distance' => $request->shipping_distance,
                 'shipping_rate' => $request->shipping_rate,
-                'include_ppn' => $request->include_ppn ? true : false,
-                'ppn_rate' => $ppnRate,
-                'ppn_amount' => $ppnAmount,
-                'grand_total' => $grandTotal,
+                'include_ppn' => $request->boolean('include_ppn'),
+                'ppn_rate' => $totals['ppn_rate'],
+                'ppn_amount' => $totals['ppn_amount'],
+                'grand_total' => $totals['grand_total'],
                 'status' => Order::STATUS_PENDING_PAYMENT,
                 'notes' => $request->notes,
                 'order_source' => $request->order_source,
@@ -242,15 +227,15 @@ class OrderController extends Controller
             
             $message = "Order berhasil dibuat. Nomor order: {$order->order_number}\n";
             $message .= "Subtotal: Rp " . number_format($subtotal, 0, ',', '.') . "\n";
-            if ($orderDiscount > 0) {
-                $message .= "Diskon: -Rp " . number_format($orderDiscount, 0, ',', '.') . "\n";
+            if ($totals['discount_amount'] > 0) {
+                $message .= "Diskon: -Rp " . number_format($totals['discount_amount'], 0, ',', '.') . "\n";
             }
-            $message .= "Ongkir: Rp " . number_format($shippingCost, 0, ',', '.') . "\n";
+            $message .= "Ongkir: Rp " . number_format($totals['shipping_cost'], 0, ',', '.') . "\n";
             $message .= "Packing: Rp " . number_format($packingFee, 0, ',', '.') . "\n";
-            if ($ppnAmount > 0) {
-                $message .= "PPN: Rp " . number_format($ppnAmount, 0, ',', '.') . "\n";
+            if ($totals['ppn_amount'] > 0) {
+                $message .= "PPN: Rp " . number_format($totals['ppn_amount'], 0, ',', '.') . "\n";
             }
-            $message .= "Total: Rp " . number_format($grandTotal, 0, ',', '.');
+            $message .= "Total: Rp " . number_format($totals['grand_total'], 0, ',', '.');
             
             return redirect()->route('orders.show', $order)
                 ->with('success', $message);
@@ -301,6 +286,7 @@ class OrderController extends Controller
             'delivery_date' => 'required|date',
             'delivery_time_slot' => 'required|string',
             'address' => 'required|string',
+            'packing_fee' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.id' => 'nullable|exists:order_items,id',
@@ -363,56 +349,40 @@ class OrderController extends Controller
             $itemsToDelete = array_diff($existingItemIds, $newItemIds);
             OrderItem::whereIn('id', $itemsToDelete)->delete();
             
-            // Hitung diskon order
-            $orderDiscount = 0;
-            if ($request->discount_type == 'percent') {
-                $orderDiscount = $subtotal * $request->discount_value / 100;
-            } elseif ($request->discount_type == 'nominal') {
-                $orderDiscount = $request->discount_value;
-            }
-            
-            $afterDiscount = $subtotal - $orderDiscount;
-            
-            // Hitung ongkos kirim
-            $shippingCost = $request->shipping_rate;
-            if ($request->shipping_type == 'weight' && $request->shipping_weight) {
-                $shippingCost = $request->shipping_weight * $request->shipping_rate;
-            } elseif ($request->shipping_type == 'distance' && $request->shipping_distance) {
-                $shippingCost = $request->shipping_distance * $request->shipping_rate;
-            }
-            
-            // Biaya repack/packing
-            $packingFee = $order->packing_fee ?? 1000;
-            
-            // Hitung PPN
-            $ppnAmount = 0;
-            $ppnRate = $request->include_ppn ? ($request->ppn_rate ?? 11) : 0;
-            if ($request->include_ppn) {
-                $ppnAmount = ($afterDiscount + $shippingCost + $packingFee) * $ppnRate / 100;
-            }
-            
-            $grandTotal = $afterDiscount + $shippingCost + $packingFee + $ppnAmount;
+            $packingFee = $request->packing_fee ?? $order->packing_fee ?? 1000;
+            $totals = Order::calculateTotals(
+                $subtotal,
+                $request->discount_type,
+                $request->discount_value ?? 0,
+                $request->shipping_type,
+                $request->shipping_weight,
+                $request->shipping_distance,
+                $request->shipping_rate,
+                $packingFee,
+                $request->boolean('include_ppn'),
+                $request->ppn_rate ?? 11
+            );
             
             $order->update([
                 'delivery_date' => $request->delivery_date,
                 'delivery_time_slot' => $request->delivery_time_slot,
                 'address' => $request->address,
                 'notes' => $request->notes,
-                'delivery_fee' => $shippingCost,
+                'delivery_fee' => $totals['shipping_cost'],
                 'packing_fee' => $packingFee,
                 'subtotal' => $subtotal,
-                'total' => $grandTotal,
+                'total' => $totals['grand_total'],
                 'discount_type' => $request->discount_type,
-                'discount_value' => $request->discount_value,
-                'discount_amount' => $orderDiscount,
+                'discount_value' => $request->discount_value ?? 0,
+                'discount_amount' => $totals['discount_amount'],
                 'shipping_type' => $request->shipping_type,
                 'shipping_weight' => $request->shipping_weight,
                 'shipping_distance' => $request->shipping_distance,
                 'shipping_rate' => $request->shipping_rate,
-                'include_ppn' => $request->include_ppn ? true : false,
-                'ppn_rate' => $ppnRate,
-                'ppn_amount' => $ppnAmount,
-                'grand_total' => $grandTotal,
+                'include_ppn' => $request->boolean('include_ppn'),
+                'ppn_rate' => $totals['ppn_rate'],
+                'ppn_amount' => $totals['ppn_amount'],
+                'grand_total' => $totals['grand_total'],
             ]);
             
             DB::commit();

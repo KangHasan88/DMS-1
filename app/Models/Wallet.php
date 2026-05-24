@@ -24,6 +24,10 @@ class Wallet extends Model
     // Helper buat nambah saldo
     public function addBalance($amount, $orderId = null, $description = 'Topup')
     {
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException('Jumlah saldo harus lebih dari 0.');
+        }
+
         $this->balance += $amount;
         $this->save();
         
@@ -38,6 +42,14 @@ class Wallet extends Model
     // Helper buat kurangi saldo (refund)
     public function deductBalance($amount, $orderId = null, $description = 'Refund')
     {
+        if ($amount <= 0) {
+            throw new \InvalidArgumentException('Jumlah saldo harus lebih dari 0.');
+        }
+
+        if ($this->balance < $amount) {
+            throw new \InvalidArgumentException('Saldo wallet tidak mencukupi.');
+        }
+
         $this->balance -= $amount;
         $this->save();
         
