@@ -119,7 +119,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ============= DIRECT PURCHASE MANAGEMENT =============
     Route::resource('direct-purchases', DirectPurchaseController::class)->only(['create', 'store'])->middleware('permission:create direct purchase');
     Route::resource('direct-purchases', DirectPurchaseController::class)->only(['index', 'show'])->middleware('permission:view direct purchase');
-    Route::resource('direct-purchases', DirectPurchaseController::class)->only(['destroy'])->middleware('permission:delete direct purchase');
     
     // ============= CONSIGNMENT MANAGEMENT =============
     Route::resource('consignments', ConsignmentController::class)->only(['create', 'store'])->middleware('permission:create consignments');
@@ -168,12 +167,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ============= OUTBOUND FOC (HADIAH) =============
     Route::resource('outbound-focs', OutboundFocController::class)->only(['create', 'store'])->middleware('permission:create outbound foc');
     Route::resource('outbound-focs', OutboundFocController::class)->only(['index', 'show'])->middleware('permission:view outbound foc');
-    Route::resource('outbound-focs', OutboundFocController::class)->only(['destroy'])->middleware('permission:delete outbound foc');
     
     // ============= OUTBOUND RETURN (RETUR) =============
     Route::resource('outbound-returns', OutboundReturnController::class)->only(['create', 'store'])->middleware('permission:create outbound return');
     Route::resource('outbound-returns', OutboundReturnController::class)->only(['index', 'show'])->middleware('permission:view outbound return');
-    Route::resource('outbound-returns', OutboundReturnController::class)->only(['destroy'])->middleware('permission:delete outbound return');
     
     // ============= REPORTS =============
     Route::prefix('reports')->name('reports.')->group(function () {

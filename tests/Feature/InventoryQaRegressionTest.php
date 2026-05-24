@@ -132,6 +132,13 @@ class InventoryQaRegressionTest extends TestCase
         $this->assertSame([], $missing);
     }
 
+    public function test_stock_transaction_documents_are_append_only(): void
+    {
+        $this->assertFalse(Route::has('direct-purchases.destroy'));
+        $this->assertFalse(Route::has('outbound-focs.destroy'));
+        $this->assertFalse(Route::has('outbound-returns.destroy'));
+    }
+
     private function superAdmin(string $email = 'admin@example.test'): User
     {
         $user = User::factory()->create(['email' => $email]);

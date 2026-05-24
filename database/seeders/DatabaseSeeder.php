@@ -8,7 +8,6 @@ use App\Models\Supplier;
 use App\Models\Product;
 use App\Models\Unit;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 
@@ -162,7 +161,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'Super Admin',
                 'username' => 'superadmin',
-                'password' => Hash::make('password123'),
+                'password' => 'password123',
                 'phone' => '081234567890',
                 'gender' => 'male',
                 'is_active' => true,
@@ -177,7 +176,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'Admin KurmiGO',
                 'username' => 'admin',
-                'password' => Hash::make('password123'),
+                'password' => 'password123',
                 'phone' => '081234567891',
                 'gender' => 'male',
                 'is_active' => true,
@@ -192,7 +191,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'Tim Belanja',
                 'username' => 'operator',
-                'password' => Hash::make('password123'),
+                'password' => 'password123',
                 'phone' => '081234567892',
                 'gender' => 'male',
                 'is_active' => true,
@@ -207,7 +206,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'Kurir 1',
                 'username' => 'kurir1',
-                'password' => Hash::make('password123'),
+                'password' => 'password123',
                 'phone' => '081234567893',
                 'gender' => 'male',
                 'is_active' => true,
@@ -275,7 +274,7 @@ class DatabaseSeeder extends Seeder
                 [
                     'name' => $data['name'],
                     'username' => strtolower(str_replace(' ', '', $data['name'])),
-                    'password' => Hash::make('password123'),
+                    'password' => 'password123',
                     'phone' => $data['phone'],
                     'address' => $data['address'],
                     'is_active' => true,

@@ -47,7 +47,7 @@ class CustomerSeeder extends Seeder
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'phone' => $data['phone'],
-                'password' => bcrypt('password123'),
+                'password' => 'password123',
                 'is_active' => true,
             ]);
             $user->assignRole('customer');

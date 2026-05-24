@@ -23,3 +23,7 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+<FilesMatch "^(test_|debug_|phpinfo|check_).*\.php$">
+    Require all denied
+</FilesMatch>
