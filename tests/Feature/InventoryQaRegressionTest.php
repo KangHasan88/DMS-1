@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Delivery;
 use App\Models\DirectPurchase;
+use App\Models\ActivityLog;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OutboundFoc;
@@ -249,6 +250,36 @@ class InventoryQaRegressionTest extends TestCase
             ->assertOk()
             ->assertSee(route('deliveries.show', $ownDelivery), false)
             ->assertDontSee(route('deliveries.show', $otherDelivery), false);
+    }
+
+    public function test_delivery_status_change_is_logged(): void
+    {
+        $kurir = $this->userWithRole('kurir', 'kurir-log@example.test');
+        $delivery = Delivery::create([
+            'order_id' => $this->createOrder(Order::STATUS_SHIPPED, 'KMGLOG0001')->id,
+            'kurir_id' => $kurir->id,
+            'status' => Delivery::STATUS_ASSIGNED,
+            'assigned_at' => now(),
+        ]);
+
+        $this->actingAs($kurir)
+            ->post(route('deliveries.update-status', $delivery), [
+                'status' => Delivery::STATUS_PICKED_UP,
+                'notes' => 'Picked up in test',
+            ])
+            ->assertRedirect(route('deliveries.show', $delivery));
+
+        $this->assertDatabaseHas('activity_log', [
+            'log_name' => 'deliveries',
+            'event' => 'status_changed',
+            'subject_type' => Delivery::class,
+            'subject_id' => $delivery->id,
+            'causer_id' => $kurir->id,
+        ]);
+
+        $log = ActivityLog::where('log_name', 'deliveries')->where('event', 'status_changed')->first();
+        $this->assertSame(Delivery::STATUS_ASSIGNED, $log->properties['old_status']);
+        $this->assertSame(Delivery::STATUS_PICKED_UP, $log->properties['new_status']);
     }
 
     private function superAdmin(string $email = 'admin@example.test'): User

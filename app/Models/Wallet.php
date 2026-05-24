@@ -28,15 +28,29 @@ class Wallet extends Model
             throw new \InvalidArgumentException('Jumlah saldo harus lebih dari 0.');
         }
 
+        $before = $this->balance;
         $this->balance += $amount;
         $this->save();
-        
-        return $this->transactions()->create([
+
+        $transaction = $this->transactions()->create([
             'type' => 'topup',
             'amount' => $amount,
             'order_id' => $orderId,
             'description' => $description,
         ]);
+
+        ActivityLog::record('wallet', 'balance_added', 'Saldo wallet bertambah', $this, [
+            'wallet_id' => $this->id,
+            'user_id' => $this->user_id,
+            'order_id' => $orderId,
+            'amount' => $amount,
+            'before_balance' => $before,
+            'after_balance' => $this->balance,
+            'description' => $description,
+            'transaction_id' => $transaction->id,
+        ]);
+
+        return $transaction;
     }
     
     // Helper buat kurangi saldo (refund)
@@ -50,14 +64,28 @@ class Wallet extends Model
             throw new \InvalidArgumentException('Saldo wallet tidak mencukupi.');
         }
 
+        $before = $this->balance;
         $this->balance -= $amount;
         $this->save();
-        
-        return $this->transactions()->create([
+
+        $transaction = $this->transactions()->create([
             'type' => 'refund',
             'amount' => $amount,
             'order_id' => $orderId,
             'description' => $description,
         ]);
+
+        ActivityLog::record('wallet', 'balance_deducted', 'Saldo wallet berkurang', $this, [
+            'wallet_id' => $this->id,
+            'user_id' => $this->user_id,
+            'order_id' => $orderId,
+            'amount' => $amount,
+            'before_balance' => $before,
+            'after_balance' => $this->balance,
+            'description' => $description,
+            'transaction_id' => $transaction->id,
+        ]);
+
+        return $transaction;
     }
 }

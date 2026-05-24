@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Delivery;
+use App\Models\ActivityLog;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -247,6 +248,17 @@ class DeliveryController extends Controller
             }
             
             $delivery->save();
+
+            ActivityLog::record('deliveries', 'status_changed', 'Status pengiriman berubah', $delivery, [
+                'delivery_id' => $delivery->id,
+                'order_id' => $delivery->order_id,
+                'kurir_id' => $delivery->kurir_id,
+                'old_status' => $oldStatus,
+                'new_status' => $delivery->status,
+                'notes' => $request->input('notes'),
+                'latitude' => $delivery->latitude,
+                'longitude' => $delivery->longitude,
+            ]);
             
             DB::commit();
             

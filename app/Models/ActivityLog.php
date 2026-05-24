@@ -33,6 +33,30 @@ class ActivityLog extends Model
         'created_at' => 'datetime',
     ];
 
+    public static function record(
+        string $logName,
+        string $event,
+        string $description,
+        ?Model $subject = null,
+        array $properties = []
+    ): self {
+        $user = auth()->user();
+        $request = request();
+
+        return self::create([
+            'log_name' => $logName,
+            'event' => $event,
+            'description' => $description,
+            'subject_type' => $subject ? get_class($subject) : null,
+            'subject_id' => $subject?->getKey(),
+            'causer_type' => $user ? get_class($user) : null,
+            'causer_id' => $user?->getKey(),
+            'properties' => $properties,
+            'ip_address' => $request?->ip(),
+            'user_agent' => $request?->userAgent(),
+        ]);
+    }
+
     /**
      * Get the subject of the activity (polymorphic).
      */

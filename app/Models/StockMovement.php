@@ -29,6 +29,23 @@ class StockMovement extends Model
         'after_quantity' => 'integer',
     ];
 
+    protected static function booted(): void
+    {
+        static::created(function (StockMovement $movement) {
+            ActivityLog::record('stock', 'movement_created', 'Stock movement dicatat', $movement, [
+                'product_id' => $movement->product_id,
+                'order_id' => $movement->order_id,
+                'source_type' => $movement->source_type,
+                'source_id' => $movement->source_id,
+                'type' => $movement->type,
+                'quantity' => $movement->quantity,
+                'before_quantity' => $movement->before_quantity,
+                'after_quantity' => $movement->after_quantity,
+                'reason' => $movement->reason,
+            ]);
+        });
+    }
+
     // ===================== TYPE CONSTANTS =====================
     
     const TYPE_IN = 'in';

@@ -7,6 +7,7 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductStock;
 use App\Models\StockMovement;
+use App\Models\ActivityLog;
 use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -52,6 +53,7 @@ class OrderStockWorkflowTest extends TestCase
         $this->assertSame(7, $product->stock()->first()->quantity);
         $this->assertSame(OrderItem::FULFILLMENT_FULFILLED, $order->items()->first()->fulfillment_status);
         $this->assertSame(1, StockMovement::where('order_id', $order->id)->where('type', StockMovement::TYPE_OUT)->count());
+        $this->assertSame(1, ActivityLog::where('log_name', 'stock')->where('event', 'movement_created')->count());
 
         $order->refresh()->load('items.product.stock');
 
@@ -135,6 +137,49 @@ class OrderStockWorkflowTest extends TestCase
         $this->expectException(\InvalidArgumentException::class);
 
         $wallet->deductBalance(10001, null, 'Test overdraw');
+    }
+
+    public function test_order_status_change_is_logged(): void
+    {
+        [$order] = $this->createStockOrder();
+        $order->update(['status' => Order::STATUS_PENDING_PAYMENT]);
+
+        $this->assertTrue($order->updateStatus(Order::STATUS_PAID, 'Paid in test'));
+
+        $this->assertDatabaseHas('activity_log', [
+            'log_name' => 'orders',
+            'event' => 'status_changed',
+            'subject_type' => Order::class,
+            'subject_id' => $order->id,
+        ]);
+
+        $log = ActivityLog::where('log_name', 'orders')->where('event', 'status_changed')->first();
+        $this->assertSame(Order::STATUS_PENDING_PAYMENT, $log->properties['old_status']);
+        $this->assertSame(Order::STATUS_PAID, $log->properties['new_status']);
+    }
+
+    public function test_wallet_balance_changes_are_logged(): void
+    {
+        $wallet = Wallet::create([
+            'user_id' => User::factory()->create()->id,
+            'balance' => 10000,
+        ]);
+
+        $wallet->addBalance(5000, null, 'Topup test');
+        $wallet->deductBalance(3000, null, 'Payment test');
+
+        $this->assertDatabaseHas('activity_log', [
+            'log_name' => 'wallet',
+            'event' => 'balance_added',
+            'subject_type' => Wallet::class,
+            'subject_id' => $wallet->id,
+        ]);
+        $this->assertDatabaseHas('activity_log', [
+            'log_name' => 'wallet',
+            'event' => 'balance_deducted',
+            'subject_type' => Wallet::class,
+            'subject_id' => $wallet->id,
+        ]);
     }
 
     /**

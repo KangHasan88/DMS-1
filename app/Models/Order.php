@@ -233,7 +233,18 @@ class Order extends Model
                                  now()->format('d/m/Y H:i') . " - " . $notes;
         }
 
-        return $this->save();
+        $saved = $this->save();
+
+        if ($saved && $oldStatus !== $newStatus) {
+            ActivityLog::record('orders', 'status_changed', "Order {$this->order_number} berubah status", $this, [
+                'order_number' => $this->order_number,
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus,
+                'notes' => $notes,
+            ]);
+        }
+
+        return $saved;
     }
 
     public function canTransitionTo(string $newStatus): bool
