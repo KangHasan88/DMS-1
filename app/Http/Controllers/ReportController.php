@@ -102,18 +102,25 @@ class ReportController extends Controller
     {
         abort_unless(in_array($type, ['sales', 'inventory', 'delivery', 'financial'], true), 404);
 
-        return response()->streamDownload(function () use ($request, $type) {
+        [$startDate, $endDate] = $this->dateRange($request);
+
+        return response()->streamDownload(function () use ($type, $startDate, $endDate) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, ['Report', ucfirst($type)]);
             fputcsv($handle, ['Generated At', now()->toDateTimeString()]);
-            fputcsv($handle, ['Start Date', $request->query('start_date', now()->startOfMonth()->toDateString())]);
-            fputcsv($handle, ['End Date', $request->query('end_date', now()->toDateString())]);
+            fputcsv($handle, ['Start Date', $startDate->toDateString()]);
+            fputcsv($handle, ['End Date', $endDate->toDateString()]);
             fclose($handle);
         }, $type . '-report-' . now()->format('Ymd-His') . '.csv');
     }
 
     private function dateRange(Request $request): array
     {
+        $request->validate([
+            'start_date' => ['nullable', 'date'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
+        ]);
+
         $startDate = $request->filled('start_date')
             ? $request->date('start_date')->startOfDay()
             : now()->startOfMonth()->startOfDay();

@@ -10,6 +10,10 @@ use App\Models\OrderItem;
 use App\Models\OutboundFoc;
 use App\Models\Product;
 use App\Models\ProductStock;
+use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderItem;
+use App\Models\Consignment;
+use App\Models\ConsignmentItem;
 use App\Models\StockMovement;
 use App\Models\Supplier;
 use App\Models\Unit;
@@ -282,6 +286,70 @@ class InventoryQaRegressionTest extends TestCase
         $this->assertSame(Delivery::STATUS_PICKED_UP, $log->properties['new_status']);
     }
 
+    public function test_purchase_order_receive_rejects_items_from_another_po(): void
+    {
+        $user = $this->superAdmin();
+        $supplier = $this->supplier('Supplier PO Scope');
+        $product = $this->product('PO Scope Product');
+        $poA = $this->purchaseOrder('POSCOPEA0001', $supplier, $user);
+        $poB = $this->purchaseOrder('POSCOPEB0001', $supplier, $user);
+        $itemA = $this->purchaseOrderItem($poA, $product);
+        $itemB = $this->purchaseOrderItem($poB, $product);
+
+        $this->actingAs($user)
+            ->from(route('purchase-orders.receive-form', $poA))
+            ->post(route('purchase-orders.receive', $poA), [
+                'received_date' => now()->toDateString(),
+                'items' => [
+                    [
+                        'id' => $itemB->id,
+                        'received_quantity' => 1,
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('purchase-orders.receive-form', $poA))
+            ->assertSessionHas('error');
+
+        $this->assertSame(0, $itemA->fresh()->received_quantity);
+        $this->assertSame(0, $itemB->fresh()->received_quantity);
+        $this->assertDatabaseCount('stock_movements', 0);
+    }
+
+    public function test_consignment_return_rejects_items_from_another_consignment(): void
+    {
+        $user = $this->superAdmin();
+        $supplier = $this->supplier('Supplier CN Scope');
+        $product = $this->product('CN Scope Product');
+        ProductStock::create([
+            'product_id' => $product->id,
+            'quantity' => 0,
+            'consignment_quantity' => 10,
+        ]);
+        $consignmentA = $this->consignment('CNSCOPEA0001', $supplier, $user);
+        $consignmentB = $this->consignment('CNSCOPEB0001', $supplier, $user);
+        $itemA = $this->consignmentItem($consignmentA, $product);
+        $itemB = $this->consignmentItem($consignmentB, $product);
+
+        $this->actingAs($user)
+            ->from(route('consignments.return-form', $consignmentA))
+            ->post(route('consignments.return', $consignmentA), [
+                'return_date' => now()->toDateString(),
+                'items' => [
+                    [
+                        'id' => $itemB->id,
+                        'return_quantity' => 1,
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('consignments.return-form', $consignmentA))
+            ->assertSessionHas('error');
+
+        $this->assertSame(0, $itemA->fresh()->returned_quantity);
+        $this->assertSame(0, $itemB->fresh()->returned_quantity);
+        $this->assertSame(10, $product->stock()->first()->consignment_quantity);
+        $this->assertDatabaseCount('stock_movements', 0);
+    }
+
     private function superAdmin(string $email = 'admin@example.test'): User
     {
         return $this->userWithRole('super-admin', $email);
@@ -321,6 +389,78 @@ class InventoryQaRegressionTest extends TestCase
             'ppn_rate' => 11,
             'ppn_amount' => 0,
             'grand_total' => 0,
+        ]);
+    }
+
+    private function supplier(string $name): Supplier
+    {
+        return Supplier::create([
+            'name' => $name,
+            'phone' => '0812' . random_int(10000000, 99999999),
+            'category' => 'sayur',
+            'is_active' => true,
+        ]);
+    }
+
+    private function product(string $name): Product
+    {
+        return Product::create([
+            'name' => $name,
+            'category' => 'Sayur',
+            'price' => 5000,
+            'base_price' => 3000,
+            'is_active' => true,
+        ]);
+    }
+
+    private function purchaseOrder(string $number, Supplier $supplier, User $user): PurchaseOrder
+    {
+        return PurchaseOrder::create([
+            'po_number' => $number,
+            'supplier_id' => $supplier->id,
+            'order_date' => now()->toDateString(),
+            'status' => PurchaseOrder::STATUS_PENDING,
+            'subtotal' => 5000,
+            'total' => 5000,
+            'created_by' => $user->id,
+        ]);
+    }
+
+    private function purchaseOrderItem(PurchaseOrder $purchaseOrder, Product $product): PurchaseOrderItem
+    {
+        return PurchaseOrderItem::create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'product_id' => $product->id,
+            'quantity' => 2,
+            'received_quantity' => 0,
+            'price' => 2500,
+            'subtotal' => 5000,
+        ]);
+    }
+
+    private function consignment(string $number, Supplier $supplier, User $user): Consignment
+    {
+        return Consignment::create([
+            'cn_number' => $number,
+            'supplier_id' => $supplier->id,
+            'consignment_date' => now()->toDateString(),
+            'status' => Consignment::STATUS_ACTIVE,
+            'total_items' => 2,
+            'total_value' => 5000,
+            'created_by' => $user->id,
+        ]);
+    }
+
+    private function consignmentItem(Consignment $consignment, Product $product): ConsignmentItem
+    {
+        return ConsignmentItem::create([
+            'consignment_id' => $consignment->id,
+            'product_id' => $product->id,
+            'quantity' => 2,
+            'sold_quantity' => 0,
+            'returned_quantity' => 0,
+            'price' => 2500,
+            'subtotal' => 5000,
         ]);
     }
 }

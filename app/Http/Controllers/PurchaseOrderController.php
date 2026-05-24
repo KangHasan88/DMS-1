@@ -320,7 +320,15 @@ class PurchaseOrderController extends Controller
             $anyReceived = false;
             
             foreach ($validated['items'] as $itemData) {
-                $poItem = PurchaseOrderItem::find($itemData['id']);
+                $poItem = $purchaseOrder->items()
+                    ->with('product')
+                    ->whereKey($itemData['id'])
+                    ->first();
+
+                if (!$poItem) {
+                    throw new \Exception('Item PO tidak valid untuk dokumen ini');
+                }
+
                 $receiveQty = $itemData['received_quantity'];
                 
                 if ($receiveQty > 0) {

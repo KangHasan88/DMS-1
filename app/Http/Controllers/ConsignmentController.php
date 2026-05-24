@@ -188,7 +188,15 @@ class ConsignmentController extends Controller
         
         try {
             foreach ($validated['items'] as $itemData) {
-                $consignmentItem = ConsignmentItem::find($itemData['id']);
+                $consignmentItem = $consignment->items()
+                    ->with('product')
+                    ->whereKey($itemData['id'])
+                    ->first();
+
+                if (!$consignmentItem) {
+                    throw new \Exception('Item consignment tidak valid untuk dokumen ini');
+                }
+
                 $returnQty = $itemData['return_quantity'];
                 
                 if ($returnQty > 0) {
