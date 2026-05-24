@@ -768,7 +768,7 @@
                     <div class="nav-section-title">OUTBOUND</div>
                     <ul style="list-style: none; padding: 0;">
                         <!-- Sales Orders -->
-                        @can('view-orders')
+                        @can('view sales order')
                         <li class="nav-item">
                             <a href="{{ route('orders.index') }}" class="nav-link {{ request()->routeIs('orders.*') ? 'active' : '' }}">
                                 <i class="bi bi-cart"></i>
@@ -784,7 +784,7 @@
                         @endcan
                         
                         <!-- Deliveries -->
-                        @can('view-deliveries')
+                        @can('view deliveries')
                         <li class="nav-item">
                             <a href="{{ route('deliveries.index') }}" class="nav-link {{ request()->routeIs('deliveries.*') ? 'active' : '' }}">
                                 <i class="bi bi-truck"></i>
@@ -800,20 +800,24 @@
                         @endcan
                         
                         <!-- FOC Out (Hadiah) -->
+                        @can('view outbound foc')
                         <li class="nav-item">
                             <a href="{{ route('outbound-focs.index') }}" class="nav-link {{ request()->routeIs('outbound-focs.*') ? 'active' : '' }}">
                                 <i class="bi bi-gift"></i>
                                 <span>FOC Out (Hadiah)</span>
                             </a>
                         </li>
+                        @endcan
                         
                         <!-- Return Out (Retur) -->
+                        @can('view outbound return')
                         <li class="nav-item">
                             <a href="{{ route('outbound-returns.index') }}" class="nav-link {{ request()->routeIs('outbound-returns.*') ? 'active' : '' }}">
                                 <i class="bi bi-arrow-return-left"></i>
                                 <span>Return Out (Retur)</span>
                             </a>
                         </li>
+                        @endcan
                     </ul>
                 </div>
 
@@ -822,6 +826,7 @@
                     <div class="nav-section-title">INBOUND</div>
                     <ul style="list-style: none; padding: 0;">
                         <!-- Purchase Orders (Tempo) -->
+                        @can('view purchase order')
                         <li class="nav-item">
                             <a href="{{ route('purchase-orders.index') }}" class="nav-link {{ request()->routeIs('purchase-orders.*') ? 'active' : '' }}">
                                 <i class="bi bi-receipt"></i>
@@ -834,22 +839,27 @@
                                 @endif
                             </a>
                         </li>
+                        @endcan
                         
                         <!-- Direct Purchase (Cash) -->
+                        @can('view direct purchase')
                         <li class="nav-item">
                             <a href="{{ route('direct-purchases.index') }}" class="nav-link {{ request()->routeIs('direct-purchases.*') ? 'active' : '' }}">
                                 <i class="bi bi-cash"></i>
                                 <span>Direct Purchase (Cash)</span>
                             </a>
                         </li>
+                        @endcan
                         
                         <!-- Consignment (Titip Jual) -->
+                        @can('view consignments')
                         <li class="nav-item">
                             <a href="{{ route('consignments.index') }}" class="nav-link {{ request()->routeIs('consignments.*') ? 'active' : '' }}">
                                 <i class="bi bi-hand-thumbs-up"></i>
                                 <span>Consignment (Titip Jual)</span>
                             </a>
                         </li>
+                        @endcan
                     </ul>
                 </div>
 
@@ -858,6 +868,7 @@
                     <div class="nav-section-title">INVENTORY</div>
                     <ul style="list-style: none; padding: 0;">
                         <!-- Stock Management -->
+                        @can('view warehouse')
                         <li class="nav-item">
                             <a href="{{ route('stock.index') }}" class="nav-link {{ request()->routeIs('stock.index') ? 'active' : '' }}">
                                 <i class="bi bi-box-seam"></i>
@@ -870,14 +881,17 @@
                                 @endif
                             </a>
                         </li>
+                        @endcan
                         
                         <!-- Stock Movement Log -->
+                        @can('view stock movement')
                         <li class="nav-item">
                             <a href="{{ route('stock.movements') }}" class="nav-link {{ request()->routeIs('stock.movements') ? 'active' : '' }}">
                                 <i class="bi bi-journal-bookmark-fill"></i>
                                 <span>Stock Movement Log</span>
                             </a>
                         </li>
+                        @endcan
                     </ul>
                 </div>
 
@@ -886,15 +900,17 @@
                     <div class="nav-section-title">MASTER DATA</div>
                     <ul style="list-style: none; padding: 0;">
                         <!-- Master Satuan -->
+                        @can('view units')
                         <li class="nav-item">
                             <a href="{{ route('units.index') }}" class="nav-link {{ request()->routeIs('units.*') ? 'active' : '' }}">
                                 <i class="bi bi-rulers"></i>
                                 <span>Master Satuan</span>
                             </a>
                         </li>
+                        @endcan
                         
                         <!-- Customers -->
-                        @can('view-customers')
+                        @can('view customers')
                         <li class="nav-item">
                             <a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') ? 'active' : '' }}">
                                 <i class="bi bi-people"></i>
@@ -904,7 +920,7 @@
                         @endcan
                         
                         <!-- Suppliers -->
-                        @can('view-suppliers')
+                        @can('view suppliers')
                         <li class="nav-item">
                             <a href="{{ route('suppliers.index') }}" class="nav-link {{ request()->routeIs('suppliers.*') ? 'active' : '' }}">
                                 <i class="bi bi-shop"></i>
@@ -914,7 +930,7 @@
                         @endcan
                         
                         <!-- Products -->
-                        @can('view-products')
+                        @can('view products')
                         <li class="nav-item">
                             <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
                                 <i class="bi bi-box-seam"></i>
@@ -930,22 +946,28 @@
                     <div class="nav-section-title">REPORTS</div>
                     <ul style="list-style: none; padding: 0;">
                         <li class="nav-item">
+                            @can('view sales report')
                             <a href="{{ route('reports.sales') }}" class="nav-link {{ request()->routeIs('reports.sales') ? 'active' : '' }}">
                                 <i class="bi bi-graph-up"></i>
                                 <span>Sales Report</span>
                             </a>
+                            @endcan
                         </li>
                         <li class="nav-item">
+                            @can('view delivery report')
                             <a href="{{ route('reports.delivery') }}" class="nav-link {{ request()->routeIs('reports.delivery') ? 'active' : '' }}">
                                 <i class="bi bi-truck"></i>
                                 <span>Delivery Report</span>
                             </a>
+                            @endcan
                         </li>
                         <li class="nav-item">
+                            @can('view financial report')
                             <a href="{{ route('reports.financial') }}" class="nav-link {{ request()->routeIs('reports.financial') ? 'active' : '' }}">
                                 <i class="bi bi-currency-dollar"></i>
                                 <span>Financial Report</span>
                             </a>
+                            @endcan
                         </li>
                     </ul>
                 </div>
@@ -954,7 +976,7 @@
                 <div class="nav-section">
                     <div class="nav-section-title">MANAGEMENT</div>
                     <ul style="list-style: none; padding: 0;">
-                        @can('view-users')
+                        @can('view users')
                         <li class="nav-item">
                             <a href="{{ route('admin.users.index') }}" class="nav-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}">
                                 <i class="bi bi-people-fill"></i>
@@ -963,7 +985,7 @@
                         </li>
                         @endcan
                         
-                        @can('view-roles')
+                        @can('view roles')
                         <li class="nav-item">
                             <a href="{{ route('roles.index') }}" class="nav-link {{ request()->routeIs('roles.*') ? 'active' : '' }}">
                                 <i class="bi bi-shield"></i>
@@ -972,7 +994,7 @@
                         </li>
                         @endcan
 
-                        @can('view-activity-logs')
+                        @can('view logs')
                         <li class="nav-item">
                             <a href="{{ route('activity-logs.index') }}" class="nav-link {{ request()->routeIs('activity-logs.*') ? 'active' : '' }}">
                                 <i class="bi bi-clock-history"></i>

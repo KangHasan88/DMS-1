@@ -114,8 +114,13 @@ class ReportController extends Controller
 
     private function dateRange(Request $request): array
     {
-        $startDate = $request->date('start_date', now()->startOfMonth())->startOfDay();
-        $endDate = $request->date('end_date', now())->endOfDay();
+        $startDate = $request->filled('start_date')
+            ? $request->date('start_date')->startOfDay()
+            : now()->startOfMonth()->startOfDay();
+
+        $endDate = $request->filled('end_date')
+            ? $request->date('end_date')->endOfDay()
+            : now()->endOfDay();
 
         return [$startDate, $endDate];
     }

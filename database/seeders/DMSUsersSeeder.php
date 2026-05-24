@@ -5,14 +5,13 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
-use Illuminate\Support\Facades\Hash;
 
 class DMSUsersSeeder extends Seeder
 {
     public function run()
     {
         // Pastikan roles sudah ada
-        $roles = ['super-admin', 'admin', 'manager', 'sales', 'warehouse', 'finance'];
+        $roles = ['super-admin', 'admin', 'manager', 'sales', 'warehouse', 'finance', 'customer'];
         
         foreach ($roles as $roleName) {
             Role::firstOrCreate(['name' => $roleName]);
@@ -23,7 +22,7 @@ class DMSUsersSeeder extends Seeder
             [
                 'name' => 'Super Admin',
                 'email' => 'superadmin@dms.com',
-                'password' => Hash::make('password'),
+                'password' => 'password',
                 'username' => 'superadmin',
                 'is_active' => true,
                 'role' => 'super-admin'
@@ -31,7 +30,7 @@ class DMSUsersSeeder extends Seeder
             [
                 'name' => 'Admin Distributor',
                 'email' => 'admin@dms.com',
-                'password' => Hash::make('password'),
+                'password' => 'password',
                 'username' => 'admin',
                 'is_active' => true,
                 'role' => 'admin'
@@ -39,7 +38,7 @@ class DMSUsersSeeder extends Seeder
             [
                 'name' => 'Manager',
                 'email' => 'manager@dms.com',
-                'password' => Hash::make('password'),
+                'password' => 'password',
                 'username' => 'manager',
                 'is_active' => true,
                 'role' => 'manager'
@@ -47,7 +46,7 @@ class DMSUsersSeeder extends Seeder
             [
                 'name' => 'Ahmad Sales',
                 'email' => 'ahmad@dms.com',
-                'password' => Hash::make('password'),
+                'password' => 'password',
                 'username' => 'ahmad.sales',
                 'is_active' => true,
                 'role' => 'sales'
@@ -55,7 +54,7 @@ class DMSUsersSeeder extends Seeder
             [
                 'name' => 'Charlie Warehouse',
                 'email' => 'charlie@dms.com',
-                'password' => Hash::make('password'),
+                'password' => 'password',
                 'username' => 'charlie.wh',
                 'is_active' => true,
                 'role' => 'warehouse'
@@ -63,7 +62,7 @@ class DMSUsersSeeder extends Seeder
             [
                 'name' => 'Dina Finance',
                 'email' => 'dina@dms.com',
-                'password' => Hash::make('password'),
+                'password' => 'password',
                 'username' => 'dina.finance',
                 'is_active' => true,
                 'role' => 'finance'
