@@ -43,7 +43,7 @@ class ProfileController extends Controller
 
         $user = auth()->user();
         $user->update([
-            'password' => Hash::make($request->new_password)
+            'password' => $request->new_password
         ]);
 
         return back()->with('success', 'Password berhasil diubah.');

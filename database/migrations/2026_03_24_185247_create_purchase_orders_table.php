@@ -10,17 +10,24 @@ return new class extends Migration
     {
         Schema::create('purchase_orders', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('supplier_id')->constrained();
-            $table->foreignId('order_id')->nullable()->constrained(); // terkait order customer
             $table->string('po_number')->unique();
-            $table->date('purchase_date');
-            $table->integer('total_amount');
-            $table->enum('status', ['pending', 'completed', 'cancelled'])->default('pending');
+            $table->foreignId('supplier_id')->constrained();
+            $table->date('order_date');
+            $table->date('expected_delivery_date')->nullable();
+            $table->date('received_date')->nullable();
+            $table->enum('status', ['draft', 'pending', 'partially_received', 'received', 'cancelled'])
+                  ->default('draft');
+            $table->integer('subtotal')->default(0);
+            $table->integer('total')->default(0);
             $table->text('notes')->nullable();
-            $table->timestamp('completed_at')->nullable();
+            $table->text('internal_notes')->nullable();
+            $table->foreignId('created_by')->constrained('users');
+            $table->foreignId('approved_by')->nullable()->constrained('users');
+            $table->timestamp('approved_at')->nullable();
             $table->timestamps();
             
             $table->index(['supplier_id', 'status']);
+            $table->index(['po_number']);
         });
     }
 

@@ -9,8 +9,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('direct_purchases', function (Blueprint $table) {
-            $table->enum('purchase_type', ['cash', 'foc'])->default('cash')->after('total');
-            $table->string('reference_po')->nullable()->after('purchase_type'); // referensi PO jika FOC dari PO tertentu
+            if (!Schema::hasColumn('direct_purchases', 'purchase_type')) {
+                $table->enum('purchase_type', ['cash', 'foc'])->default('cash')->after('total');
+            }
+
+            if (!Schema::hasColumn('direct_purchases', 'reference_po')) {
+                $table->string('reference_po')->nullable()->after('purchase_type');
+            }
         });
     }
 

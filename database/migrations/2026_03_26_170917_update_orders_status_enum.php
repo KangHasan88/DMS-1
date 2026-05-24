@@ -9,6 +9,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         // Hapus enum constraint lama dengan mengubah ke VARCHAR
         DB::statement("ALTER TABLE orders MODIFY status VARCHAR(50) NOT NULL DEFAULT 'pending_payment'");
         
@@ -28,6 +32,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::getDriverName() === 'sqlite') {
+            return;
+        }
+
         // Kembalikan ke enum lama
         DB::statement("ALTER TABLE orders MODIFY status ENUM(
             'pending',

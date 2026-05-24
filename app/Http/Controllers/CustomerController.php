@@ -76,7 +76,7 @@ class CustomerController extends Controller
                 'name' => $validated['name'],
                 'email' => $validated['email'] ?? $validated['phone'] . '@customer.temp',
                 'phone' => $validated['phone'],
-                'password' => Hash::make('password123'),
+                'password' => 'password123',
                 'is_active' => $validated['is_active'] ?? true,
             ]);
             $user->assignRole('customer');

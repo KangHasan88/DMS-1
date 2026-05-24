@@ -72,7 +72,7 @@ class ProfileController extends Controller
         ]);
 
         $request->user()->update([
-            'password' => Hash::make($request->password),
+            'password' => $request->password,
         ]);
 
         // Log activity
