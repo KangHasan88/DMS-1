@@ -59,14 +59,14 @@
     <div style="overflow-x: auto;">
         <table class="dms-table" style="width: 100%;">
             <thead>
-                ??
+                <tr>
                     <th style="padding: 0.75rem; text-align: left;">No. Invoice</th>
                     <th style="padding: 0.75rem; text-align: left;">Tipe</th>
                     <th style="padding: 0.75rem; text-align: left;">Supplier</th>
                     <th style="padding: 0.75rem; text-align: left;">Tanggal</th>
                     <th style="padding: 0.75rem; text-align: left;">Total</th>
                     <th style="padding: 0.75rem; text-align: center;">Aksi</th>
-                </thead>
+                </tr>
             </thead>
             <tbody>
                 @forelse($purchases as $purchase)

@@ -28,7 +28,7 @@
         <div style="overflow-x: auto; margin-top: 1.5rem;">
             <table class="dms-table">
                 <thead>
-                    ??
+                    <tr>
                         <th>Produk</th>
                         <th>Satuan</th>
                         <th>Qty PO</th>
@@ -36,20 +36,20 @@
                         <th>Sisa</th>
                         <th>Jumlah Diterima</th>
                         <th>Catatan</th>
-                    </thead>
+                    </tr>
                 </thead>
                 <tbody>
                     @foreach($purchaseOrder->items as $index => $item)
                     <tr>
-                        ??
+                        <td>
                             <div style="font-weight: 600;">{{ $item->product->name }}</div>
-                        ??
-                        ??{{ $item->product->unit->name ?? '-' }}??
-                        ??{{ number_format($item->quantity) }}??
-                        ??{{ number_format($item->received_quantity) }}??
+                        </td>
+                        <td>{{ $item->product->unit->name ?? '-' }}</td>
+                        <td>{{ number_format($item->quantity) }}</td>
+                        <td>{{ number_format($item->received_quantity) }}</td>
                         <td class="remaining-qty" data-max="{{ $item->remaining_quantity }}">
                             <span class="dms-badge dms-badge-warning">{{ number_format($item->remaining_quantity) }}</span>
-                        ??
+                        </td>
                         <td>
                             <input type="hidden" name="items[{{ $index }}][id]" value="{{ $item->id }}">
                             <input type="number" name="items[{{ $index }}][received_quantity]" 

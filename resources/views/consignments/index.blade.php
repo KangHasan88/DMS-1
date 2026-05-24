@@ -58,6 +58,7 @@
     <div style="overflow-x: auto;">
         <table class="dms-table">
             <thead>
+                <tr>
                     <th>No. CN</th>
                     <th>Supplier</th>
                     <th>Tanggal</th>
@@ -67,30 +68,33 @@
                     <th>Dibayar</th>
                     <th>Status</th>
                     <th style="width: 100px;">Aksi</th>
-                </thead>
+                </tr>
             </thead>
             <tbody>
                 @forelse($consignments as $cn)
-                    <strong>{{ $cn->cn_number }}</strong>??
+                <tr>
+                    <td><strong>{{ $cn->cn_number }}</strong></td>
+                    <td>
                         <div>
                             <div>{{ $cn->supplier->name }}</div>
                             <div style="font-size: 0.65rem; color: var(--k-gray-500);">{{ $cn->supplier->phone }}</div>
                         </div>
-                    {{ $cn->consignment_date->format('d M Y') }}??
-                    {{ number_format($cn->total_items) }}??
-                    
+                    </td>
+                    <td>{{ $cn->consignment_date->format('d M Y') }}</td>
+                    <td>{{ number_format($cn->total_items) }}</td>
+                    <td>
                         <span class="dms-badge dms-badge-success">
                             {{ number_format($cn->total_sold) }}
                         </span>
-                    
-                    <td style="font-weight: 600;">Rp {{ number_format($cn->total_value, 0, ',', '.') }}??
-                    <td style="font-weight: 600;">Rp {{ number_format($cn->total_paid, 0, ',', '.') }}??
-                    
+                    </td>
+                    <td style="font-weight: 600;">Rp {{ number_format($cn->total_value, 0, ',', '.') }}</td>
+                    <td style="font-weight: 600;">Rp {{ number_format($cn->total_paid, 0, ',', '.') }}</td>
+                    <td>
                         <span class="dms-badge dms-badge-{{ $cn->status_color }}">
                             {{ $cn->status_label }}
                         </span>
-                    
-                    
+                    </td>
+                    <td>
                         <div style="display: flex; gap: 0.5rem;">
                             <a href="{{ route('consignments.show', $cn) }}" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem;" title="Detail">
                                 <i class="bi bi-eye"></i>
@@ -103,10 +107,10 @@
                             @endif
                             @endcan
                         </div>
-                    
-                </thead>
+                    </td>
+                </tr>
                 @empty
-                
+                <tr>
                     <td colspan="9" style="text-align: center; padding: 3rem;">
                         <i class="bi bi-hand-thumbs-up" style="font-size: 3rem; color: var(--k-gray-300);"></i>
                         <p style="margin-top: 1rem; color: var(--k-gray-500);">Belum ada data consignment</p>
@@ -115,8 +119,8 @@
                             <i class="bi bi-plus-circle"></i> Tambah Consignment
                         </a>
                         @endcan
-                    </thead>
-                </thead>
+                    </td>
+                </tr>
                 @endforelse
             </tbody>
         </table>

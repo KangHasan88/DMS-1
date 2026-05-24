@@ -58,52 +58,52 @@
     <div style="overflow-x: auto;">
         <table class="dms-table">
             <thead>
-                
+                <tr>
                     <th>No. Return</th>
                     <th>Customer</th>
                     <th>Tanggal</th>
                     <th>Tipe</th>
-                    <th>Aksi</th>
+                    <th>Tindakan</th>
                     <th>Total Item</th>
                     <th>Total Nilai</th>
                     <th>Aksi</th>
-                </thead>
+                </tr>
             </thead>
             <tbody>
                 @forelse($returns as $return)
-                
-                    <strong>{{ $return->return_number }}</strong>??
-                    
+                <tr>
+                    <td><strong>{{ $return->return_number }}</strong></td>
+                    <td>
                         <div>
                             <div>{{ $return->customer_name }}</div>
                             @if($return->customer_phone)
                             <div style="font-size: 0.65rem; color: var(--k-gray-500);">{{ $return->customer_phone }}</div>
                             @endif
                         </div>
-                    
-                    {{ $return->return_date->format('d M Y') }}??
-                    
+                    </td>
+                    <td>{{ $return->return_date->format('d M Y') }}</td>
+                    <td>
                         <span class="dms-badge dms-badge-warning">
                             {{ $return->type_label }}
                         </span>
-                    
-                    
+                    </td>
+                    <td>
                         <span class="dms-badge dms-badge-info">
                             {{ $return->action_label }}
                         </span>
-                    
-                    {{ number_format($return->items->sum('quantity')) }}??
-                    <td style="font-weight: 600;">Rp {{ number_format($return->total, 0, ',', '.') }}??
-                    
+                    </td>
+                    <td>{{ number_format($return->items->sum('quantity')) }}</td>
+                    <td style="font-weight: 600;">Rp {{ number_format($return->total, 0, ',', '.') }}</td>
+                    <td>
                         <div style="display: flex; gap: 0.5rem;">
                             <a href="{{ route('outbound-returns.show', $return) }}" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem;" title="Detail">
                                 <i class="bi bi-eye"></i>
                             </a>
                         </div>
-                    
-                </thead>
+                    </td>
+                </tr>
                 @empty
-                
+                <tr>
                     <td colspan="8" style="text-align: center; padding: 3rem;">
                         <i class="bi bi-arrow-return-left" style="font-size: 3rem; color: var(--k-gray-300);"></i>
                         <p style="margin-top: 1rem; color: var(--k-gray-500);">Belum ada data Return Out</p>
@@ -112,11 +112,11 @@
                             <i class="bi bi-plus-circle"></i> Tambah Return
                         </a>
                         @endcan
-                    </thead>
-                </thead>
+                    </td>
+                </tr>
                 @endforelse
             </tbody>
-        
+        </table>
     </div>
     
     <div style="margin-top: 1rem;">

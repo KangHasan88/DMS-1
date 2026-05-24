@@ -86,37 +86,37 @@
         <div style="overflow-x: auto;">
             <table class="dms-table">
                 <thead>
-                    ??
+                    <tr>
                         <th>Produk</th>
                         <th>Satuan</th>
                         <th>Quantity</th>
                         <th>Harga</th>
                         <th>Subtotal</th>
-                    </thead>
+                    </tr>
                 </thead>
                 <tbody>
                     @foreach($outboundFoc->items as $item)
-                    ??
-                        ??
+                    <tr>
+                        <td>
                             <div style="font-weight: 600;">{{ $item->product->name }}</div>
                             @if($item->notes)
                             <div style="font-size: 0.65rem; color: var(--k-gray-500);">Catatan: {{ $item->notes }}</div>
                             @endif
-                        ??
-                        ??{{ $item->product->unit->name ?? '-' }}??
-                        ??{{ number_format($item->quantity) }}??
-                        ??Rp {{ number_format($item->price, 0, ',', '.') }}??
-                        ??Rp {{ number_format($item->subtotal, 0, ',', '.') }}??
-                    </thead>
+                        </td>
+                        <td>{{ $item->product->unit->name ?? '-' }}</td>
+                        <td>{{ number_format($item->quantity) }}</td>
+                        <td>Rp {{ number_format($item->price, 0, ',', '.') }}</td>
+                        <td>Rp {{ number_format($item->subtotal, 0, ',', '.') }}</td>
+                    </tr>
                     @endforeach
                 </tbody>
                 <tfoot>
                     <tr style="background: var(--k-green-light);">
-                        <td colspan="4" style="text-align: right; font-weight: 700;">Total??
-                        <td style="font-weight: 700;">Rp {{ number_format($outboundFoc->total, 0, ',', '.') }}</thead>
+                        <td colspan="4" style="text-align: right; font-weight: 700;">Total</td>
+                        <td style="font-weight: 700;">Rp {{ number_format($outboundFoc->total, 0, ',', '.') }}</td>
                     </tr>
                 </tfoot>
-            80
+            </table>
         </div>
     </div>
 

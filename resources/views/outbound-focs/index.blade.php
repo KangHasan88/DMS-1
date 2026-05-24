@@ -58,7 +58,7 @@
     <div style="overflow-x: auto;">
         <table class="dms-table">
             <thead>
-                ??
+                <tr>
                     <th>No. FOC</th>
                     <th>Customer</th>
                     <th>Tanggal</th>
@@ -66,38 +66,38 @@
                     <th>Total Item</th>
                     <th>Total Nilai</th>
                     <th>Aksi</th>
-                </thead>
+                </tr>
             </thead>
             <tbody>
                 @forelse($focs as $foc)
-                ??
-                    ??<strong>{{ $foc->foc_number }}</strong>??
-                    ??
+                <tr>
+                    <td><strong>{{ $foc->foc_number }}</strong></td>
+                    <td>
                         <div>
                             <div>{{ $foc->customer_name }}</div>
                             @if($foc->customer_phone)
                             <div style="font-size: 0.65rem; color: var(--k-gray-500);">{{ $foc->customer_phone }}</div>
                             @endif
                         </div>
-                    ??
-                    ??{{ $foc->foc_date->format('d M Y') }}??
-                    ??
+                    </td>
+                    <td>{{ $foc->foc_date->format('d M Y') }}</td>
+                    <td>
                         <span class="dms-badge dms-badge-info">
                             {{ $foc->reason_label }}
                         </span>
-                    ??
-                    <td>{{ number_format($foc->items->sum('quantity')) }}??
-                    <td style="font-weight: 600;">Rp {{ number_format($foc->total, 0, ',', '.') }}??
-                    ??
+                    </td>
+                    <td>{{ number_format($foc->items->sum('quantity')) }}</td>
+                    <td style="font-weight: 600;">Rp {{ number_format($foc->total, 0, ',', '.') }}</td>
+                    <td>
                         <div style="display: flex; gap: 0.5rem;">
                             <a href="{{ route('outbound-focs.show', $foc) }}" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem;" title="Detail">
                                 <i class="bi bi-eye"></i>
                             </a>
                         </div>
-                    ??
-                </thead>
+                    </td>
+                </tr>
                 @empty
-                ??
+                <tr>
                     <td colspan="7" style="text-align: center; padding: 3rem;">
                         <i class="bi bi-gift" style="font-size: 3rem; color: var(--k-gray-300);"></i>
                         <p style="margin-top: 1rem; color: var(--k-gray-500);">Belum ada data FOC Out</p>
@@ -106,8 +106,8 @@
                             <i class="bi bi-plus-circle"></i> Tambah FOC
                         </a>
                         @endcan
-                    </thead>
-                </thead>
+                    </td>
+                </tr>
                 @endforelse
             </tbody>
         </table>
