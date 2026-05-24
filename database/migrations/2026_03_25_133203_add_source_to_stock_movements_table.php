@@ -10,8 +10,7 @@ return new class extends Migration
     {
         Schema::table('stock_movements', function (Blueprint $table) {
             // Sumber stock masuk
-            $table->enum('source_type', ['purchase_order', 'direct_purchase', 'adjustment'])
-                  ->nullable()->after('order_id');
+            $table->string('source_type')->nullable()->after('order_id');
             $table->unsignedBigInteger('source_id')->nullable()->after('source_type');
             
             // Index untuk query

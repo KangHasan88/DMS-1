@@ -22,14 +22,16 @@ return new class extends Migration
             $table->integer('subtotal'); // total harga produk
             $table->integer('total'); // subtotal + delivery_fee + packing_fee
             $table->enum('status', [
-                'pending',      // menunggu pembayaran
-                'paid',         // sudah dibayar
-                'shopping',     // sedang dibeli tim (jam 12 malam)
-                'repacking',    // sedang di-repack
-                'ready_for_delivery', // siap kirim
-                'delivered',    // sudah dikirim
-                'cancelled'     // dibatalkan
-            ])->default('pending');
+                'pending_payment', // menunggu pembayaran
+                'paid',            // sudah dibayar
+                'checking_stock',  // cek stok untuk fulfillment stock
+                'procuring',       // belanja untuk fulfillment JIT
+                'repacking',       // sedang di-repack
+                'ready',           // siap kirim
+                'shipped',         // dalam pengiriman
+                'delivered',       // selesai
+                'cancelled',       // dibatalkan
+            ])->default('pending_payment');
             $table->text('notes')->nullable(); // catatan dari customer
             $table->timestamp('paid_at')->nullable();
             $table->timestamp('shopping_at')->nullable();
