@@ -36,9 +36,11 @@
                             </option>
                         @endforeach
                     </select>
+                    @can('create customers')
                     <small style="color: var(--k-gray-500);">
                         <a href="{{ route('customers.create') }}" target="_blank" style="color: var(--k-green);">+ Tambah Customer Baru</a>
                     </small>
+                    @endcan
                     @error('user_id') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
                 </div>
                 

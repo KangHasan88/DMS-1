@@ -17,6 +17,10 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         $query = Order::with('user', 'delivery');
+
+        if ($this->isCustomerOnly()) {
+            $query->where('user_id', Auth::id());
+        }
         
         if ($request->filled('search')) {
             $query->where('order_number', 'like', "%{$request->search}%");
@@ -72,7 +76,9 @@ class OrderController extends Controller
     public function create(Request $request)
     {
         $products = Product::active()->orderBy('name')->get();
-        $customers = User::role('customer')->active()->orderBy('name')->get();
+        $customers = $this->isCustomerOnly()
+            ? User::whereKey(Auth::id())->get()
+            : User::role('customer')->active()->orderBy('name')->get();
         
         $productsWithStock = [];
         foreach ($products as $product) {
@@ -98,6 +104,17 @@ class OrderController extends Controller
 
     public function store(Request $request)
     {
+        if ($this->isCustomerOnly()) {
+            $request->merge([
+                'user_id' => Auth::id(),
+                'order_source' => Order::ORDER_SOURCE_APP,
+                'discount_type' => Order::DISCOUNT_NONE,
+                'discount_value' => 0,
+                'packing_fee' => 1000,
+                'include_ppn' => false,
+            ]);
+        }
+
         $validated = $request->validate([
             'user_id' => 'required|exists:users,id',
             'delivery_date' => 'required|date|after_or_equal:today',
@@ -248,6 +265,8 @@ class OrderController extends Controller
 
     public function show(Order $order)
     {
+        $this->authorizeCustomerOrder($order);
+
         $order->load('user', 'items.product', 'delivery');
         
         return view('orders.show', compact('order'));
@@ -255,6 +274,8 @@ class OrderController extends Controller
 
     public function edit(Order $order)
     {
+        $this->authorizeCustomerOrder($order);
+
         if (!$order->canUpdateStatus()) {
             return redirect()->route('orders.show', $order)
                 ->with('error', 'Order tidak dapat diubah karena sudah selesai/dibatalkan');
@@ -278,6 +299,8 @@ class OrderController extends Controller
 
     public function update(Request $request, Order $order)
     {
+        $this->authorizeCustomerOrder($order);
+
         if (!$order->canUpdateStatus()) {
             return back()->with('error', 'Order tidak dapat diubah karena sudah selesai/dibatalkan');
         }
@@ -398,6 +421,8 @@ class OrderController extends Controller
 
     public function destroy(Order $order)
     {
+        $this->authorizeCustomerOrder($order);
+
         if ($order->status !== Order::STATUS_PENDING_PAYMENT && $order->status !== Order::STATUS_CANCELLED) {
             return back()->with('error', 'Order tidak dapat dihapus karena sudah diproses');
         }
@@ -410,6 +435,8 @@ class OrderController extends Controller
 
     public function updateStatus(Request $request, Order $order)
     {
+        $this->authorizeCustomerOrder($order);
+
         $validated = $request->validate([
             'status' => 'required|in:' . implode(',', array_keys(Order::STATUS_LIST)),
             'notes' => 'nullable|string',
@@ -490,6 +517,8 @@ class OrderController extends Controller
     
     public function processProcurement(Request $request, Order $order)
     {
+        $this->authorizeCustomerOrder($order);
+
         if ($order->status !== Order::STATUS_PROCURING) {
             return back()->with('error', 'Order harus dalam status Belanja untuk input data');
         }
@@ -547,6 +576,8 @@ class OrderController extends Controller
     
     public function processRepack(Order $order)
     {
+        $this->authorizeCustomerOrder($order);
+
         // Cek status yang valid untuk proses repack
         if ($order->useStockMode()) {
             if ($order->status !== Order::STATUS_CHECKING_STOCK) {
@@ -566,6 +597,8 @@ class OrderController extends Controller
     
     public function markReady(Order $order)
     {
+        $this->authorizeCustomerOrder($order);
+
         if ($order->status !== Order::STATUS_REPACKING) {
             return back()->with('error', 'Order harus dalam status repacking untuk siap kirim');
         }
@@ -578,6 +611,8 @@ class OrderController extends Controller
     
     public function markShipped(Request $request, Order $order)
     {
+        $this->authorizeCustomerOrder($order);
+
         if ($order->status !== Order::STATUS_READY) {
             return back()->with('error', 'Order harus dalam status ready untuk dikirim');
         }
@@ -597,6 +632,8 @@ class OrderController extends Controller
     
     public function markDelivered(Order $order)
     {
+        $this->authorizeCustomerOrder($order);
+
         if ($order->status !== Order::STATUS_SHIPPED) {
             return back()->with('error', 'Order harus dalam status shipped untuk diselesaikan');
         }
@@ -614,6 +651,8 @@ class OrderController extends Controller
     
     public function markItemUnavailable(Request $request, OrderItem $item)
     {
+        $this->authorizeCustomerOrder($item->order);
+
         $item->markAsUnavailable();
         
         return response()->json([
@@ -626,6 +665,8 @@ class OrderController extends Controller
     
     public function invoice(Order $order)
     {
+        $this->authorizeCustomerOrder($order);
+
         $order->load('user', 'items.product');
         
         return view('orders.invoice', compact('order'));
@@ -640,5 +681,19 @@ class OrderController extends Controller
             'has_stock' => $stock && $stock->quantity > 0,
             'min_stock' => $stock ? $stock->min_stock : 0,
         ]);
+    }
+
+    private function isCustomerOnly(): bool
+    {
+        $user = Auth::user();
+
+        return $user?->hasRole('customer') && !$user->hasAnyRole(['super-admin', 'admin', 'manager', 'sales']);
+    }
+
+    private function authorizeCustomerOrder(Order $order): void
+    {
+        if ($this->isCustomerOnly() && $order->user_id !== Auth::id()) {
+            abort(403);
+        }
     }
 }
