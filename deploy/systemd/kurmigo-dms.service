@@ -1,0 +1,17 @@
+[Unit]
+Description=Kurmigo DMS Laravel application
+After=network.target
+
+[Service]
+Type=simple
+User=dmsuser
+Group=dmsuser
+WorkingDirectory=/var/www/kurmigo-dms
+ExecStart=/usr/bin/php8.3 artisan serve --host=127.0.0.1 --port=6060
+Restart=always
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

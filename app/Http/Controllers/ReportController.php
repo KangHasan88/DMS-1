@@ -1,0 +1,122 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Delivery;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\StockMovement;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+class ReportController extends Controller
+{
+    public function sales(Request $request)
+    {
+        [$startDate, $endDate] = $this->dateRange($request);
+
+        $orders = Order::with('user')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->latest()
+            ->paginate(20)
+            ->withQueryString();
+
+        $summary = [
+            'total_orders' => Order::whereBetween('created_at', [$startDate, $endDate])->count(),
+            'delivered_orders' => Order::whereBetween('created_at', [$startDate, $endDate])->where('status', Order::STATUS_DELIVERED)->count(),
+            'gross_sales' => Order::whereBetween('created_at', [$startDate, $endDate])->where('status', Order::STATUS_DELIVERED)->sum('grand_total'),
+            'pending_orders' => Order::whereBetween('created_at', [$startDate, $endDate])->where('status', Order::STATUS_PENDING_PAYMENT)->count(),
+        ];
+
+        return view('reports.sales', compact('orders', 'summary', 'startDate', 'endDate'));
+    }
+
+    public function inventory(Request $request)
+    {
+        [$startDate, $endDate] = $this->dateRange($request);
+
+        $products = Product::with('unit', 'stock')
+            ->orderBy('name')
+            ->paginate(20)
+            ->withQueryString();
+
+        $summary = [
+            'total_products' => Product::count(),
+            'active_products' => Product::where('is_active', true)->count(),
+            'stock_in' => StockMovement::whereBetween('created_at', [$startDate, $endDate])->where('type', StockMovement::TYPE_IN)->sum('quantity'),
+            'stock_out' => StockMovement::whereBetween('created_at', [$startDate, $endDate])->where('type', StockMovement::TYPE_OUT)->sum('quantity'),
+        ];
+
+        return view('reports.inventory', compact('products', 'summary', 'startDate', 'endDate'));
+    }
+
+    public function delivery(Request $request)
+    {
+        [$startDate, $endDate] = $this->dateRange($request);
+
+        $deliveries = Delivery::with('order.user', 'kurir')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->latest()
+            ->paginate(20)
+            ->withQueryString();
+
+        $summary = [
+            'total_deliveries' => Delivery::whereBetween('created_at', [$startDate, $endDate])->count(),
+            'completed' => Delivery::whereBetween('created_at', [$startDate, $endDate])->where('status', Delivery::STATUS_COMPLETED)->count(),
+            'in_progress' => Delivery::whereBetween('created_at', [$startDate, $endDate])->whereIn('status', [Delivery::STATUS_ASSIGNED, Delivery::STATUS_PICKED_UP, Delivery::STATUS_IN_TRANSIT])->count(),
+            'today' => Delivery::whereDate('created_at', today())->count(),
+        ];
+
+        return view('reports.delivery', compact('deliveries', 'summary', 'startDate', 'endDate'));
+    }
+
+    public function financial(Request $request)
+    {
+        [$startDate, $endDate] = $this->dateRange($request);
+
+        $orders = Order::whereBetween('created_at', [$startDate, $endDate]);
+        $delivered = (clone $orders)->where('status', Order::STATUS_DELIVERED);
+
+        $summary = [
+            'revenue' => (clone $delivered)->sum('grand_total'),
+            'subtotal' => (clone $delivered)->sum('subtotal'),
+            'discount' => (clone $delivered)->sum('discount_amount'),
+            'delivery_fee' => (clone $delivered)->sum('delivery_fee'),
+            'packing_fee' => (clone $delivered)->sum('packing_fee'),
+            'tax' => (clone $delivered)->sum('ppn_amount'),
+            'paid_orders' => (clone $orders)->whereNotNull('paid_at')->count(),
+            'unpaid_orders' => (clone $orders)->whereNull('paid_at')->where('status', '!=', Order::STATUS_CANCELLED)->count(),
+        ];
+
+        $byPaymentMethod = (clone $delivered)
+            ->select('payment_method', DB::raw('COUNT(*) as total_orders'), DB::raw('SUM(grand_total) as total_amount'))
+            ->groupBy('payment_method')
+            ->orderByDesc('total_amount')
+            ->get();
+
+        return view('reports.financial', compact('summary', 'byPaymentMethod', 'startDate', 'endDate'));
+    }
+
+    public function export(Request $request, string $type): StreamedResponse
+    {
+        abort_unless(in_array($type, ['sales', 'inventory', 'delivery', 'financial'], true), 404);
+
+        return response()->streamDownload(function () use ($request, $type) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Report', ucfirst($type)]);
+            fputcsv($handle, ['Generated At', now()->toDateTimeString()]);
+            fputcsv($handle, ['Start Date', $request->query('start_date', now()->startOfMonth()->toDateString())]);
+            fputcsv($handle, ['End Date', $request->query('end_date', now()->toDateString())]);
+            fclose($handle);
+        }, $type . '-report-' . now()->format('Ymd-His') . '.csv');
+    }
+
+    private function dateRange(Request $request): array
+    {
+        $startDate = $request->date('start_date', now()->startOfMonth())->startOfDay();
+        $endDate = $request->date('end_date', now())->endOfDay();
+
+        return [$startDate, $endDate];
+    }
+}

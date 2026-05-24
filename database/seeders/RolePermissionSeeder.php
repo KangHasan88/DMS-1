@@ -1,0 +1,252 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\Models\Permission;
+use App\Models\User;
+
+class RolePermissionSeeder extends Seeder
+{
+    public function run(): void
+    {
+        // Reset cached roles and permissions
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        // ============= DEFINE PERMISSIONS =============
+        $permissions = [
+            // DASHBOARD
+            'view dashboard',
+            
+            // USER MANAGEMENT
+            'view users',
+            'create users',
+            'edit users',
+            'delete users',
+            'activate users',
+            
+            // ROLE & PERMISSION
+            'view roles',
+            'create roles',
+            'edit roles',
+            'delete roles',
+            'assign permissions',
+            
+            // MASTER DATA
+            'view products',
+            'create products',
+            'edit products',
+            'delete products',
+            'view categories',
+            'create categories',
+            'edit categories',
+            'delete categories',
+            'view units',
+            'create units',
+            'edit units',
+            'delete units',
+            'view customers',
+            'create customers',
+            'edit customers',
+            'delete customers',
+            'view suppliers',
+            'create suppliers',
+            'edit suppliers',
+            'delete suppliers',
+            
+            // SALES
+            'view sales team',
+            'manage sales team',
+            'view visit plan',
+            'create visit plan',
+            'edit visit plan',
+            'delete visit plan',
+            'view target commission',
+            'manage target commission',
+            
+            // ORDER
+            'view sales order',
+            'create sales order',
+            'edit sales order',
+            'delete sales order',
+            'process orders',
+            'view order history',
+            
+            // INVENTORY
+            'view warehouse',
+            'manage warehouse',
+            'view stock movement',
+            'create stock movement',
+            'view purchase order',
+            'create purchase order',
+            'edit purchase order',
+            'delete purchase order',
+            'view stock opname',
+            'do stock opname',
+            
+            // FINANCE
+            'view invoice',
+            'create invoice',
+            'edit invoice',
+            'delete invoice',
+            'view payment',
+            'process payment',
+            'view piutang',
+            'manage piutang',
+            
+            // REPORTS
+            'view sales report',
+            'view inventory report',
+            'view financial report',
+            'export reports',
+            
+            // MOBILE
+            'download apk',
+            'view sync status',
+            
+            // SYSTEM
+            'view company profile',
+            'edit company profile',
+            'view settings',
+            'edit settings',
+            'view backup',
+            'manage backup',
+            'view logs',
+        ];
+
+        // Create permissions
+        foreach ($permissions as $permission) {
+            Permission::firstOrCreate(['name' => $permission]);
+        }
+
+        // ============= CREATE ROLES =============
+        
+        // ROLE: SUPER ADMIN (ALL ACCESS)
+        $superAdmin = Role::firstOrCreate(['name' => 'super-admin']);
+        $superAdmin->syncPermissions(Permission::all());
+        
+        // ROLE: ADMIN (ALL ACCESS KECUALI BEBERAPA)
+        $admin = Role::firstOrCreate(['name' => 'admin']);
+        $admin->syncPermissions([
+            // Hampir semua kecuali system critical
+            'view dashboard',
+            'view users', 'create users', 'edit users', 'activate users',
+            'view roles',
+            'view products', 'create products', 'edit products', 'delete products',
+            'view categories', 'create categories', 'edit categories', 'delete categories',
+            'view units', 'create units', 'edit units', 'delete units',
+            'view customers', 'create customers', 'edit customers', 'delete customers',
+            'view suppliers', 'create suppliers', 'edit suppliers', 'delete suppliers',
+            'view sales team', 'manage sales team',
+            'view visit plan', 'create visit plan', 'edit visit plan',
+            'view target commission', 'manage target commission',
+            'view sales order', 'create sales order', 'edit sales order', 'process orders',
+            'view order history',
+            'view warehouse', 'manage warehouse',
+            'view stock movement', 'create stock movement',
+            'view purchase order', 'create purchase order', 'edit purchase order',
+            'view stock opname', 'do stock opname',
+            'view invoice', 'create invoice', 'edit invoice',
+            'view payment', 'process payment',
+            'view piutang', 'manage piutang',
+            'view sales report', 'view inventory report', 'view financial report', 'export reports',
+            'download apk', 'view sync status',
+            'view company profile', 'edit company profile',
+            'view settings', 'view logs',
+        ]);
+        
+        // ROLE: SALES
+        $sales = Role::firstOrCreate(['name' => 'sales']);
+        $sales->syncPermissions([
+            'view dashboard',
+            'view products',
+            'view customers', 'create customers', 'edit customers',
+            'view visit plan', 'create visit plan', 'edit visit plan',
+            'view sales order', 'create sales order', 'edit sales order',
+            'view order history',
+            'view sales report',
+            'download apk',
+            'view sync status',
+        ]);
+        
+        // ROLE: MANAGER
+        $manager = Role::firstOrCreate(['name' => 'manager']);
+        $manager->syncPermissions([
+            'view dashboard',
+            'view users',
+            'view products', 'create products', 'edit products',
+            'view categories', 'create categories', 'edit categories',
+            'view units', 'create units', 'edit units',
+            'view customers', 'create customers', 'edit customers',
+            'view suppliers',
+            'view sales team',
+            'view visit plan', 'create visit plan', 'edit visit plan', 'delete visit plan',
+            'view target commission', 'manage target commission',
+            'view sales order', 'process orders',
+            'view order history',
+            'view warehouse',
+            'view stock movement',
+            'view purchase order',
+            'view stock opname',
+            'view invoice',
+            'view payment',
+            'view piutang',
+            'view sales report', 'view inventory report', 'view financial report', 'export reports',
+            'download apk', 'view sync status',
+        ]);
+        
+        // ROLE: WAREHOUSE
+        $warehouse = Role::firstOrCreate(['name' => 'warehouse']);
+        $warehouse->syncPermissions([
+            'view dashboard',
+            'view products',
+            'view categories',
+            'view units',
+            'view warehouse', 'manage warehouse',
+            'view stock movement', 'create stock movement',
+            'view purchase order', 'create purchase order', 'edit purchase order',
+            'view stock opname', 'do stock opname',
+            'view inventory report',
+            'download apk',
+            'view sync status',
+        ]);
+        
+        // ROLE: FINANCE
+        $finance = Role::firstOrCreate(['name' => 'finance']);
+        $finance->syncPermissions([
+            'view dashboard',
+            'view customers',
+            'view suppliers',
+            'view sales order',
+            'view invoice', 'create invoice', 'edit invoice',
+            'view payment', 'process payment',
+            'view piutang', 'manage piutang',
+            'view financial report', 'export reports',
+            'download apk',
+            'view sync status',
+        ]);
+
+        // ============= ASSIGN ROLE TO EXISTING USERS =============
+        
+        // Assign super-admin ke user pertama (biasanya superadmin@dms.com)
+        $superAdminUser = User::where('email', 'superadmin@dms.com')->first();
+        if ($superAdminUser && !$superAdminUser->hasRole('super-admin')) {
+            $superAdminUser->assignRole('super-admin');
+        }
+        
+        // Assign admin ke user dengan email admin@dms.com (jika ada)
+        $adminUser = User::where('email', 'admin@dms.com')->first();
+        if ($adminUser && !$adminUser->hasRole('admin')) {
+            $adminUser->assignRole('admin');
+        }
+        
+        // Assign sales ke test user
+        $salesUser = User::where('email', 'test@dms.com')->first();
+        if ($salesUser && !$salesUser->hasRole('sales')) {
+            $salesUser->assignRole('sales');
+        }
+        
+        $this->command->info('Roles and permissions seeded successfully!');
+    }
+}

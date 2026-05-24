@@ -1,0 +1,226 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Product;
+use App\Models\ProductPriceHistory;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
+
+class ProductController extends Controller
+{
+    /**
+     * Display a listing of the products.
+     */
+    public function index(Request $request)
+    {
+        $query = Product::query();
+        
+        // Search
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%')
+                  ->orWhere('category', 'like', '%' . $request->search . '%');
+        }
+        
+        // Filter by category
+        if ($request->filled('category')) {
+            $query->where('category', $request->category);
+        }
+        
+        // Filter by status
+        if ($request->filled('status')) {
+            $query->where('is_active', $request->status === 'active');
+        }
+        
+        // Per page
+        $perPage = $request->get('per_page', 10);
+        
+        $products = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        
+        // Get categories for filter
+        $categories = Product::select('category')->distinct()->whereNotNull('category')->pluck('category');
+        
+        return view('products.index', compact('products', 'categories'));
+    }
+
+    /**
+     * Show the form for creating a new product.
+     */
+    public function create()
+    {
+        return view('products.create');
+    }
+
+    /**
+     * Store a newly created product in storage.
+     */
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'category' => 'nullable|string|max:100',
+            'unit' => 'required|string|max:50',
+            'price' => 'required|numeric|min:0',
+            'base_price' => 'nullable|numeric|min:0',
+            'description' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'is_active' => 'boolean',
+        ]);
+        
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('products', 'public');
+            $validated['image'] = $imagePath;
+        }
+        
+        // Set default values
+        $validated['is_active'] = $request->has('is_active');
+        
+        $product = Product::create($validated);
+        
+        // Catat history harga awal (tanpa old price)
+        $product->priceHistories()->create([
+            'user_id' => Auth::id(),
+            'old_price' => null,
+            'new_price' => $product->price,
+            'old_base_price' => null,
+            'new_base_price' => $product->base_price,
+            'reason' => 'Produk baru ditambahkan',
+        ]);
+        
+        return redirect()->route('products.index')
+            ->with('success', 'Produk berhasil ditambahkan');
+    }
+
+    /**
+     * Display the specified product.
+     */
+    public function show(Product $product)
+    {
+        return view('products.show', compact('product'));
+    }
+
+    /**
+     * Show the form for editing the specified product.
+     */
+    public function edit(Product $product)
+    {
+        return view('products.edit', compact('product'));
+    }
+
+    /**
+     * Update the specified product in storage.
+     */
+    public function update(Request $request, Product $product)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'category' => 'nullable|string|max:100',
+            'unit' => 'required|string|max:50',
+            'price' => 'required|numeric|min:0',
+            'base_price' => 'nullable|numeric|min:0',
+            'description' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'is_active' => 'boolean',
+            'price_change_reason' => 'nullable|string|max:500',
+        ]);
+        
+        // Simpan data lama sebelum update
+        $oldData = [
+            'price' => $product->price,
+            'base_price' => $product->base_price,
+        ];
+        
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            // Delete old image
+            if ($product->image) {
+                Storage::disk('public')->delete($product->image);
+            }
+            
+            $imagePath = $request->file('image')->store('products', 'public');
+            $validated['image'] = $imagePath;
+        }
+        
+        $validated['is_active'] = $request->has('is_active');
+        
+        $product->update($validated);
+        
+        // Data baru setelah update
+        $newData = [
+            'price' => $product->price,
+            'base_price' => $product->base_price,
+        ];
+        
+        // Catat perubahan harga jika ada perubahan
+        $priceChanged = $oldData['price'] != $newData['price'];
+        $basePriceChanged = $oldData['base_price'] != $newData['base_price'];
+        
+        if ($priceChanged || $basePriceChanged) {
+            $reason = $request->input('price_change_reason', 'Update produk via admin panel');
+            
+            $product->priceHistories()->create([
+                'user_id' => Auth::id(),
+                'old_price' => $oldData['price'],
+                'new_price' => $newData['price'],
+                'old_base_price' => $oldData['base_price'],
+                'new_base_price' => $newData['base_price'],
+                'reason' => $reason,
+            ]);
+        }
+        
+        $message = 'Produk berhasil diupdate';
+        if ($priceChanged) {
+            $message .= ' (Harga diubah dari Rp ' . number_format($oldData['price'], 0, ',', '.') . 
+                        ' menjadi Rp ' . number_format($newData['price'], 0, ',', '.') . ')';
+        }
+        
+        return redirect()->route('products.index')
+            ->with('success', $message);
+    }
+
+    /**
+     * Remove the specified product from storage.
+     */
+    public function destroy(Product $product)
+    {
+        // Delete image if exists
+        if ($product->image) {
+            Storage::disk('public')->delete($product->image);
+        }
+        
+        $product->delete();
+        
+        return redirect()->route('products.index')
+            ->with('success', 'Produk berhasil dihapus');
+    }
+    
+    /**
+     * Toggle product status.
+     */
+    public function toggleStatus(Product $product)
+    {
+        $oldStatus = $product->is_active;
+        $product->update(['is_active' => !$oldStatus]);
+        
+        return response()->json([
+            'success' => true,
+            'is_active' => $product->is_active,
+            'message' => $product->is_active ? 'Produk diaktifkan' : 'Produk dinonaktifkan'
+        ]);
+    }
+    
+    /**
+     * Display price history for a product.
+     */
+    public function priceHistory(Product $product)
+    {
+        $priceHistories = $product->priceHistories()
+            ->with('user')
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+        
+        return view('products.price-history', compact('product', 'priceHistories'));
+    }
+}
