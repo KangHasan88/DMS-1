@@ -820,7 +820,11 @@
                                 <i class="bi bi-truck"></i>
                                 <span>{{ __('navigation.deliveries') }}</span>
                                 @php
-                                    $activeDeliveries = \App\Models\Delivery::where('status', '!=', 'completed')->count();
+                                    $activeDeliveriesQuery = \App\Models\Delivery::where('status', '!=', 'completed');
+                                    if (Auth::user()?->hasRole('kurir') && !Auth::user()?->hasAnyRole(['super-admin', 'admin', 'manager'])) {
+                                        $activeDeliveriesQuery->where('kurir_id', Auth::id());
+                                    }
+                                    $activeDeliveries = $activeDeliveriesQuery->count();
                                 @endphp
                                 @if($activeDeliveries > 0)
                                     <span class="nav-badge">{{ $activeDeliveries }}</span>
@@ -925,11 +929,21 @@
                     </ul>
                 </div>
 
-                <!-- SECTION: MASTER DATA -->
+                <!-- SECTION: CATALOG -->
                 <div class="nav-section">
-                    <div class="nav-section-title">{{ __('navigation.master_data') }}</div>
+                    <div class="nav-section-title">{{ __('navigation.catalog') }}</div>
                     <ul style="list-style: none; padding: 0;">
-                        <!-- Master Satuan -->
+                        <!-- Products -->
+                        @can('view products')
+                        <li class="nav-item">
+                            <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
+                                <i class="bi bi-box-seam"></i>
+                                <span>{{ __('navigation.products') }}</span>
+                            </a>
+                        </li>
+                        @endcan
+
+                        <!-- Units -->
                         @can('view units')
                         <li class="nav-item">
                             <a href="{{ route('units.index') }}" class="nav-link {{ request()->routeIs('units.*') ? 'active' : '' }}">
@@ -938,7 +952,13 @@
                             </a>
                         </li>
                         @endcan
-                        
+                    </ul>
+                </div>
+
+                <!-- SECTION: BUSINESS RELATIONS -->
+                <div class="nav-section">
+                    <div class="nav-section-title">{{ __('navigation.business_relations') }}</div>
+                    <ul style="list-style: none; padding: 0;">
                         <!-- Customers -->
                         @can('view customers')
                         <li class="nav-item">
@@ -955,16 +975,6 @@
                             <a href="{{ route('suppliers.index') }}" class="nav-link {{ request()->routeIs('suppliers.*') ? 'active' : '' }}">
                                 <i class="bi bi-shop"></i>
                                 <span>{{ __('navigation.suppliers') }}</span>
-                            </a>
-                        </li>
-                        @endcan
-                        
-                        <!-- Products -->
-                        @can('view products')
-                        <li class="nav-item">
-                            <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
-                                <i class="bi bi-box-seam"></i>
-                                <span>{{ __('navigation.products') }}</span>
                             </a>
                         </li>
                         @endcan
@@ -1040,13 +1050,6 @@
                             </a>
                         </li>
                         @endcan
-                        
-                        <li class="nav-item">
-                            <a href="{{ route('profile.edit') }}" class="nav-link {{ request()->routeIs('profile.*') ? 'active' : '' }}">
-                                <i class="bi bi-person-circle"></i>
-                                <span>{{ __('navigation.profile') }}</span>
-                            </a>
-                        </li>
                     </ul>
                 </div>
             </div>
@@ -1079,7 +1082,7 @@
                         @endforeach
                     </div>
 
-                    <div class="user-info-card">
+                    <a href="{{ route('profile.edit') }}" class="user-info-card" title="{{ __('navigation.open_profile') }}" style="text-decoration: none;">
                         <div class="avatar-small">
                             @if(Auth::user()->photo)
                                 <img src="{{ asset('storage/' . Auth::user()->photo) }}" alt="{{ Auth::user()->name }}" style="width: 24px; height: 24px; border-radius: 24px; object-fit: cover;">

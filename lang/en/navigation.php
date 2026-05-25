@@ -19,6 +19,8 @@ return [
     'stock_management' => 'Stock Overview',
     'stock_movements' => 'Stock Movements',
     'master_data' => 'Master Data',
+    'catalog' => 'Catalog',
+    'business_relations' => 'Business Relations',
     'units' => 'Units',
     'customers' => 'Customers',
     'suppliers' => 'Suppliers',
@@ -33,5 +35,6 @@ return [
     'roles' => 'Roles & Permissions',
     'activity_logs' => 'Activity Logs',
     'profile' => 'My Profile',
+    'open_profile' => 'Open Profile',
     'logout' => 'Logout',
 ];

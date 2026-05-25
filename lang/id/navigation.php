@@ -19,6 +19,8 @@ return [
     'stock_management' => 'Stok Barang',
     'stock_movements' => 'Mutasi Stok',
     'master_data' => 'Master Data',
+    'catalog' => 'Katalog',
+    'business_relations' => 'Relasi Bisnis',
     'units' => 'Satuan',
     'customers' => 'Pelanggan',
     'suppliers' => 'Supplier',
@@ -33,5 +35,6 @@ return [
     'roles' => 'Role & Hak Akses',
     'activity_logs' => 'Log Aktivitas',
     'profile' => 'Profil Saya',
+    'open_profile' => 'Buka Profil',
     'logout' => 'Keluar',
 ];

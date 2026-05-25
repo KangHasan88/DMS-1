@@ -27,6 +27,8 @@ class LocaleNavigationTest extends TestCase
             ->assertOk()
             ->assertSee('Operasional')
             ->assertSee('Pesanan')
+            ->assertSee('Katalog')
+            ->assertSee('Relasi Bisnis')
             ->assertSee('Laporan Inventori');
     }
 
@@ -46,8 +48,22 @@ class LocaleNavigationTest extends TestCase
             ->assertOk()
             ->assertSee('Operations')
             ->assertSee('Sales Orders')
+            ->assertSee('Catalog')
+            ->assertSee('Business Relations')
             ->assertSee('Inventory Report')
             ->assertDontSee('Pesanan');
+    }
+
+    public function test_profile_link_is_in_topbar_not_sidebar_management(): void
+    {
+        $user = $this->superAdmin();
+
+        $this->actingAs($user)
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertSee(route('profile.edit'), false)
+            ->assertSee('title="Buka Profil"', false)
+            ->assertDontSee('<span>Profil Saya</span>', false);
     }
 
     public function test_language_toggle_rejects_unsupported_locale(): void
