@@ -15,5 +15,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    abort_unless($request->user()?->is_active, 403);
+
     return $request->user();
 });

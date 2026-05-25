@@ -14,6 +14,11 @@ class ActivityLogController extends Controller
      */
     public function index(Request $request)
     {
+        $request->validate([
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+        ]);
+
         $logs = ActivityLog::with('causer')
             ->when($request->search, function($query, $search) {
                 $query->where(function($q) use ($search) {
@@ -81,6 +86,8 @@ class ActivityLogController extends Controller
      */
     public function clear(Request $request)
     {
+        abort_unless($request->user()?->hasRole('super-admin'), 403);
+
         $request->validate([
             'days' => 'required|integer|min:1|max:365'
         ]);
