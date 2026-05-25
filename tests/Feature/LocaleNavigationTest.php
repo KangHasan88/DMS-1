@@ -63,6 +63,7 @@ class LocaleNavigationTest extends TestCase
             ->assertOk()
             ->assertSee(route('profile.edit'), false)
             ->assertSee('title="Buka Profil"', false)
+            ->assertDontSee('user-profile-compact', false)
             ->assertDontSee('<span>Profil Saya</span>', false);
     }
 

@@ -155,58 +155,6 @@
             letter-spacing: 0.5px;
         }
 
-        /* User Profile - Ultra Compact */
-        .user-profile-compact {
-            padding: 0.6rem 1rem;
-            border-bottom: 1px solid var(--k-gray-200);
-            margin-bottom: 0.75rem;
-        }
-
-        .user-info-compact {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-        }
-
-        .user-avatar-compact {
-            width: 28px;
-            height: 28px;
-            background: var(--k-gray-100);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid var(--k-gray-200);
-        }
-
-        .user-avatar-compact i {
-            font-size: 1rem;
-            color: var(--k-gray-500);
-        }
-
-        .user-details-compact {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .user-name-compact {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--k-gray-800);
-            margin-bottom: 0.1rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .user-email-compact {
-            font-size: 0.6rem;
-            color: var(--k-gray-500);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
         /* Navigation Menu - Ultra Compact */
         .nav-menu {
             padding: 0 0.75rem 0.75rem 0.75rem;
@@ -759,23 +707,6 @@
                         <p>KURIR KAMI, GO!</p>
                     </div>
                 </a>
-            </div>
-
-            <!-- User Profile - Compact -->
-            <div class="user-profile-compact">
-                <div class="user-info-compact">
-                    <div class="user-avatar-compact">
-                        @if(Auth::user()->photo)
-                            <img src="{{ asset('storage/' . Auth::user()->photo) }}" alt="{{ Auth::user()->name }}" style="width: 28px; height: 28px; border-radius: 8px; object-fit: cover;">
-                        @else
-                            <i class="bi bi-person-circle"></i>
-                        @endif
-                    </div>
-                    <div class="user-details-compact">
-                        <div class="user-name-compact">{{ Auth::user()->name ?? 'Admin' }}</div>
-                        <div class="user-email-compact">{{ Auth::user()->email ?? 'admin@kurmigo.com' }}</div>
-                    </div>
-                </div>
             </div>
 
             <!-- Navigation Menu -->
