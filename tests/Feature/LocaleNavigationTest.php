@@ -90,6 +90,32 @@ class LocaleNavigationTest extends TestCase
             ->assertDontSee('notification-badge', false);
     }
 
+    public function test_stock_navigation_stays_active_on_stock_work_pages(): void
+    {
+        $user = $this->superAdmin();
+
+        $response = $this->actingAs($user)->get('/stock/low-stock');
+
+        $response->assertOk();
+        $this->assertStringContainsString(
+            'href="'.route('stock.index').'" class="nav-link active"',
+            $response->getContent()
+        );
+    }
+
+    public function test_sidebar_does_not_render_empty_permission_items(): void
+    {
+        $user = $this->userWithRole('finance');
+
+        $response = $this->actingAs($user)->get('/dashboard');
+
+        $response->assertOk();
+        $this->assertDoesNotMatchRegularExpression(
+            '/<li class="nav-item">\s*<\/li>/',
+            $response->getContent()
+        );
+    }
+
     public function test_language_toggle_rejects_unsupported_locale(): void
     {
         $user = $this->superAdmin(['locale' => 'id']);
@@ -107,6 +133,14 @@ class LocaleNavigationTest extends TestCase
     {
         $user = User::factory()->create($attributes);
         $user->assignRole('super-admin');
+
+        return $user;
+    }
+
+    private function userWithRole(string $role): User
+    {
+        $user = User::factory()->create();
+        $user->assignRole($role);
 
         return $user;
     }

@@ -805,7 +805,7 @@
                         <!-- Stock Management -->
                         @can('view warehouse')
                         <li class="nav-item">
-                            <a href="{{ route('stock.index') }}" class="nav-link {{ request()->routeIs('stock.index') ? 'active' : '' }}">
+                            <a href="{{ route('stock.index') }}" class="nav-link {{ request()->routeIs('stock.index', 'stock.low-stock', 'stock.show', 'stock.add*', 'stock.reduce*', 'stock.adjustment*') ? 'active' : '' }}">
                                 <i class="bi bi-box-seam"></i>
                                 <span>{{ __('navigation.stock_management') }}</span>
                                 @php
@@ -886,38 +886,38 @@
                 <div class="nav-section">
                     <div class="nav-section-title">{{ __('navigation.reports') }}</div>
                     <ul style="list-style: none; padding: 0;">
+                        @can('view sales report')
                         <li class="nav-item">
-                            @can('view sales report')
                             <a href="{{ route('reports.sales') }}" class="nav-link {{ request()->routeIs('reports.sales') ? 'active' : '' }}">
                                 <i class="bi bi-graph-up"></i>
                                 <span>{{ __('navigation.sales_report') }}</span>
                             </a>
-                            @endcan
                         </li>
+                        @endcan
+                        @can('view inventory report')
                         <li class="nav-item">
-                            @can('view inventory report')
                             <a href="{{ route('reports.inventory') }}" class="nav-link {{ request()->routeIs('reports.inventory') ? 'active' : '' }}">
                                 <i class="bi bi-box-seam"></i>
                                 <span>{{ __('navigation.inventory_report') }}</span>
                             </a>
-                            @endcan
                         </li>
+                        @endcan
+                        @can('view delivery report')
                         <li class="nav-item">
-                            @can('view delivery report')
                             <a href="{{ route('reports.delivery') }}" class="nav-link {{ request()->routeIs('reports.delivery') ? 'active' : '' }}">
                                 <i class="bi bi-truck"></i>
                                 <span>{{ __('navigation.delivery_report') }}</span>
                             </a>
-                            @endcan
                         </li>
+                        @endcan
+                        @can('view financial report')
                         <li class="nav-item">
-                            @can('view financial report')
                             <a href="{{ route('reports.financial') }}" class="nav-link {{ request()->routeIs('reports.financial') ? 'active' : '' }}">
                                 <i class="bi bi-currency-dollar"></i>
                                 <span>{{ __('navigation.financial_report') }}</span>
                             </a>
-                            @endcan
                         </li>
+                        @endcan
                     </ul>
                 </div>
 
