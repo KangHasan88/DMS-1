@@ -121,6 +121,11 @@ class LocaleNavigationTest extends TestCase
         $this->assertFileDoesNotExist(resource_path('views/layouts/navbar.blade.php'));
     }
 
+    public function test_legacy_admin_layout_is_removed(): void
+    {
+        $this->assertFileDoesNotExist(resource_path('views/layouts/admin.blade.php'));
+    }
+
     public function test_language_toggle_rejects_unsupported_locale(): void
     {
         $user = $this->superAdmin(['locale' => 'id']);
