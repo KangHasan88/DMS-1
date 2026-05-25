@@ -127,27 +127,6 @@
             gap: 1.5rem;
         }
 
-        .notification {
-            position: relative;
-            cursor: pointer;
-        }
-
-        .notification i {
-            font-size: 1.3rem;
-            color: #64748b;
-        }
-
-        .notification-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background: #ef4444;
-            color: white;
-            font-size: 0.6rem;
-            padding: 0.15rem 0.35rem;
-            border-radius: 5px;
-        }
-
         .user-dropdown {
             position: relative;
         }
@@ -367,12 +346,6 @@
 
         <!-- Right Section -->
         <div class="nav-right">
-            <!-- Notifications -->
-            <div class="notification">
-                <i class="bi bi-bell"></i>
-                <span class="notification-badge">3</span>
-            </div>
-
             <!-- User Dropdown -->
             <div class="user-dropdown">
                 <div class="user-btn" onclick="toggleDropdown()">

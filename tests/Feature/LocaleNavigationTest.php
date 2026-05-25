@@ -67,6 +67,17 @@ class LocaleNavigationTest extends TestCase
             ->assertDontSee('<span>Profil Saya</span>', false);
     }
 
+    public function test_dummy_notifications_are_hidden_until_real_feature_exists(): void
+    {
+        $user = $this->superAdmin();
+
+        $this->actingAs($user)
+            ->get('/dashboard')
+            ->assertOk()
+            ->assertDontSee('bi bi-bell', false)
+            ->assertDontSee('notification-badge', false);
+    }
+
     public function test_language_toggle_rejects_unsupported_locale(): void
     {
         $user = $this->superAdmin(['locale' => 'id']);

@@ -337,36 +337,6 @@
             font-weight: 600;
         }
 
-        /* Notification */
-        .notification {
-            position: relative;
-            cursor: pointer;
-            padding: 0.2rem;
-        }
-
-        .notification i {
-            font-size: 1rem;
-            color: var(--k-gray-500);
-        }
-
-        .notification:hover i {
-            color: var(--k-green);
-        }
-
-        .notification-badge {
-            position: absolute;
-            top: -2px;
-            right: -2px;
-            background: var(--k-green);
-            color: var(--k-white);
-            font-size: 0.45rem;
-            font-weight: 600;
-            padding: 0.1rem 0.25rem;
-            border-radius: 20px;
-            min-width: 14px;
-            text-align: center;
-        }
-
         /* Date Display */
         .date-display {
             display: flex;
