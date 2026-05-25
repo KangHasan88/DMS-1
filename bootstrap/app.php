@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 
 use App\Http\Middleware\CheckRole;
 use App\Http\Middleware\CheckPermission;
+use App\Http\Middleware\SetLocale;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -30,6 +31,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // =========================
         // CUSTOM MIDDLEWARE
         // =========================
+        $middleware->web(append: [
+            SetLocale::class,
+        ]);
+
         $middleware->alias([
             'role' => CheckRole::class,
             'permission' => CheckPermission::class,

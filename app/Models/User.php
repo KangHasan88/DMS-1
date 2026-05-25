@@ -42,6 +42,7 @@ class User extends Authenticatable
         'birth_date',
         'address',
         'is_active',
+        'locale',
         'last_login_at',
         'last_login_ip',
         'employee_id',
@@ -69,6 +70,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'is_active' => 'boolean',
+        'locale' => 'string',
         'birth_date' => 'date',
         'join_date' => 'date',
         'last_login_at' => 'datetime'

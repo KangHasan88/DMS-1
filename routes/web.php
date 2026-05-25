@@ -18,6 +18,7 @@ use App\Http\Controllers\DirectPurchaseController;
 use App\Http\Controllers\ConsignmentController;
 use App\Http\Controllers\OutboundFocController;
 use App\Http\Controllers\OutboundReturnController;
+use App\Http\Controllers\LocaleController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -33,6 +34,7 @@ Route::get('/', function () {
 
 // Authenticated routes
 Route::middleware(['auth', 'verified'])->group(function () {
+    Route::post('/locale', [LocaleController::class, 'update'])->name('locale.update');
     
     // ============= DASHBOARD =============
     Route::get('/dashboard', [DashboardController::class, 'index'])
