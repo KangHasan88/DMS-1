@@ -9,7 +9,7 @@
         <div>
             <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">Consignment (Titip Jual)</h3>
             <p style="font-size: 0.85rem; color: var(--k-gray-500);">
-                Kelola barang titipan dari supplier. Barang baru dibayar setelah terjual.
+                Kelola barang titipan dari pemasok. Barang baru dibayar setelah terjual.
             </p>
         </div>
         @can('create consignments')
@@ -25,7 +25,7 @@
             <form action="{{ route('consignments.index') }}" method="GET" style="display: flex; gap: 0.5rem;">
                 <div style="position: relative; flex: 1;">
                     <i class="bi bi-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--k-gray-400);"></i>
-                    <input type="text" name="search" placeholder="Cari nomor CN, supplier..." 
+                    <input type="text" name="search" placeholder="Cari nomor CN, pemasok..."
                            value="{{ request('search') }}"
                            style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; border: 1px solid var(--k-gray-300); border-radius: 8px; font-size: 0.9rem;">
                 </div>
@@ -60,7 +60,7 @@
             <thead>
                 <tr>
                     <th>No. CN</th>
-                    <th>Supplier</th>
+                    <th>Pemasok</th>
                     <th>Tanggal</th>
                     <th>Total Item</th>
                     <th>Terjual</th>

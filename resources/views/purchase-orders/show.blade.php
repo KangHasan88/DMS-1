@@ -90,17 +90,17 @@
         </div>
     </div>
 
-    <!-- Supplier Info -->
+    <!-- Pemasok Info -->
     <div style="margin-bottom: 2rem;">
         <h4 style="font-size: 1rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--k-gray-200);">
             <i class="bi bi-shop" style="margin-right: 0.5rem; color: var(--k-green);"></i>
-            Informasi Supplier
+            Informasi Pemasok
         </h4>
         
         <div style="background: var(--k-gray-50); border-radius: 8px; padding: 1rem;">
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
                 <div>
-                    <div style="font-size: 0.7rem; color: var(--k-gray-500);">Nama Supplier</div>
+                    <div style="font-size: 0.7rem; color: var(--k-gray-500);">Nama Pemasok</div>
                     <div style="font-weight: 600;">{{ $purchaseOrder->supplier->name }}</div>
                 </div>
                 <div>
@@ -188,7 +188,7 @@
         
         @if($purchaseOrder->notes)
         <div style="margin-bottom: 1rem; padding: 0.75rem; background: var(--k-gray-50); border-radius: 8px;">
-            <div style="font-size: 0.7rem; color: var(--k-gray-500);">Catatan untuk Supplier</div>
+            <div style="font-size: 0.7rem; color: var(--k-gray-500);">Catatan untuk Pemasok</div>
             <p style="color: var(--k-gray-700);">{{ $purchaseOrder->notes }}</p>
         </div>
         @endif

@@ -8,7 +8,7 @@
     <div style="margin-bottom: 2rem;">
         <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">Receive Barang</h3>
         <p style="font-size: 0.85rem; color: var(--k-gray-500);">
-            PO #{{ $purchaseOrder->po_number }} - Supplier: {{ $purchaseOrder->supplier->name }}
+            PO #{{ $purchaseOrder->po_number }} - Pemasok: {{ $purchaseOrder->supplier->name }}
         </p>
         <div style="margin-top: 0.5rem; padding: 0.5rem; background: var(--k-green-light); border-radius: 6px;">
             <i class="bi bi-info-circle"></i> 

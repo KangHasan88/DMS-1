@@ -8,7 +8,7 @@
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
         <div>
             <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">Daftar Purchase Order</h3>
-            <p style="font-size: 0.85rem; color: var(--k-gray-500);">Kelola semua pembelian ke supplier</p>
+            <p style="font-size: 0.85rem; color: var(--k-gray-500);">Kelola semua pembelian ke pemasok</p>
         </div>
         @can('create purchase order')
         <a href="{{ route('purchase-orders.create') }}" class="dms-btn dms-btn-primary">
@@ -24,7 +24,7 @@
             <form action="{{ route('purchase-orders.index') }}" method="GET" style="display: flex; gap: 0.5rem;">
                 <div style="position: relative; flex: 1;">
                     <i class="bi bi-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--k-gray-400);"></i>
-                    <input type="text" name="search" placeholder="Cari nomor PO, supplier..." 
+                    <input type="text" name="search" placeholder="Cari nomor PO, pemasok..."
                            value="{{ request('search') }}"
                            style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; border: 1px solid var(--k-gray-300); border-radius: 8px; font-size: 0.9rem;">
                 </div>
@@ -43,9 +43,9 @@
                 @endforeach
             </select>
             
-            <!-- Filter Supplier -->
+            <!-- Filter Pemasok -->
             <select name="supplier_id" onchange="window.location.href = this.value" style="padding: 0.75rem 2rem 0.75rem 1rem; border: 1px solid var(--k-gray-300); border-radius: 8px; font-size: 0.9rem; background: white;">
-                <option value="{{ route('purchase-orders.index', array_merge(request()->except('supplier_id'), ['supplier_id' => null])) }}">Semua Supplier</option>
+                <option value="{{ route('purchase-orders.index', array_merge(request()->except('supplier_id'), ['supplier_id' => null])) }}">Semua Pemasok</option>
                 @foreach($suppliers as $supplier)
                     <option value="{{ route('purchase-orders.index', array_merge(request()->except('supplier_id'), ['supplier_id' => $supplier->id])) }}" {{ request('supplier_id') == $supplier->id ? 'selected' : '' }}>
                         {{ $supplier->name }}
@@ -69,7 +69,7 @@
             <thead>
                   <tr>
                     <th>No. PO</th>
-                    <th>Supplier</th>
+                    <th>Pemasok</th>
                     <th>Tanggal PO</th>
                     <th>Total</th>
                     <th>Status</th>

@@ -7,18 +7,18 @@
 <div class="dms-card">
     <div style="margin-bottom: 2rem;">
         <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">Buat Purchase Order Baru</h3>
-        <p style="font-size: 0.85rem; color: var(--k-gray-500);">Isi form berikut untuk membuat purchase order ke supplier</p>
+        <p style="font-size: 0.85rem; color: var(--k-gray-500);">Isi form berikut untuk membuat pesanan pembelian ke pemasok</p>
     </div>
 
     <form action="{{ route('purchase-orders.store') }}" method="POST">
         @csrf
         
-        <!-- Supplier & Order Info -->
+        <!-- Pemasok & Order Info -->
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
             <div class="form-group">
-                <label class="form-label">Supplier <span style="color: var(--k-red);">*</span></label>
+                <label class="form-label">Pemasok <span style="color: var(--k-red);">*</span></label>
                 <select name="supplier_id" class="form-control" required>
-                    <option value="">-- Pilih Supplier --</option>
+                    <option value="">-- Pilih Pemasok --</option>
                     @foreach($suppliers as $supplier)
                         <option value="{{ $supplier->id }}" {{ old('supplier_id') == $supplier->id ? 'selected' : '' }}>
                             {{ $supplier->name }} ({{ $supplier->phone }})
@@ -26,7 +26,7 @@
                     @endforeach
                 </select>
                 <small style="color: var(--k-gray-500);">
-                    <a href="{{ route('suppliers.create') }}" target="_blank" style="color: var(--k-green);">+ Tambah Supplier Baru</a>
+                    <a href="{{ route('suppliers.create') }}" target="_blank" style="color: var(--k-green);">+ Tambah Pemasok Baru</a>
                 </small>
                 @error('supplier_id') <span style="color: var(--k-red); font-size: 0.75rem;">{{ $message }}</span> @enderror
             </div>
@@ -113,7 +113,7 @@
         <!-- Notes -->
         <div class="form-group" style="margin-bottom: 2rem;">
             <label class="form-label">Catatan</label>
-            <textarea name="notes" class="form-control" rows="2" placeholder="Catatan untuk supplier (akan tercetak di PO)">{{ old('notes') }}</textarea>
+            <textarea name="notes" class="form-control" rows="2" placeholder="Catatan untuk pemasok (akan tercetak di PO)">{{ old('notes') }}</textarea>
         </div>
         
         <div class="form-group" style="margin-bottom: 2rem;">

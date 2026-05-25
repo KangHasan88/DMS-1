@@ -8,7 +8,7 @@
     <div style="margin-bottom: 1.5rem;">
         <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-green); margin-bottom: 0.25rem;">Tambah Pembelian Langsung</h3>
         <p style="font-size: 0.85rem; color: var(--k-gray-500);">
-            Catat pembelian barang secara tunai atau FOC (Free of Charge / Bonus) dari supplier.
+            Catat pembelian barang secara tunai atau barang bonus dari pemasok.
         </p>
     </div>
 
@@ -42,18 +42,18 @@
             </div>
         </div>
         
-        <!-- Supplier Information -->
+        <!-- Pemasok Information -->
         <div style="margin-bottom: 1.5rem;">
             <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--k-gray-200);">
                 <i class="bi bi-shop" style="margin-right: 0.4rem; color: var(--k-green);"></i>
-                Informasi Pedagang / Supplier
+                Informasi Pedagang / Pemasok
             </h4>
             
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
                 <div>
-                    <label class="form-label">Pilih Supplier (Opsional)</label>
+                    <label class="form-label">Pilih Pemasok (Opsional)</label>
                     <select name="supplier_id" class="form-control" id="supplier-select">
-                        <option value="">-- Pilih Supplier (atau isi manual) --</option>
+                        <option value="">-- Pilih Pemasok (atau isi manual) --</option>
                         @foreach($suppliers as $supplier)
                             <option value="{{ $supplier->id }}" data-name="{{ $supplier->name }}" data-phone="{{ $supplier->phone }}">
                                 {{ $supplier->name }} ({{ $supplier->phone }})
@@ -70,7 +70,7 @@
                 
                 <div>
                     <label class="form-label">Nama Pedagang <span style="color: var(--k-red);">*</span></label>
-                    <input type="text" name="supplier_name" id="supplier_name" class="form-control" required placeholder="Nama pedagang / supplier">
+                    <input type="text" name="supplier_name" id="supplier_name" class="form-control" required placeholder="Nama pedagang / pemasok">
                     @error('supplier_name') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
                 </div>
                 

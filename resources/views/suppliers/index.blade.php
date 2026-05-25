@@ -1,19 +1,19 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Supplier Management')
-@section('breadcrumb', 'Suppliers')
+@section('page-title', 'Manajemen Pemasok')
+@section('breadcrumb', 'Pemasok')
 
 @section('content')
 <div class="dms-card">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
         <div>
-            <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">Daftar Supplier</h3>
-            <p style="font-size: 0.85rem; color: var(--k-gray-500);">Kelola semua supplier/pedagang pasar KurmiGO</p>
+            <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">Daftar Pemasok</h3>
+            <p style="font-size: 0.85rem; color: var(--k-gray-500);">Kelola semua pemasok dan pedagang pasar KurmiGO</p>
         </div>
         @can('create suppliers')
         <a href="{{ route('suppliers.create') }}" class="dms-btn dms-btn-primary">
             <i class="bi bi-plus-circle"></i>
-            Tambah Supplier
+            Tambah Pemasok
         </a>
         @endcan
     </div>
@@ -66,13 +66,13 @@
         </div>
     </div>
 
-    <!-- Suppliers Table -->
+    <!-- Pemasok Table -->
     <div style="overflow-x: auto;">
         <table class="dms-table">
             <thead>
                   <tr>
                     <th style="width: 60px;">#</th>
-                    <th>Nama Supplier</th>
+                    <th>Nama Pemasok</th>
                     <th>Kontak</th>
                     <th>Lokasi</th>
                     <th>Kategori</th>
@@ -156,10 +156,10 @@
                   <tr>
                     <td colspan="8" style="text-align: center; padding: 3rem;">
                         <i class="bi bi-shop" style="font-size: 3rem; color: var(--k-gray-300);"></i>
-                        <p style="margin-top: 1rem; color: var(--k-gray-500);">Tidak ada data supplier</p>
+                        <p style="margin-top: 1rem; color: var(--k-gray-500);">Tidak ada data pemasok</p>
                         @can('create suppliers')
                         <a href="{{ route('suppliers.create') }}" class="dms-btn dms-btn-primary" style="margin-top: 1rem;">
-                            <i class="bi bi-plus-circle"></i> Tambah Supplier Pertama
+                            <i class="bi bi-plus-circle"></i> Tambah Pemasok Pertama
                         </a>
                         @endcan
                     </td>
@@ -172,7 +172,7 @@
     <!-- Pagination -->
     <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 2rem; flex-wrap: wrap; gap: 1rem;">
         <div style="font-size: 0.9rem; color: var(--k-gray-600);">
-            Menampilkan {{ $suppliers->firstItem() ?? 0 }} - {{ $suppliers->lastItem() ?? 0 }} dari {{ $suppliers->total() }} supplier
+            Menampilkan {{ $suppliers->firstItem() ?? 0 }} - {{ $suppliers->lastItem() ?? 0 }} dari {{ $suppliers->total() }} pemasok
         </div>
         <div>
             {{ $suppliers->withQueryString()->links() }}
@@ -190,7 +190,7 @@
 
 <script>
 function toggleStatus(supplierId) {
-    if (!confirm('Apakah Anda yakin ingin mengubah status supplier ini?')) {
+    if (!confirm('Apakah Anda yakin ingin mengubah status pemasok ini?')) {
         return;
     }
     
@@ -215,7 +215,7 @@ function toggleStatus(supplierId) {
 }
 
 function deleteSupplier(supplierId, supplierName) {
-    if (!confirm(`Apakah Anda yakin ingin menghapus supplier "${supplierName}"?`)) {
+    if (!confirm(`Apakah Anda yakin ingin menghapus pemasok "${supplierName}"?`)) {
         return;
     }
     

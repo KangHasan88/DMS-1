@@ -30,4 +30,24 @@ class ViewMarkupTest extends TestCase
 
         $this->assertSame([], $brokenMarkers->all());
     }
+
+    public function test_supplier_module_uses_indonesian_pemasok_copy(): void
+    {
+        $files = [
+            resource_path('views/suppliers/index.blade.php'),
+            resource_path('views/suppliers/show.blade.php'),
+            resource_path('views/suppliers/create.blade.php'),
+            resource_path('views/suppliers/edit.blade.php'),
+        ];
+
+        foreach ($files as $file) {
+            $content = file_get_contents($file);
+
+            $this->assertStringNotContainsString('Supplier Management', $content);
+            $this->assertStringNotContainsString('Detail Supplier', $content);
+            $this->assertStringNotContainsString('Tambah Supplier', $content);
+            $this->assertStringNotContainsString('Edit Supplier', $content);
+            $this->assertStringNotContainsString('Nama Supplier', $content);
+        }
+    }
 }

@@ -8,25 +8,25 @@
     <div style="margin-bottom: 1.5rem;">
         <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-green); margin-bottom: 0.25rem;">Tambah Consignment (Titip Jual)</h3>
         <p style="font-size: 0.85rem; color: var(--k-gray-500);">
-            Catat barang titipan dari supplier. Barang akan masuk ke stock consignment.
+            Catat barang titipan dari pemasok. Barang akan masuk ke stok konsinyasi.
         </p>
     </div>
 
     <form action="{{ route('consignments.store') }}" method="POST">
         @csrf
         
-        <!-- Supplier Information -->
+        <!-- Pemasok Information -->
         <div style="margin-bottom: 1.5rem;">
             <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--k-gray-200);">
                 <i class="bi bi-shop" style="margin-right: 0.4rem; color: var(--k-green);"></i>
-                Informasi Supplier
+                Informasi Pemasok
             </h4>
             
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
                 <div>
-                    <label class="form-label">Supplier <span style="color: var(--k-red);">*</span></label>
+                    <label class="form-label">Pemasok <span style="color: var(--k-red);">*</span></label>
                     <select name="supplier_id" class="form-control" required>
-                        <option value="">-- Pilih Supplier --</option>
+                        <option value="">-- Pilih Pemasok --</option>
                         @foreach($suppliers as $supplier)
                             <option value="{{ $supplier->id }}" {{ old('supplier_id') == $supplier->id ? 'selected' : '' }}>
                                 {{ $supplier->name }} ({{ $supplier->phone }})
@@ -62,7 +62,7 @@
                         <tr style="background: var(--k-gray-100); border-bottom: 1px solid var(--k-gray-200);">
                             <th style="padding: 0.6rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600); width: 35%;">Produk</th>
                             <th style="padding: 0.6rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600); width: 12%;">Jumlah</th>
-                            <th style="padding: 0.6rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600); width: 23%;">Harga Supplier</th>
+                            <th style="padding: 0.6rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600); width: 23%;">Harga Pemasok</th>
                             <th style="padding: 0.6rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600); width: 20%;">Subtotal</th>
                             <th style="padding: 0.6rem; text-align: center; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600); width: 10%;"></th>
                         </tr>

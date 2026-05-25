@@ -1,13 +1,13 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Edit Supplier')
-@section('breadcrumb', 'Suppliers / Edit')
+@section('page-title', 'Edit Pemasok')
+@section('breadcrumb', 'Pemasok / Edit')
 
 @section('content')
 <div class="dms-card">
     <div style="margin-bottom: 2rem;">
-        <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">Edit Supplier</h3>
-        <p style="font-size: 0.85rem; color: var(--k-gray-500);">Edit informasi supplier: {{ $supplier->name }}</p>
+        <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">Edit Pemasok</h3>
+        <p style="font-size: 0.85rem; color: var(--k-gray-500);">Edit informasi pemasok: {{ $supplier->name }}</p>
     </div>
 
     <form action="{{ route('suppliers.update', $supplier) }}" method="POST">
@@ -17,7 +17,7 @@
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
             <!-- Name -->
             <div class="form-group">
-                <label class="form-label">Nama Supplier <span style="color: var(--k-red);">*</span></label>
+                <label class="form-label">Nama Pemasok <span style="color: var(--k-red);">*</span></label>
                 <input type="text" name="name" value="{{ old('name', $supplier->name) }}" class="form-control" required>
                 @error('name') <span style="color: var(--k-red); font-size: 0.75rem;">{{ $message }}</span> @enderror
             </div>
@@ -125,7 +125,7 @@
             <div class="form-group" style="grid-column: span 2;">
                 <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                     <input type="checkbox" name="is_active" value="1" {{ old('is_active', $supplier->is_active) ? 'checked' : '' }}>
-                    <span>Supplier aktif</span>
+                    <span>Pemasok aktif</span>
                 </label>
             </div>
         </div>
@@ -136,7 +136,7 @@
                 <i class="bi bi-arrow-left"></i> Batal
             </a>
             <button type="submit" class="dms-btn dms-btn-primary">
-                <i class="bi bi-save"></i> Update Supplier
+                <i class="bi bi-save"></i> Update Pemasok
             </button>
         </div>
     </form>

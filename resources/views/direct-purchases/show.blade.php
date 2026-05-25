@@ -63,11 +63,11 @@
         </div>
     </div>
 
-    <!-- Supplier Information -->
+    <!-- Pemasok Information -->
     <div style="margin-bottom: 2rem;">
         <h4 style="font-size: 1rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--k-gray-200);">
             <i class="bi bi-shop" style="margin-right: 0.5rem; color: var(--k-green);"></i>
-            Informasi Pedagang / Supplier
+            Informasi Pedagang / Pemasok
         </h4>
         
         <div style="background: var(--k-gray-50); border-radius: 8px; padding: 1rem;">
@@ -84,7 +84,7 @@
                 @endif
                 @if($directPurchase->supplier)
                 <div>
-                    <div style="font-size: 0.7rem; color: var(--k-gray-500);">Supplier Terdaftar</div>
+                    <div style="font-size: 0.7rem; color: var(--k-gray-500);">Pemasok Terdaftar</div>
                     <div>
                         <a href="{{ route('suppliers.show', $directPurchase->supplier) }}" style="color: var(--k-green);">
                             {{ $directPurchase->supplier->name }}

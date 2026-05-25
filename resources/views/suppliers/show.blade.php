@@ -1,7 +1,7 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Detail Supplier')
-@section('breadcrumb', 'Suppliers / Detail')
+@section('page-title', 'Detail Pemasok')
+@section('breadcrumb', 'Pemasok / Detail')
 
 @section('content')
 <div class="dms-card">
@@ -9,10 +9,10 @@
         <div>
             <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">
                 <i class="bi bi-shop" style="color: var(--k-green);"></i>
-                Detail Supplier
+                Detail Pemasok
             </h3>
             <p style="font-size: 0.85rem; color: var(--k-gray-500); margin-top: 0.25rem;">
-                Informasi lengkap supplier/pedagang
+                Informasi lengkap pemasok dan pedagang
             </p>
         </div>
         <div style="display: flex; gap: 0.5rem;">
@@ -199,18 +199,18 @@
     <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--k-gray-200);">
         @can('delete suppliers')
         @if($totalTransactions == 0)
-        <form action="{{ route('suppliers.destroy', $supplier) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus supplier {{ $supplier->name }}?')">
+        <form action="{{ route('suppliers.destroy', $supplier) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pemasok {{ $supplier->name }}?')">
             @csrf
             @method('DELETE')
             <button type="submit" class="dms-btn" style="background: #fef2f2; color: var(--k-red); border: 1px solid #fee2e2;">
-                <i class="bi bi-trash"></i> Hapus Supplier
+                <i class="bi bi-trash"></i> Hapus Pemasok
             </button>
         </form>
         @endif
         @endcan
         @can('edit suppliers')
         <a href="{{ route('suppliers.edit', $supplier) }}" class="dms-btn dms-btn-primary">
-            <i class="bi bi-pencil"></i> Edit Supplier
+            <i class="bi bi-pencil"></i> Edit Pemasok
         </a>
         @endcan
     </div>

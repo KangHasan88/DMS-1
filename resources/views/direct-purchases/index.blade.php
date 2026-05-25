@@ -9,7 +9,7 @@
         <div>
             <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">Pembelian Langsung</h3>
             <p style="font-size: 0.85rem; color: var(--k-gray-500);">
-                Catatan pembelian barang secara tunai atau FOC (Free of Charge / Bonus) dari supplier.
+                Catatan pembelian barang secara tunai atau barang bonus dari pemasok.
             </p>
         </div>
         @can('create direct purchase')
@@ -25,7 +25,7 @@
             <form action="{{ route('direct-purchases.index') }}" method="GET" style="display: flex; gap: 0.5rem;">
                 <div style="position: relative; flex: 1;">
                     <i class="bi bi-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--k-gray-400);"></i>
-                    <input type="text" name="search" placeholder="Cari nomor invoice, supplier..." 
+                    <input type="text" name="search" placeholder="Cari nomor invoice, pemasok..."
                            value="{{ request('search') }}"
                            style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; border: 1px solid var(--k-gray-300); border-radius: 8px; font-size: 0.9rem;">
                 </div>
@@ -62,7 +62,7 @@
                 <tr>
                     <th style="padding: 0.75rem; text-align: left;">No. Invoice</th>
                     <th style="padding: 0.75rem; text-align: left;">Tipe</th>
-                    <th style="padding: 0.75rem; text-align: left;">Supplier</th>
+                    <th style="padding: 0.75rem; text-align: left;">Pemasok</th>
                     <th style="padding: 0.75rem; text-align: left;">Tanggal</th>
                     <th style="padding: 0.75rem; text-align: left;">Total</th>
                     <th style="padding: 0.75rem; text-align: center;">Aksi</th>
