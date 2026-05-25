@@ -26,10 +26,18 @@ class LocaleNavigationTest extends TestCase
             ->get('/dashboard')
             ->assertOk()
             ->assertSee('Operasional')
-            ->assertSee('Pesanan')
+            ->assertSee('Pesanan Penjualan')
+            ->assertSee('Barang Bonus')
+            ->assertSee('Retur Penjualan')
+            ->assertSee('Pesanan Pembelian')
+            ->assertSee('Pemasok')
+            ->assertSee('Peran & Hak Akses')
             ->assertSee('Katalog')
             ->assertSee('Relasi Bisnis')
-            ->assertSee('Laporan Inventori');
+            ->assertSee('Laporan Inventori')
+            ->assertDontSee('Hadiah / FOC')
+            ->assertDontSee('PO Pembelian')
+            ->assertDontSee('Role & Hak Akses');
     }
 
     public function test_user_can_switch_navigation_language_to_english(): void
@@ -48,9 +56,13 @@ class LocaleNavigationTest extends TestCase
             ->assertOk()
             ->assertSee('Operations')
             ->assertSee('Sales Orders')
+            ->assertSee('Complimentary Items')
+            ->assertSee('Sales Returns')
+            ->assertSee('Stock Management')
             ->assertSee('Catalog')
             ->assertSee('Business Relations')
             ->assertSee('Inventory Report')
+            ->assertDontSee('FOC / Gift')
             ->assertDontSee('Pesanan');
     }
 
