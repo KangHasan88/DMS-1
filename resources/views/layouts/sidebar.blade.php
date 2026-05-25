@@ -1098,7 +1098,7 @@
                                 <span class="role-badge">KURMIGO</span>
                             </div>
                         </div>
-                    </div>
+                    </a>
 
                     <div class="date-display">
                         <i class="bi bi-calendar"></i>
