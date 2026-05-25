@@ -134,64 +134,11 @@
         .logo-wrapper {
             display: flex;
             align-items: center;
-            gap: 0.7rem;
             text-decoration: none;
         }
 
-        .brand-mark {
-            width: 46px;
-            height: 32px;
-            position: relative;
-            flex: 0 0 auto;
-        }
-
-        .brand-link {
-            position: absolute;
-            top: 6px;
-            width: 29px;
-            height: 18px;
-            border: 6px solid;
-            border-radius: 999px;
-            background: transparent;
-            box-shadow: 0 8px 16px rgba(15, 82, 186, 0.15);
-        }
-
-        .brand-link.blue {
-            left: 0;
-            border-color: var(--k-blue);
-        }
-
-        .brand-link.orange {
-            right: 0;
-            border-color: var(--k-orange);
-        }
-
-        .brand-bot {
-            position: absolute;
-            right: -2px;
-            top: 1px;
-            width: 16px;
-            height: 14px;
-            background: linear-gradient(135deg, #ff9b21, #ff5a00);
-            border-radius: 7px 7px 5px 5px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 5px 10px rgba(255, 122, 0, 0.25);
-        }
-
-        .brand-bot::before,
-        .brand-bot::after {
-            content: '';
-            width: 3px;
-            height: 3px;
-            background: #a7f3ff;
-            border-radius: 999px;
-            margin: 0 1px;
-        }
-
         .logo-text h2 {
-            font-size: 1.05rem;
+            font-size: 1rem;
             font-weight: 800;
             color: var(--k-gray-900);
             margin: 0;
@@ -208,7 +155,7 @@
         }
 
         .logo-text p {
-            font-size: 0.48rem;
+            font-size: 0.5rem;
             color: var(--k-gray-500);
             margin: 0;
             text-transform: uppercase;
@@ -323,10 +270,11 @@
         }
 
         .page-title h1 {
-            font-size: 1.15rem;
-            font-weight: 800;
+            font-size: 1rem;
+            font-weight: 700;
             color: var(--k-gray-900);
             margin: 0;
+            line-height: 1.25;
         }
 
         .breadcrumb {
@@ -369,7 +317,7 @@
         .avatar-small {
             width: 24px;
             height: 24px;
-            background: linear-gradient(135deg, var(--k-blue), var(--k-orange));
+            background: var(--k-blue);
             border-radius: 24px;
             display: flex;
             align-items: center;
@@ -745,13 +693,8 @@
             <!-- Logo -->
             <div class="sidebar-header">
                 <a href="{{ route('dashboard') }}" class="logo-wrapper">
-                    <div class="brand-mark" aria-hidden="true">
-                        <span class="brand-link blue"></span>
-                        <span class="brand-link orange"></span>
-                        <span class="brand-bot"></span>
-                    </div>
                     <div class="logo-text">
-                        <h2><span class="brand-blue">KURMI</span><span class="brand-orange">GO</span></h2>
+                        <h2><span class="brand-blue">DMS</span> <span class="brand-orange">KURMIGO</span></h2>
                         <p>Digitalisasi dan Otomasi</p>
                     </div>
                 </a>
