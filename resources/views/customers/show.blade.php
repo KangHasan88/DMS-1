@@ -1,7 +1,7 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Detail Customer')
-@section('breadcrumb', 'Customers / Detail')
+@section('page-title', 'Detail Pelanggan')
+@section('breadcrumb', 'Pelanggan / Detail')
 
 @section('content')
 <div class="dms-card">
@@ -9,10 +9,10 @@
         <div>
             <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">
                 <i class="bi bi-person-badge" style="color: var(--k-green);"></i>
-                Detail Customer
+                Detail Pelanggan
             </h3>
             <p style="font-size: 0.85rem; color: var(--k-gray-500); margin-top: 0.25rem;">
-                Informasi lengkap customer
+                Informasi lengkap pelanggan
             </p>
         </div>
         <div style="display: flex; gap: 0.5rem;">
@@ -175,18 +175,18 @@
         </a>
         @can('delete customers')
         @if($customer->orders()->count() == 0)
-        <form action="{{ route('customers.destroy', $customer) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus customer {{ $customer->name }}?')">
+        <form action="{{ route('customers.destroy', $customer) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menghapus pelanggan {{ $customer->name }}?')">
             @csrf
             @method('DELETE')
             <button type="submit" class="dms-btn" style="background: #fef2f2; color: var(--k-red); border: 1px solid #fee2e2;">
-                <i class="bi bi-trash"></i> Hapus Customer
+                <i class="bi bi-trash"></i> Hapus Pelanggan
             </button>
         </form>
         @endif
         @endcan
         @can('edit customers')
         <a href="{{ route('customers.edit', $customer) }}" class="dms-btn dms-btn-primary">
-            <i class="bi bi-pencil"></i> Edit Customer
+            <i class="bi bi-pencil"></i> Edit Pelanggan
         </a>
         @endcan
     </div>

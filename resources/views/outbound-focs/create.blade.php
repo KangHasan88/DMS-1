@@ -8,7 +8,7 @@
     <div style="margin-bottom: 1.5rem;">
         <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-green); margin-bottom: 0.25rem;">Tambah FOC Out (Hadiah / Sample)</h3>
         <p style="font-size: 0.85rem; color: var(--k-gray-500);">
-            Catat pengeluaran barang gratis untuk customer (hadiah, sample, support, kompensasi).
+            Catat pengeluaran barang gratis untuk pelanggan (hadiah, sampel, dukungan, kompensasi).
             <strong>Stock akan berkurang otomatis.</strong>
         </p>
     </div>
@@ -16,17 +16,17 @@
     <form action="{{ route('outbound-focs.store') }}" method="POST">
         @csrf
         
-        <!-- Customer Information -->
+        <!-- Pelanggan Information -->
         <div style="margin-bottom: 1.5rem;">
             <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--k-gray-200);">
                 <i class="bi bi-person" style="margin-right: 0.4rem; color: var(--k-green);"></i>
-                Informasi Customer
+                Informasi Pelanggan
             </h4>
             
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
                 <div>
-                    <label class="form-label">Nama Customer <span style="color: var(--k-red);">*</span></label>
-                    <input type="text" name="customer_name" class="form-control" required placeholder="Nama customer">
+                    <label class="form-label">Nama Pelanggan <span style="color: var(--k-red);">*</span></label>
+                    <input type="text" name="customer_name" class="form-control" required placeholder="Nama pelanggan">
                     @error('customer_name') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
                 </div>
                 
@@ -38,7 +38,7 @@
                 
                 <div style="grid-column: span 2;">
                     <label class="form-label">Alamat</label>
-                    <textarea name="address" class="form-control" rows="2" placeholder="Alamat customer (opsional)"></textarea>
+                    <textarea name="address" class="form-control" rows="2" placeholder="Alamat pelanggan (opsional)"></textarea>
                     @error('address') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
                 </div>
             </div>

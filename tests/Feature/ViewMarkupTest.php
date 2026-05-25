@@ -50,4 +50,25 @@ class ViewMarkupTest extends TestCase
             $this->assertStringNotContainsString('Nama Supplier', $content);
         }
     }
+
+    public function test_customer_module_uses_indonesian_pelanggan_copy(): void
+    {
+        $files = [
+            resource_path('views/customers/index.blade.php'),
+            resource_path('views/customers/show.blade.php'),
+            resource_path('views/customers/create.blade.php'),
+            resource_path('views/customers/edit.blade.php'),
+            resource_path('views/customers/order-history.blade.php'),
+        ];
+
+        foreach ($files as $file) {
+            $content = file_get_contents($file);
+
+            $this->assertStringNotContainsString('Customer Management', $content);
+            $this->assertStringNotContainsString('Detail Customer', $content);
+            $this->assertStringNotContainsString('Tambah Customer', $content);
+            $this->assertStringNotContainsString('Edit Customer', $content);
+            $this->assertStringNotContainsString('Tipe Customer', $content);
+        }
+    }
 }

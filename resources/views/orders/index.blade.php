@@ -53,8 +53,8 @@
             <input type="hidden" name="search" value="{{ request('search') }}">
             
             <div>
-                <label class="form-label">Nama Customer</label>
-                <input type="text" name="customer_name" class="form-control" value="{{ request('customer_name') }}" placeholder="Nama customer">
+                <label class="form-label">Nama Pelanggan</label>
+                <input type="text" name="customer_name" class="form-control" value="{{ request('customer_name') }}" placeholder="Nama pelanggan">
             </div>
             
             <div>
@@ -110,7 +110,7 @@
             <thead>
                 <tr style="background: var(--k-gray-100); border-bottom: 1px solid var(--k-gray-200);">
                     <th style="padding: 0.75rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600);">No. Order</th>
-                    <th style="padding: 0.75rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600);">Customer</th>
+                    <th style="padding: 0.75rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600);">Pelanggan</th>
                     <th style="padding: 0.75rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600);">Tanggal</th>
                     <th style="padding: 0.75rem; text-align: right; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600);">Total</th>
                     <th style="padding: 0.75rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600);">Sumber</th>

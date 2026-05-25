@@ -1,13 +1,13 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Tambah Customer')
-@section('breadcrumb', 'Customers / Tambah')
+@section('page-title', 'Tambah Pelanggan')
+@section('breadcrumb', 'Pelanggan / Tambah')
 
 @section('content')
 <div class="dms-card">
     <div style="margin-bottom: 2rem;">
-        <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">Tambah Customer Baru</h3>
-        <p style="font-size: 0.85rem; color: var(--k-gray-500);">Isi form berikut untuk menambahkan customer baru</p>
+        <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">Tambah Pelanggan Baru</h3>
+        <p style="font-size: 0.85rem; color: var(--k-gray-500);">Isi form berikut untuk menambahkan pelanggan baru</p>
     </div>
 
     <form action="{{ route('customers.store') }}" method="POST">
@@ -32,13 +32,13 @@
             <!-- Email -->
             <div class="form-group">
                 <label class="form-label">Email</label>
-                <input type="email" name="email" value="{{ old('email') }}" class="form-control" placeholder="customer@example.com">
+                <input type="email" name="email" value="{{ old('email') }}" class="form-control" placeholder="pelanggan@example.com">
                 @error('email') <span style="color: var(--k-red); font-size: 0.75rem;">{{ $message }}</span> @enderror
             </div>
 
-            <!-- Customer Type -->
+            <!-- Tipe Pelanggan -->
             <div class="form-group">
-                <label class="form-label">Tipe Customer <span style="color: var(--k-red);">*</span></label>
+                <label class="form-label">Tipe Pelanggan <span style="color: var(--k-red);">*</span></label>
                 <select name="customer_type" class="form-control" required>
                     <option value="regular" {{ old('customer_type') == 'regular' ? 'selected' : '' }}>Regular</option>
                     <option value="premium" {{ old('customer_type') == 'premium' ? 'selected' : '' }}>Premium</option>
@@ -59,7 +59,7 @@
             <div class="form-group">
                 <label class="form-label">Latitude</label>
                 <input type="text" name="latitude" value="{{ old('latitude') }}" class="form-control" placeholder="-6.200000">
-                <small style="color: var(--k-gray-500);">Koordinat lokasi customer (opsional)</small>
+                <small style="color: var(--k-gray-500);">Koordinat lokasi pelanggan (opsional)</small>
                 @error('latitude') <span style="color: var(--k-red); font-size: 0.75rem;">{{ $message }}</span> @enderror
             </div>
 
@@ -72,7 +72,7 @@
             <!-- Notes -->
             <div class="form-group" style="grid-column: span 2;">
                 <label class="form-label">Catatan</label>
-                <textarea name="notes" class="form-control" rows="2" placeholder="Catatan khusus tentang customer (opsional)">{{ old('notes') }}</textarea>
+                <textarea name="notes" class="form-control" rows="2" placeholder="Catatan khusus tentang pelanggan (opsional)">{{ old('notes') }}</textarea>
                 @error('notes') <span style="color: var(--k-red); font-size: 0.75rem;">{{ $message }}</span> @enderror
             </div>
 
@@ -80,9 +80,9 @@
             <div class="form-group" style="grid-column: span 2;">
                 <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                     <input type="checkbox" name="is_active" value="1" {{ old('is_active', true) ? 'checked' : '' }}>
-                    <span>Aktifkan customer ini</span>
+                    <span>Aktifkan pelanggan ini</span>
                 </label>
-                <small style="color: var(--k-gray-500);">Customer yang tidak aktif tidak dapat melakukan order</small>
+                <small style="color: var(--k-gray-500);">Pelanggan yang tidak aktif tidak dapat melakukan pesanan</small>
             </div>
         </div>
 
@@ -92,7 +92,7 @@
                 <i class="bi bi-arrow-left"></i> Batal
             </a>
             <button type="submit" class="dms-btn dms-btn-primary">
-                <i class="bi bi-save"></i> Simpan Customer
+                <i class="bi bi-save"></i> Simpan Pelanggan
             </button>
         </div>
     </form>

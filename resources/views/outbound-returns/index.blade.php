@@ -9,7 +9,7 @@
         <div>
             <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">Return Out (Retur / Ganti Rugi)</h3>
             <p style="font-size: 0.85rem; color: var(--k-gray-500);">
-                Catatan pengeluaran barang untuk retur customer, barang rusak, atau ganti rugi.
+                Catatan pengeluaran barang untuk retur pelanggan, barang rusak, atau ganti rugi.
             </p>
         </div>
         @can('create outbound return')
@@ -25,7 +25,7 @@
             <form action="{{ route('outbound-returns.index') }}" method="GET" style="display: flex; gap: 0.5rem;">
                 <div style="position: relative; flex: 1;">
                     <i class="bi bi-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--k-gray-400);"></i>
-                    <input type="text" name="search" placeholder="Cari nomor return, customer..." 
+                    <input type="text" name="search" placeholder="Cari nomor retur, pelanggan..."
                            value="{{ request('search') }}"
                            style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; border: 1px solid var(--k-gray-300); border-radius: 8px; font-size: 0.9rem;">
                 </div>
@@ -60,7 +60,7 @@
             <thead>
                 <tr>
                     <th>No. Return</th>
-                    <th>Customer</th>
+                    <th>Pelanggan</th>
                     <th>Tanggal</th>
                     <th>Tipe</th>
                     <th>Tindakan</th>

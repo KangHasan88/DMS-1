@@ -190,8 +190,8 @@
             </div>
             
             <div style="margin-bottom: 1rem;">
-                <label class="form-label">Nama Customer</label>
-                <input type="text" name="customer_name" class="form-control" placeholder="Nama customer" style="width: 100%; padding: 0.6rem; border: 1px solid var(--k-gray-300); border-radius: 8px;">
+                <label class="form-label">Nama Pelanggan</label>
+                <input type="text" name="customer_name" class="form-control" placeholder="Nama pelanggan" style="width: 100%; padding: 0.6rem; border: 1px solid var(--k-gray-300); border-radius: 8px;">
             </div>
             
             <div style="margin-bottom: 1rem;">

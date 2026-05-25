@@ -54,17 +54,17 @@
         </div>
     </div>
 
-    <!-- Customer Information -->
+    <!-- Pelanggan Information -->
     <div style="margin-bottom: 2rem;">
         <h4 style="font-size: 1rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--k-gray-200);">
             <i class="bi bi-person" style="margin-right: 0.5rem; color: var(--k-green);"></i>
-            Informasi Customer
+            Informasi Pelanggan
         </h4>
         
         <div style="background: var(--k-gray-50); border-radius: 8px; padding: 1rem;">
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
                 <div>
-                    <div style="font-size: 0.7rem; color: var(--k-gray-500);">Nama Customer</div>
+                    <div style="font-size: 0.7rem; color: var(--k-gray-500);">Nama Pelanggan</div>
                     <div style="font-weight: 600;">{{ $outboundReturn->customer_name }}</div>
                 </div>
                 @if($outboundReturn->customer_phone)

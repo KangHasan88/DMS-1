@@ -1,19 +1,19 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Customer Management')
-@section('breadcrumb', 'Customers')
+@section('page-title', 'Manajemen Pelanggan')
+@section('breadcrumb', 'Pelanggan')
 
 @section('content')
 <div class="dms-card">
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
         <div>
-            <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">Daftar Customer</h3>
-            <p style="font-size: 0.85rem; color: var(--k-gray-500);">Kelola semua data customer KurmiGO</p>
+            <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">Daftar Pelanggan</h3>
+            <p style="font-size: 0.85rem; color: var(--k-gray-500);">Kelola semua data pelanggan KurmiGO</p>
         </div>
         @can('create customers')
         <a href="{{ route('customers.create') }}" class="dms-btn dms-btn-primary">
             <i class="bi bi-plus-circle"></i>
-            Tambah Customer
+            Tambah Pelanggan
         </a>
         @endcan
     </div>
@@ -58,7 +58,7 @@
         </div>
     </div>
 
-    <!-- Customers Table -->
+    <!-- Pelanggan Table -->
     <div style="overflow-x: auto;">
         <table class="dms-table">
             <thead>
@@ -135,10 +135,10 @@
                   <tr>
                     <td colspan="8" style="text-align: center; padding: 3rem;">
                         <i class="bi bi-people" style="font-size: 3rem; color: var(--k-gray-300);"></i>
-                        <p style="margin-top: 1rem; color: var(--k-gray-500);">Tidak ada data customer</p>
+                        <p style="margin-top: 1rem; color: var(--k-gray-500);">Tidak ada data pelanggan</p>
                         @can('create customers')
                         <a href="{{ route('customers.create') }}" class="dms-btn dms-btn-primary" style="margin-top: 1rem;">
-                            <i class="bi bi-plus-circle"></i> Tambah Customer Pertama
+                            <i class="bi bi-plus-circle"></i> Tambah Pelanggan Pertama
                         </a>
                         @endcan
                     </td>
@@ -151,7 +151,7 @@
     <!-- Pagination -->
     <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 2rem; flex-wrap: wrap; gap: 1rem;">
         <div style="font-size: 0.9rem; color: var(--k-gray-600);">
-            Menampilkan {{ $customers->firstItem() ?? 0 }} - {{ $customers->lastItem() ?? 0 }} dari {{ $customers->total() }} customer
+            Menampilkan {{ $customers->firstItem() ?? 0 }} - {{ $customers->lastItem() ?? 0 }} dari {{ $customers->total() }} pelanggan
         </div>
         <div>
             {{ $customers->withQueryString()->links() }}
@@ -169,7 +169,7 @@
 
 <script>
 function toggleStatus(customerId) {
-    if (!confirm('Apakah Anda yakin ingin mengubah status customer ini?')) {
+    if (!confirm('Apakah Anda yakin ingin mengubah status pelanggan ini?')) {
         return;
     }
     
@@ -194,7 +194,7 @@ function toggleStatus(customerId) {
 }
 
 function deleteCustomer(customerId, customerName) {
-    if (!confirm(`Apakah Anda yakin ingin menghapus customer "${customerName}"?`)) {
+    if (!confirm(`Apakah Anda yakin ingin menghapus pelanggan "${customerName}"?`)) {
         return;
     }
     

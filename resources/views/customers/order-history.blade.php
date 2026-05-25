@@ -1,7 +1,7 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Riwayat Order Customer')
-@section('breadcrumb', 'Customers / Riwayat Order')
+@section('page-title', 'Riwayat Pesanan Pelanggan')
+@section('breadcrumb', 'Pelanggan / Riwayat Pesanan')
 
 @section('content')
 <div class="dms-card">
@@ -12,7 +12,7 @@
                 Riwayat Order
             </h3>
             <p style="font-size: 0.85rem; color: var(--k-gray-500); margin-top: 0.25rem;">
-                Customer: <strong>{{ $customer->name }}</strong> ({{ $customer->phone }})
+                Pelanggan: <strong>{{ $customer->name }}</strong> ({{ $customer->phone }})
             </p>
         </div>
         <div style="display: flex; gap: 0.5rem;">

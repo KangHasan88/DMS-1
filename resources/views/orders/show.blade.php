@@ -100,11 +100,11 @@
     </div>
 
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
-        <!-- Customer Information -->
+        <!-- Pelanggan Information -->
         <div>
             <h4 style="font-size: 1rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--k-gray-200);">
                 <i class="bi bi-person" style="margin-right: 0.5rem; color: var(--k-green);"></i>
-                Informasi Customer
+                Informasi Pelanggan
             </h4>
             
             <div style="background: var(--k-gray-50); border-radius: 8px; padding: 1rem;">
@@ -296,7 +296,7 @@
         @if($order->notes)
         <div style="margin-bottom: 1rem; padding: 0.75rem; background: var(--k-gray-50); border-radius: 8px;">
             <div style="font-size: 0.7rem; color: var(--k-gray-500); margin-bottom: 0.25rem;">
-                <i class="bi bi-person"></i> Catatan Customer
+                <i class="bi bi-person"></i> Catatan Pelanggan
             </div>
             <p style="color: var(--k-gray-700); line-height: 1.5;">{{ $order->notes }}</p>
         </div>

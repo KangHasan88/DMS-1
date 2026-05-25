@@ -24,10 +24,10 @@
         @csrf
         @method('PUT')
         
-        <!-- Customer Info (readonly) -->
+        <!-- Pelanggan Info (readonly) -->
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
             <div class="form-group">
-                <label class="form-label">Customer</label>
+                <label class="form-label">Pelanggan</label>
                 <input type="text" class="form-control" value="{{ $order->user->name ?? '-' }} ({{ $order->user->phone ?? '-' }})" readonly disabled>
             </div>
             <div class="form-group">

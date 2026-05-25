@@ -17,19 +17,19 @@
         <input type="hidden" name="order_source" id="order_source" value="admin">
         <input type="hidden" name="payment_method" id="payment_method" value="manual">
         
-        <!-- Customer & Order Type Section -->
+        <!-- Pelanggan & Order Type Section -->
         <div style="margin-bottom: 1.5rem;">
             <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--k-gray-200);">
                 <i class="bi bi-person" style="margin-right: 0.4rem; color: var(--k-green);"></i>
-                Informasi Customer & Mode Order
+                Informasi Pelanggan & Mode Order
             </h4>
             
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
-                <!-- Customer -->
+                <!-- Pelanggan -->
                 <div>
-                    <label class="form-label">Customer <span style="color: var(--k-red);">*</span></label>
+                    <label class="form-label">Pelanggan <span style="color: var(--k-red);">*</span></label>
                     <select name="user_id" class="form-control" required>
-                        <option value="">-- Pilih Customer --</option>
+                        <option value="">-- Pilih Pelanggan --</option>
                         @foreach($customers as $customer)
                             <option value="{{ $customer->id }}" {{ old('user_id') == $customer->id ? 'selected' : '' }}>
                                 {{ $customer->name }} ({{ $customer->phone }})
@@ -38,7 +38,7 @@
                     </select>
                     @can('create customers')
                     <small style="color: var(--k-gray-500);">
-                        <a href="{{ route('customers.create') }}" target="_blank" style="color: var(--k-green);">+ Tambah Customer Baru</a>
+                        <a href="{{ route('customers.create') }}" target="_blank" style="color: var(--k-green);">+ Tambah Pelanggan Baru</a>
                     </small>
                     @endcan
                     @error('user_id') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
