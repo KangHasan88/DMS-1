@@ -18,12 +18,12 @@
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
+    # Block accidental public debug PHP files only when they exist.
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^(test_|debug_|phpinfo|check_).*\.php$ - [F,L]
+
     # Send Requests To Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
-
-<FilesMatch "^(test_|debug_|phpinfo|check_).*\.php$">
-    Require all denied
-</FilesMatch>
