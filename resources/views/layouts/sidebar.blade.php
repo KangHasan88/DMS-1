@@ -126,10 +126,10 @@
 
         /* Sidebar Header - Compact */
         .sidebar-header {
-            padding: 1rem 1rem 0.95rem;
+            padding: 1.25rem 1rem 1.1rem;
             border-bottom: 1px solid var(--k-gray-200);
             margin-bottom: 0.5rem;
-            min-height: 76px;
+            min-height: 124px;
             position: relative;
             overflow: visible;
         }
@@ -138,27 +138,23 @@
             display: flex;
             align-items: center;
             text-decoration: none;
-            padding-right: 4rem;
+            padding-right: 5.8rem;
         }
 
         .brand-robot {
-            position: absolute;
-            right: -1.55rem;
-            top: 0.65rem;
-            width: 58px;
-            height: 58px;
+            position: fixed;
+            left: 192px;
+            top: 7px;
+            width: 132px;
+            height: auto;
             object-fit: contain;
-            border-radius: 16px;
-            background: var(--k-white);
-            border: 1px solid rgba(7, 59, 142, 0.12);
-            box-shadow: 0 16px 28px rgba(5, 38, 95, 0.16);
-            padding: 3px;
-            z-index: 3;
+            filter: drop-shadow(0 18px 22px rgba(5, 38, 95, 0.16));
+            z-index: 1100;
             pointer-events: none;
         }
 
         .logo-text h2 {
-            font-size: 1rem;
+            font-size: 1.08rem;
             font-weight: 800;
             color: var(--k-gray-900);
             margin: 0;
@@ -680,10 +676,11 @@
             }
 
             .brand-robot {
+                position: absolute;
+                left: auto;
                 right: 0.75rem;
-                top: 0.55rem;
-                width: 50px;
-                height: 50px;
+                top: 0.8rem;
+                width: 76px;
             }
 
             .top-bar-right .date-display,
