@@ -126,10 +126,10 @@
 
         /* Sidebar Header - Compact */
         .sidebar-header {
-            padding: 1.25rem 1rem 1.1rem;
+            padding: 1.15rem 1rem 0.35rem;
             border-bottom: 1px solid var(--k-gray-200);
-            margin-bottom: 0.5rem;
-            min-height: 124px;
+            margin-bottom: 0;
+            min-height: 92px;
             position: relative;
             overflow: visible;
         }
@@ -138,18 +138,18 @@
             display: flex;
             align-items: center;
             text-decoration: none;
-            padding-right: 5.8rem;
+            padding-right: 4.9rem;
         }
 
         .brand-robot {
-            position: fixed;
-            left: 192px;
-            top: 7px;
-            width: 132px;
+            position: absolute;
+            right: 0.65rem;
+            top: 1.2rem;
+            width: 112px;
             height: auto;
             object-fit: contain;
             filter: drop-shadow(0 18px 22px rgba(5, 38, 95, 0.16));
-            z-index: 1100;
+            z-index: 4;
             pointer-events: none;
         }
 
@@ -181,10 +181,16 @@
         /* Navigation Menu - Ultra Compact */
         .nav-menu {
             padding: 0 0.75rem 0.75rem 0.75rem;
+            position: relative;
+            z-index: 2;
         }
 
         .nav-section {
-            margin-bottom: 1rem;
+            margin-bottom: 0.9rem;
+        }
+
+        .nav-section:first-child {
+            padding-top: 0;
         }
 
         .nav-section-title {
@@ -677,9 +683,8 @@
 
             .brand-robot {
                 position: absolute;
-                left: auto;
                 right: 0.75rem;
-                top: 0.8rem;
+                top: 0.95rem;
                 width: 76px;
             }
 
