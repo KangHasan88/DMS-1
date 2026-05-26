@@ -100,7 +100,8 @@ class LocaleNavigationTest extends TestCase
             ->get('/dashboard')
             ->assertOk()
             ->assertSee('DMS', false)
-            ->assertSee('KURMIGO', false)
+            ->assertDontSee('<span class="brand-orange">KURMIGO</span>', false)
+            ->assertDontSee('Digitalisasi dan Otomasi')
             ->assertSee('images/brand/kurmigo-robot.png', false)
             ->assertSee('brand-robot', false);
     }

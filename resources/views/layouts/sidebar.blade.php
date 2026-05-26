@@ -126,8 +126,7 @@
 
         /* Sidebar Header - Compact */
         .sidebar-header {
-            padding: 1.15rem 1rem 0.35rem;
-            border-bottom: 1px solid var(--k-gray-200);
+            padding: 1.05rem 1rem 0;
             margin-bottom: 0;
             min-height: 92px;
             position: relative;
@@ -139,6 +138,7 @@
             align-items: center;
             text-decoration: none;
             padding-right: 4.9rem;
+            min-height: 58px;
         }
 
         .brand-robot {
@@ -154,11 +154,11 @@
         }
 
         .logo-text h2 {
-            font-size: 1.08rem;
+            font-size: 1.45rem;
             font-weight: 800;
             color: var(--k-gray-900);
             margin: 0;
-            line-height: 1.2;
+            line-height: 1;
             letter-spacing: 0;
         }
 
@@ -171,6 +171,7 @@
         }
 
         .logo-text p {
+            display: none;
             font-size: 0.5rem;
             color: var(--k-gray-500);
             margin: 0;
@@ -191,6 +192,10 @@
 
         .nav-section:first-child {
             padding-top: 0;
+        }
+
+        .nav-section:first-child .nav-section-title {
+            display: none;
         }
 
         .nav-section-title {
@@ -723,8 +728,7 @@
             <div class="sidebar-header">
                 <a href="{{ route('dashboard') }}" class="logo-wrapper">
                     <div class="logo-text">
-                        <h2><span class="brand-blue">DMS</span> <span class="brand-orange">KURMIGO</span></h2>
-                        <p>Digitalisasi dan Otomasi</p>
+                        <h2><span class="brand-blue">DMS</span></h2>
                     </div>
                 </a>
                 <img src="{{ asset('images/brand/kurmigo-robot.png') }}" alt="" class="brand-robot" aria-hidden="true">
