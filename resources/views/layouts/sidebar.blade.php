@@ -23,7 +23,7 @@
     <style>
         /* ========================================
            KURMIGO BRAND SYSTEM
-           Blue-orange theme inspired by the public website
+           Dark blue theme inspired by the public website
            ======================================== */
 
         * {
@@ -35,8 +35,8 @@
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background:
-                radial-gradient(circle at 92% 8%, rgba(255, 122, 0, 0.08), transparent 26rem),
-                radial-gradient(circle at 10% 2%, rgba(0, 105, 255, 0.08), transparent 24rem),
+                radial-gradient(circle at 92% 8%, rgba(5, 38, 95, 0.07), transparent 26rem),
+                radial-gradient(circle at 10% 2%, rgba(7, 59, 142, 0.08), transparent 24rem),
                 #f7faff;
             color: #1e293b;
         }
@@ -57,16 +57,16 @@
             --k-gray-900: #0f172a;
             --k-black: #000000;
             
-            --k-blue: #0b63f6;
-            --k-blue-dark: #0747b9;
-            --k-blue-darker: #06358a;
-            --k-blue-light: #eaf2ff;
-            --k-blue-mid: #1383ff;
-            --k-blue-accent: #21a8ff;
-            --k-orange: #ff7a00;
-            --k-orange-dark: #e55700;
-            --k-orange-light: #fff1df;
-            --k-orange-soft: #fff7ed;
+            --k-blue: #073b8e;
+            --k-blue-dark: #05265f;
+            --k-blue-darker: #031b44;
+            --k-blue-light: #e8f0ff;
+            --k-blue-mid: #0b4fb3;
+            --k-blue-accent: #2563eb;
+            --k-orange: var(--k-blue-dark);
+            --k-orange-dark: var(--k-blue-darker);
+            --k-orange-light: var(--k-blue-light);
+            --k-orange-soft: #f3f7ff;
             --k-red: #dc2626;
 
             /* Backward-compatible aliases used by existing views. */
@@ -78,9 +78,9 @@
             --k-green-accent: var(--k-blue-accent);
             
             --k-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
-            --k-shadow-md: 0 10px 24px rgba(15, 82, 186, 0.08);
-            --k-shadow-lg: 0 18px 42px rgba(15, 82, 186, 0.10);
-            --k-shadow-green: 0 8px 18px rgba(11, 99, 246, 0.18);
+            --k-shadow-md: 0 10px 24px rgba(5, 38, 95, 0.08);
+            --k-shadow-lg: 0 18px 42px rgba(5, 38, 95, 0.10);
+            --k-shadow-green: 0 8px 18px rgba(7, 59, 142, 0.18);
         }
 
         /* Layout Container */
@@ -129,12 +129,32 @@
             padding: 1rem 1rem 0.95rem;
             border-bottom: 1px solid var(--k-gray-200);
             margin-bottom: 0.5rem;
+            min-height: 76px;
+            position: relative;
+            overflow: visible;
         }
 
         .logo-wrapper {
             display: flex;
             align-items: center;
             text-decoration: none;
+            padding-right: 4rem;
+        }
+
+        .brand-robot {
+            position: absolute;
+            right: -1.55rem;
+            top: 0.65rem;
+            width: 58px;
+            height: 58px;
+            object-fit: contain;
+            border-radius: 16px;
+            background: var(--k-white);
+            border: 1px solid rgba(7, 59, 142, 0.12);
+            box-shadow: 0 16px 28px rgba(5, 38, 95, 0.16);
+            padding: 3px;
+            z-index: 3;
+            pointer-events: none;
         }
 
         .logo-text h2 {
@@ -151,7 +171,7 @@
         }
 
         .logo-text h2 .brand-orange {
-            color: var(--k-orange);
+            color: var(--k-blue);
         }
 
         .logo-text p {
@@ -219,7 +239,7 @@
         }
 
         .nav-link.active {
-            background: linear-gradient(135deg, var(--k-blue), var(--k-blue-mid));
+            background: linear-gradient(135deg, var(--k-blue-dark), var(--k-blue));
             color: var(--k-white);
             box-shadow: var(--k-shadow-green);
         }
@@ -231,7 +251,7 @@
         /* Badge di menu */
         .nav-badge {
             margin-left: auto;
-            background: var(--k-orange);
+            background: var(--k-blue-darker);
             color: var(--k-white);
             font-size: 0.5rem;
             font-weight: 600;
@@ -247,8 +267,8 @@
             margin-left: 260px;
             min-height: 100vh;
             background:
-                radial-gradient(circle at 88% 3%, rgba(255, 122, 0, 0.08), transparent 24rem),
-                radial-gradient(circle at 12% 0, rgba(11, 99, 246, 0.08), transparent 26rem),
+                radial-gradient(circle at 88% 3%, rgba(5, 38, 95, 0.07), transparent 24rem),
+                radial-gradient(circle at 12% 0, rgba(7, 59, 142, 0.08), transparent 26rem),
                 var(--k-white-off);
         }
 
@@ -344,7 +364,7 @@
         }
 
         .role-badge {
-            background: var(--k-orange);
+            background: var(--k-blue-darker);
             color: var(--k-white);
             padding: 0.05rem 0.3rem;
             border-radius: 20px;
@@ -367,7 +387,7 @@
         }
 
         .date-display i {
-            color: var(--k-orange);
+            color: var(--k-blue);
             font-size: 0.7rem;
         }
 
@@ -538,7 +558,7 @@
         }
 
         .dms-table tbody tr:hover {
-            background: var(--k-orange-soft);
+            background: var(--k-blue-light);
         }
 
         /* Badges */
@@ -585,13 +605,13 @@
         }
 
         .dms-btn-primary {
-            background: linear-gradient(135deg, var(--k-blue), var(--k-blue-mid));
+            background: linear-gradient(135deg, var(--k-blue-dark), var(--k-blue));
             color: var(--k-white);
             box-shadow: var(--k-shadow-green);
         }
 
         .dms-btn-primary:hover {
-            background: linear-gradient(135deg, var(--k-blue-dark), var(--k-blue));
+            background: linear-gradient(135deg, var(--k-blue-darker), var(--k-blue-dark));
             transform: translateY(-1px);
         }
 
@@ -659,6 +679,13 @@
                 grid-template-columns: 1fr;
             }
 
+            .brand-robot {
+                right: 0.75rem;
+                top: 0.55rem;
+                width: 50px;
+                height: 50px;
+            }
+
             .top-bar-right .date-display,
             .top-bar-right .user-detail {
                 display: none;
@@ -698,6 +725,7 @@
                         <p>Digitalisasi dan Otomasi</p>
                     </div>
                 </a>
+                <img src="{{ asset('images/brand/kurmigo-robot.png') }}" alt="" class="brand-robot" aria-hidden="true">
             </div>
 
             <!-- Navigation Menu -->
@@ -833,7 +861,7 @@
                                     $lowStockCount = \App\Models\Product::lowStock()->count();
                                 @endphp
                                 @if($lowStockCount > 0)
-                                    <span class="nav-badge" style="background: var(--k-orange);">{{ $lowStockCount }}</span>
+                                    <span class="nav-badge">{{ $lowStockCount }}</span>
                                 @endif
                             </a>
                         </li>
