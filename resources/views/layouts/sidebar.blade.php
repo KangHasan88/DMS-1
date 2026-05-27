@@ -35,8 +35,8 @@
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background:
-                radial-gradient(circle at 92% 8%, rgba(5, 38, 95, 0.07), transparent 26rem),
-                radial-gradient(circle at 10% 2%, rgba(7, 59, 142, 0.08), transparent 24rem),
+                radial-gradient(circle at 92% 8%, rgba(3, 13, 32, 0.07), transparent 26rem),
+                radial-gradient(circle at 10% 2%, rgba(6, 26, 63, 0.08), transparent 24rem),
                 #f7faff;
             color: #1e293b;
         }
@@ -57,12 +57,12 @@
             --k-gray-900: #0f172a;
             --k-black: #000000;
             
-            --k-blue: #073b8e;
-            --k-blue-dark: #05265f;
-            --k-blue-darker: #031b44;
-            --k-blue-light: #e8f0ff;
-            --k-blue-mid: #0b4fb3;
-            --k-blue-accent: #2563eb;
+            --k-blue: #061a3f;
+            --k-blue-dark: #04122d;
+            --k-blue-darker: #030d20;
+            --k-blue-light: #e9eef8;
+            --k-blue-mid: #0b2f6f;
+            --k-blue-accent: #123d86;
             --k-orange: var(--k-blue-dark);
             --k-orange-dark: var(--k-blue-darker);
             --k-orange-light: var(--k-blue-light);
@@ -78,9 +78,9 @@
             --k-green-accent: var(--k-blue-accent);
             
             --k-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
-            --k-shadow-md: 0 10px 24px rgba(5, 38, 95, 0.08);
-            --k-shadow-lg: 0 18px 42px rgba(5, 38, 95, 0.10);
-            --k-shadow-green: 0 8px 18px rgba(7, 59, 142, 0.18);
+            --k-shadow-md: 0 10px 24px rgba(3, 13, 32, 0.08);
+            --k-shadow-lg: 0 18px 42px rgba(3, 13, 32, 0.10);
+            --k-shadow-green: 0 8px 18px rgba(6, 26, 63, 0.20);
         }
 
         /* Layout Container */
@@ -148,7 +148,7 @@
             width: 132px;
             height: auto;
             object-fit: contain;
-            filter: drop-shadow(0 18px 22px rgba(5, 38, 95, 0.16));
+            filter: drop-shadow(0 18px 22px rgba(3, 13, 32, 0.18));
             z-index: 4;
             pointer-events: none;
         }
@@ -276,8 +276,8 @@
             margin-left: 260px;
             min-height: 100vh;
             background:
-                radial-gradient(circle at 88% 3%, rgba(5, 38, 95, 0.07), transparent 24rem),
-                radial-gradient(circle at 12% 0, rgba(7, 59, 142, 0.08), transparent 26rem),
+                radial-gradient(circle at 88% 3%, rgba(3, 13, 32, 0.07), transparent 24rem),
+                radial-gradient(circle at 12% 0, rgba(6, 26, 63, 0.08), transparent 26rem),
                 var(--k-white-off);
         }
 
