@@ -126,9 +126,9 @@
 
         /* Sidebar Header - Compact */
         .sidebar-header {
-            padding: 1.05rem 1rem 0;
+            padding: 0.95rem 0.95rem 0.1rem;
             margin-bottom: 0;
-            min-height: 92px;
+            min-height: 116px;
             position: relative;
             overflow: visible;
         }
@@ -137,15 +137,15 @@
             display: flex;
             align-items: center;
             text-decoration: none;
-            padding-right: 4.9rem;
-            min-height: 58px;
+            min-height: 100px;
+            padding-left: 7.2rem;
         }
 
         .brand-robot {
             position: absolute;
-            right: 0.65rem;
-            top: 1.2rem;
-            width: 112px;
+            left: 0.25rem;
+            top: 0.2rem;
+            width: 132px;
             height: auto;
             object-fit: contain;
             filter: drop-shadow(0 18px 22px rgba(5, 38, 95, 0.16));
@@ -154,12 +154,13 @@
         }
 
         .logo-text h2 {
-            font-size: 1.45rem;
+            font-size: 0.95rem;
             font-weight: 800;
             color: var(--k-gray-900);
             margin: 0;
-            line-height: 1;
+            line-height: 1.05;
             letter-spacing: 0;
+            white-space: nowrap;
         }
 
         .logo-text h2 .brand-blue {
@@ -171,12 +172,13 @@
         }
 
         .logo-text p {
-            display: none;
-            font-size: 0.5rem;
+            display: block;
+            font-size: 0.45rem;
             color: var(--k-gray-500);
-            margin: 0;
+            margin: 0.15rem 0 0;
             text-transform: uppercase;
-            letter-spacing: 0.35px;
+            letter-spacing: 0.25px;
+            white-space: nowrap;
         }
 
         /* Navigation Menu - Ultra Compact */
@@ -688,9 +690,13 @@
 
             .brand-robot {
                 position: absolute;
-                right: 0.75rem;
-                top: 0.95rem;
-                width: 76px;
+                left: 0.65rem;
+                top: 0.65rem;
+                width: 86px;
+            }
+
+            .logo-wrapper {
+                padding-left: 5.6rem;
             }
 
             .top-bar-right .date-display,
@@ -728,7 +734,8 @@
             <div class="sidebar-header">
                 <a href="{{ route('dashboard') }}" class="logo-wrapper">
                     <div class="logo-text">
-                        <h2><span class="brand-blue">DMS</span></h2>
+                        <h2><span class="brand-blue">DMS KURMIGO</span></h2>
+                        <p>Digitalisasi dan Otomasi</p>
                     </div>
                 </a>
                 <img src="{{ asset('images/brand/kurmigo-robot.png') }}" alt="" class="brand-robot" aria-hidden="true">
