@@ -71,4 +71,16 @@ class ViewMarkupTest extends TestCase
             $this->assertStringNotContainsString('Tipe Customer', $content);
         }
     }
+
+    public function test_sidebar_brand_palette_keeps_orange_accent_and_semantic_success(): void
+    {
+        $content = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));
+
+        $this->assertStringContainsString('--k-blue: #061a3f;', $content);
+        $this->assertStringContainsString('--k-orange: #ff7a00;', $content);
+        $this->assertStringContainsString('--k-success: #16a34a;', $content);
+        $this->assertStringContainsString('background: var(--k-orange);', $content);
+        $this->assertStringContainsString('background: var(--k-success-light);', $content);
+        $this->assertStringContainsString('color: var(--k-success);', $content);
+    }
 }

@@ -63,13 +63,19 @@
             --k-blue-light: #e9eef8;
             --k-blue-mid: #0b2f6f;
             --k-blue-accent: #123d86;
-            --k-orange: var(--k-blue-dark);
-            --k-orange-dark: var(--k-blue-darker);
-            --k-orange-light: var(--k-blue-light);
-            --k-orange-soft: #f3f7ff;
+            --k-orange: #ff7a00;
+            --k-orange-dark: #e55700;
+            --k-orange-light: #fff1df;
+            --k-orange-soft: #fff8f1;
+            --k-success: #16a34a;
+            --k-success-dark: #15803d;
+            --k-success-light: #e6f7e6;
+            --k-warning: var(--k-orange);
+            --k-warning-dark: var(--k-orange-dark);
+            --k-warning-light: var(--k-orange-light);
             --k-red: #dc2626;
 
-            /* Backward-compatible aliases used by existing views. */
+            /* Backward-compatible aliases used by existing views as brand color. */
             --k-green: var(--k-blue);
             --k-green-dark: var(--k-blue-dark);
             --k-green-darker: var(--k-blue-darker);
@@ -260,7 +266,7 @@
         /* Badge di menu */
         .nav-badge {
             margin-left: auto;
-            background: var(--k-blue-darker);
+            background: var(--k-orange);
             color: var(--k-white);
             font-size: 0.5rem;
             font-weight: 600;
@@ -373,7 +379,7 @@
         }
 
         .role-badge {
-            background: var(--k-blue-darker);
+            background: var(--k-orange);
             color: var(--k-white);
             padding: 0.05rem 0.3rem;
             border-radius: 20px;
@@ -396,7 +402,7 @@
         }
 
         .date-display i {
-            color: var(--k-blue);
+            color: var(--k-orange);
             font-size: 0.7rem;
         }
 
@@ -519,8 +525,8 @@
             font-size: 0.6rem;
             padding: 0.1rem 0.4rem;
             border-radius: 20px;
-            background: #e6f7e6;
-            color: #16a34a;
+            background: var(--k-success-light);
+            color: var(--k-success);
             font-weight: 600;
         }
 
@@ -580,13 +586,13 @@
         }
 
         .dms-badge-success {
-            background: var(--k-green-light);
-            color: var(--k-green);
+            background: var(--k-success-light);
+            color: var(--k-success);
         }
 
         .dms-badge-warning {
-            background: #fef3c7;
-            color: #d97706;
+            background: var(--k-warning-light);
+            color: var(--k-warning-dark);
         }
 
         .dms-badge-danger {
