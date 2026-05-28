@@ -1,7 +1,7 @@
 <x-guest-layout>
     <div class="auth-card-header">
-        <h2>Masuk ke DMS KURMIGO</h2>
-        <p><strong>Distribution Management System</strong> untuk mengelola alur pesanan, stok, pembelian, dan pengiriman secara lebih rapi.</p>
+        <h2>Masuk ke DMS</h2>
+        <p>Gunakan akun yang sudah terdaftar untuk mengakses dashboard operasional KURMIGO.</p>
     </div>
 
     @if (session('status'))

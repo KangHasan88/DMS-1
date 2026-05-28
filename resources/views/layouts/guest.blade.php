@@ -108,22 +108,6 @@
                 line-height: 1.75;
             }
 
-            .auth-kicker {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.45rem;
-                margin-bottom: 1rem;
-                padding: 0.42rem 0.65rem;
-                border-radius: 999px;
-                background: var(--auth-white);
-                border: 1px solid var(--auth-gray-200);
-                color: var(--auth-blue);
-                font-size: 0.72rem;
-                font-weight: 800;
-                text-transform: uppercase;
-                box-shadow: 0 10px 28px rgba(3, 13, 32, 0.06);
-            }
-
             .auth-proof {
                 display: flex;
                 gap: 0.75rem;
@@ -331,9 +315,7 @@
                 </a>
 
                 <div class="auth-brand-copy">
-                    <div class="auth-kicker"><i class="bi bi-diagram-3"></i> Distribution Management System</div>
-                    <h1>Kelola Distribusi <span>Lebih Terkendali</span></h1>
-                    <p>DMS KURMIGO adalah Distribution Management System untuk membantu tim mengatur pesanan, stok, pembelian, pengiriman, dan laporan bisnis dalam satu alur kerja yang aman dan terstruktur.</p>
+                    <h1>Kelola<br>Distribusi<br><span>Lebih Terkendali</span></h1>
                 </div>
 
                 <div class="auth-proof" aria-label="Fitur utama">
