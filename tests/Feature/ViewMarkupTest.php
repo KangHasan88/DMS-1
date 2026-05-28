@@ -83,4 +83,24 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('background: var(--k-success-light);', $content);
         $this->assertStringContainsString('color: var(--k-success);', $content);
     }
+
+    public function test_core_ui_foundation_classes_are_used_by_pilot_pages(): void
+    {
+        $layout = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));
+
+        foreach (['.dms-section-header', '.dms-toolbar', '.dms-table-wrap', '.dms-empty-state', '.dms-pagination'] as $class) {
+            $this->assertStringContainsString($class, $layout);
+        }
+
+        foreach ([
+            resource_path('views/dashboard.blade.php'),
+            resource_path('views/orders/index.blade.php'),
+            resource_path('views/stock/index.blade.php'),
+        ] as $file) {
+            $content = file_get_contents($file);
+
+            $this->assertStringContainsString('dms-table-wrap', $content);
+            $this->assertStringContainsString('dms-empty-state', $content);
+        }
+    }
 }

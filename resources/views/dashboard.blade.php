@@ -153,7 +153,7 @@
 
 <!-- QUICK ACTIONS -->
 <div class="dms-card" style="margin-bottom: 1.5rem;">
-    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+    <div class="dms-toolbar-actions">
         @can('create sales order')
         <a href="{{ route('orders.create') }}" class="dms-btn dms-btn-primary" style="text-decoration: none;">
             <i class="bi bi-plus-circle"></i> New Order
@@ -229,48 +229,48 @@
 
 <!-- RECENT ORDERS TABLE -->
 <div class="dms-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h3 style="font-size: 1rem; font-weight: 600; color: var(--k-gray-800); display: flex; align-items: center; gap: 0.5rem;">
-            <i class="bi bi-clock-history" style="color: var(--k-green);"></i>
+    <div class="dms-section-header">
+        <h3 class="dms-section-title" style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="bi bi-clock-history" style="color: var(--k-orange);"></i>
             Recent Orders
         </h3>
-        <a href="{{ route('orders.index') }}" style="color: var(--k-green); text-decoration: none; font-size: 0.8rem; font-weight: 500;">
+        <a href="{{ route('orders.index') }}" style="color: var(--k-blue); text-decoration: none; font-size: 0.8rem; font-weight: 700;">
             View All <i class="bi bi-arrow-right"></i>
         </a>
     </div>
 
-    <div style="overflow-x: auto;">
-        <table class="dms-table" style="width: 100%; border-collapse: collapse;">
+    <div class="dms-table-wrap">
+        <table class="dms-table">
             <thead>
-                <tr style="background: var(--k-gray-100); border-bottom: 1px solid var(--k-gray-200);">
-                    <th style="padding: 0.75rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600);">ORDER ID</th>
-                    <th style="padding: 0.75rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600);">CUSTOMER</th>
-                    <th style="padding: 0.75rem; text-align: right; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600);">AMOUNT</th>
-                    <th style="padding: 0.75rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600);">STATUS</th>
-                    <th style="padding: 0.75rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600);">DATE</th>
-                    <th style="padding: 0.75rem; text-align: center; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600);">ACTION</th>
+                <tr>
+                    <th>ORDER ID</th>
+                    <th>CUSTOMER</th>
+                    <th style="text-align: right;">AMOUNT</th>
+                    <th>STATUS</th>
+                    <th>DATE</th>
+                    <th style="text-align: center;">ACTION</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($recentOrders ?? [] as $order)
-                <tr style="border-bottom: 1px solid var(--k-gray-200);">
-                    <td style="padding: 0.75rem;">
+                <tr>
+                    <td>
                         <strong style="font-family: monospace; font-size: 0.75rem;">{{ $order->order_number ?? '#' . $order->id }}</strong>
                     </td>
-                    <td style="padding: 0.75rem;">
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <div style="width: 28px; height: 28px; background: var(--k-gray-100); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                <i class="bi bi-person-circle" style="font-size: 0.9rem; color: var(--k-gray-500);"></i>
+                    <td>
+                        <div class="dms-identity">
+                            <div class="dms-avatar-soft">
+                                <i class="bi bi-person"></i>
                             </div>
-                            <span style="font-size: 0.75rem; font-weight: 500;">{{ $order->user->name ?? 'N/A' }}</span>
+                            <span class="dms-strong">{{ $order->user->name ?? 'N/A' }}</span>
                         </div>
                     </td>
-                    <td style="padding: 0.75rem; text-align: right;">
-                        <span style="font-weight: 600; font-size: 0.75rem; color: var(--k-green);">
+                    <td style="text-align: right;">
+                        <span class="dms-money">
                             Rp {{ number_format($order->total ?? 0, 0, ',', '.') }}
                         </span>
                     </td>
-                    <td style="padding: 0.75rem;">
+                    <td>
                         @php
                             $statusColors = [
                                 'pending_payment' => 'warning',
@@ -301,28 +301,30 @@
                             {{ $label }}
                         </span>
                     </td>
-                    <td style="padding: 0.75rem;">
+                    <td>
                         <div style="display: flex; flex-direction: column;">
                             <span style="font-size: 0.7rem;">{{ $order->created_at->format('d M Y') }}</span>
-                            <span style="font-size: 0.6rem; color: var(--k-gray-500);">{{ $order->created_at->format('H:i') }}</span>
+                            <span class="dms-muted">{{ $order->created_at->format('H:i') }}</span>
                         </div>
                     </td>
-                    <td style="padding: 0.75rem; text-align: center;">
-                        <a href="{{ route('orders.show', $order) }}" class="dms-btn dms-btn-outline" style="padding: 0.25rem 0.7rem; font-size: 0.65rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.25rem;">
+                    <td style="text-align: center;">
+                        <a href="{{ route('orders.show', $order) }}" class="dms-btn dms-btn-outline dms-btn-sm" style="text-decoration: none;">
                             <i class="bi bi-eye" style="font-size: 0.7rem;"></i> Detail
                         </a>
                     </td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="6" style="padding: 3rem; text-align: center;">
-                        <i class="bi bi-inbox" style="font-size: 2.5rem; color: var(--k-gray-300);"></i>
-                        <p style="margin-top: 0.75rem; font-size: 0.8rem; color: var(--k-gray-500);">No recent orders found</p>
+                    <td colspan="6">
+                        <div class="dms-empty-state">
+                        <i class="bi bi-inbox"></i>
+                        <p>No recent orders found</p>
                         @can('create sales order')
-                        <a href="{{ route('orders.create') }}" class="dms-btn dms-btn-primary" style="margin-top: 1rem; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.7rem;">
+                        <a href="{{ route('orders.create') }}" class="dms-btn dms-btn-primary" style="text-decoration: none;">
                             <i class="bi bi-plus-circle"></i> Create First Order
                         </a>
                         @endcan
+                        </div>
                     </td>
                 </tr>
                 @endforelse
@@ -374,82 +376,6 @@ document.getElementById('searchModal').addEventListener('click', function(e) {
         font-size: 0.65rem;
     }
     
-    .dms-badge-warning {
-        background: #fef3c7;
-        color: #d97706;
-    }
-    
-    .dms-badge-info {
-        background: var(--k-gray-100);
-        color: var(--k-gray-600);
-    }
-    
-    .dms-badge-success {
-        background: #e6f7e6;
-        color: #16a34a;
-    }
-    
-    .dms-badge-danger {
-        background: #fee2e2;
-        color: #dc2626;
-    }
-    
-    .dms-btn {
-        padding: 0.4rem 1rem;
-        border-radius: 1.5rem;
-        font-weight: 500;
-        font-size: 0.7rem;
-        border: none;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.3rem;
-        transition: all 0.2s;
-    }
-    
-    .dms-btn-primary {
-        background: var(--k-green);
-        color: white;
-    }
-    
-    .dms-btn-primary:hover {
-        background: var(--k-green-dark);
-    }
-    
-    .dms-btn-outline {
-        background: transparent;
-        border: 1px solid var(--k-gray-300);
-        color: var(--k-gray-600);
-    }
-    
-    .dms-btn-outline:hover {
-        border-color: var(--k-green);
-        color: var(--k-green);
-    }
-    
-    .form-label {
-        display: block;
-        margin-bottom: 0.3rem;
-        color: var(--k-gray-700);
-        font-size: 0.7rem;
-        font-weight: 500;
-    }
-    
-    .form-control {
-        width: 100%;
-        padding: 0.5rem 0.75rem;
-        border: 1px solid var(--k-gray-300);
-        border-radius: 6px;
-        font-size: 0.8rem;
-        transition: all 0.2s;
-    }
-    
-    .form-control:focus {
-        outline: none;
-        border-color: var(--k-green);
-        box-shadow: 0 0 0 2px var(--k-green-light);
-    }
-    
     @media (max-width: 1024px) {
         .stats-grid {
             grid-template-columns: repeat(2, 1fr);
@@ -467,11 +393,6 @@ document.getElementById('searchModal').addEventListener('click', function(e) {
         
         .stat-value {
             font-size: 1.5rem;
-        }
-        
-        .dms-btn {
-            width: 100%;
-            justify-content: center;
         }
         
         .dms-card {
