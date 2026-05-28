@@ -147,8 +147,10 @@ class ViewMarkupTest extends TestCase
 
         $this->assertStringContainsString('kurmigo-robot.png', $layout);
         $this->assertStringContainsString('DMS KURMIGO', $layout);
+        $this->assertStringContainsString('Distribution Management System', $layout);
         $this->assertStringContainsString('Kelola<br>Distribusi<br><span>Lebih Terkendali</span>', $layout);
-        $this->assertStringNotContainsString('Distribution Management System', $layout);
+        $this->assertStringContainsString('DMS KURMIGO membantu tim mengatur pesanan', $layout);
+        $this->assertStringNotContainsString('DMS KURMIGO adalah Distribution Management System untuk', $layout);
         $this->assertStringContainsString('--auth-blue: #061a3f;', $layout);
         $this->assertStringContainsString('auth-shell', $layout);
         $this->assertStringContainsString('Masuk ke DMS', $login);
