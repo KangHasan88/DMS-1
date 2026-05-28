@@ -5,9 +5,9 @@
 
 @section('content')
 <div class="dms-card">
-    <div style="margin-bottom: 2rem;">
-        <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">Buat Purchase Order Baru</h3>
-        <p style="font-size: 0.85rem; color: var(--k-gray-500);">Isi form berikut untuk membuat pesanan pembelian ke pemasok</p>
+    <div class="dms-form-header">
+        <h3 class="dms-form-title">Buat Purchase Order Baru</h3>
+        <p class="dms-form-subtitle">Isi form berikut untuk membuat pesanan pembelian ke pemasok</p>
     </div>
 
     <form action="{{ route('purchase-orders.store') }}" method="POST">
@@ -16,7 +16,7 @@
         <!-- Pemasok & Order Info -->
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
             <div class="form-group">
-                <label class="form-label">Pemasok <span style="color: var(--k-red);">*</span></label>
+                <label class="form-label">Pemasok <span class="dms-required">*</span></label>
                 <select name="supplier_id" class="form-control" required>
                     <option value="">-- Pilih Pemasok --</option>
                     @foreach($suppliers as $supplier)
@@ -25,22 +25,22 @@
                         </option>
                     @endforeach
                 </select>
-                <small style="color: var(--k-gray-500);">
+                <small class="dms-form-help">
                     <a href="{{ route('suppliers.create') }}" target="_blank" style="color: var(--k-green);">+ Tambah Pemasok Baru</a>
                 </small>
-                @error('supplier_id') <span style="color: var(--k-red); font-size: 0.75rem;">{{ $message }}</span> @enderror
+                @error('supplier_id') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
             
             <div class="form-group">
-                <label class="form-label">Tanggal PO <span style="color: var(--k-red);">*</span></label>
+                <label class="form-label">Tanggal PO <span class="dms-required">*</span></label>
                 <input type="date" name="order_date" class="form-control" value="{{ old('order_date', date('Y-m-d')) }}" required>
-                @error('order_date') <span style="color: var(--k-red); font-size: 0.75rem;">{{ $message }}</span> @enderror
+                @error('order_date') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
             
             <div class="form-group">
                 <label class="form-label">Tanggal Perkiraan Datang</label>
                 <input type="date" name="expected_delivery_date" class="form-control" value="{{ old('expected_delivery_date') }}">
-                @error('expected_delivery_date') <span style="color: var(--k-red); font-size: 0.75rem;">{{ $message }}</span> @enderror
+                @error('expected_delivery_date') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
         </div>
         
@@ -122,7 +122,7 @@
         </div>
         
         <!-- Buttons -->
-        <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--k-gray-200);">
+        <div class="dms-form-actions">
             <a href="{{ route('purchase-orders.index') }}" class="dms-btn dms-btn-outline">
                 <i class="bi bi-arrow-left"></i> Batal
             </a>
@@ -229,34 +229,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<style>
-.form-group {
-    margin-bottom: 1rem;
-}
-.form-label {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: var(--k-gray-700);
-    font-size: 0.85rem;
-}
-.form-control {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--k-gray-300);
-    border-radius: 8px;
-    font-size: 0.9rem;
-    transition: all 0.2s;
-}
-.form-control:focus {
-    outline: none;
-    border-color: var(--k-green);
-    box-shadow: 0 0 0 3px var(--k-green-light);
-}
-textarea.form-control {
-    resize: vertical;
-}
-#products-table td, #products-table th {
-    vertical-align: middle;
-}
-</style>
 @endsection

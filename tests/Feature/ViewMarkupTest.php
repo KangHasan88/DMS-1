@@ -116,4 +116,27 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('dms-section-header', $dashboard);
         $this->assertStringContainsString('dms-table-wrap', $dashboard);
     }
+
+    public function test_form_ui_foundation_is_available_and_used_by_core_forms(): void
+    {
+        $layout = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));
+
+        foreach (['.dms-form-header', '.dms-form-grid', '.dms-form-actions', '.dms-form-error', '.dms-form-help'] as $class) {
+            $this->assertStringContainsString($class, $layout);
+        }
+
+        foreach ([
+            resource_path('views/products/create.blade.php'),
+            resource_path('views/customers/create.blade.php'),
+            resource_path('views/suppliers/create.blade.php'),
+            resource_path('views/units/create.blade.php'),
+        ] as $file) {
+            $content = file_get_contents($file);
+
+            $this->assertStringContainsString('dms-form-header', $content);
+            $this->assertStringContainsString('dms-form-actions', $content);
+            $this->assertStringNotContainsString('<style>', $content);
+            $this->assertStringNotContainsString('`r`n', $content);
+        }
+    }
 }

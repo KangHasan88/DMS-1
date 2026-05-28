@@ -23,23 +23,23 @@
                 Informasi Pelanggan
             </h4>
             
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+            <div class="dms-form-grid">
                 <div>
-                    <label class="form-label">Nama Pelanggan <span style="color: var(--k-red);">*</span></label>
+                    <label class="form-label">Nama Pelanggan <span class="dms-required">*</span></label>
                     <input type="text" name="customer_name" class="form-control" required placeholder="Nama pelanggan">
-                    @error('customer_name') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
+                    @error('customer_name') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
                 
                 <div>
                     <label class="form-label">Telepon</label>
                     <input type="text" name="customer_phone" class="form-control" placeholder="Nomor telepon">
-                    @error('customer_phone') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
+                    @error('customer_phone') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
                 
                 <div>
                     <label class="form-label">Referensi Order</label>
                     <input type="text" name="reference_order" class="form-control" placeholder="Nomor order asli (opsional)">
-                    @error('reference_order') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
+                    @error('reference_order') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
             </div>
         </div>
@@ -51,45 +51,45 @@
                 Detail Return
             </h4>
             
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+            <div class="dms-form-grid">
                 <div>
-                    <label class="form-label">Tanggal Return <span style="color: var(--k-red);">*</span></label>
+                    <label class="form-label">Tanggal Return <span class="dms-required">*</span></label>
                     <input type="date" name="return_date" class="form-control" value="{{ date('Y-m-d') }}" required>
-                    @error('return_date') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
+                    @error('return_date') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
                 
                 <div>
-                    <label class="form-label">Tipe Return <span style="color: var(--k-red);">*</span></label>
+                    <label class="form-label">Tipe Return <span class="dms-required">*</span></label>
                     <select name="return_type" class="form-control" required>
                         <option value="">-- Pilih Tipe --</option>
                         @foreach($types as $key => $label)
                             <option value="{{ $key }}">{{ $label }}</option>
                         @endforeach
                     </select>
-                    @error('return_type') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
+                    @error('return_type') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
                 
-                <div style="grid-column: span 2;">
+                <div class="dms-form-span-2">
                     <label class="form-label">Detail Alasan</label>
                     <textarea name="reason_detail" class="form-control" rows="2" placeholder="Detail alasan return (opsional)"></textarea>
-                    @error('reason_detail') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
+                    @error('reason_detail') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
                 
                 <div>
-                    <label class="form-label">Tindakan <span style="color: var(--k-red);">*</span></label>
+                    <label class="form-label">Tindakan <span class="dms-required">*</span></label>
                     <select name="action" class="form-control" required>
                         <option value="">-- Pilih Tindakan --</option>
                         @foreach($actions as $key => $label)
                             <option value="{{ $key }}">{{ $label }}</option>
                         @endforeach
                     </select>
-                    @error('action') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
+                    @error('action') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
                 
                 <div>
                     <label class="form-label">Order Pengganti</label>
                     <input type="text" name="replacement_order" class="form-control" placeholder="Nomor order pengganti (jika replace)">
-                    @error('replacement_order') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
+                    @error('replacement_order') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
             </div>
         </div>

@@ -5,11 +5,9 @@
 
 @section('content')
 <div class="dms-card">
-    <div style="margin-bottom: 1.5rem;">
-        <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-green); margin-bottom: 0.25rem;">Tambah Consignment (Titip Jual)</h3>
-        <p style="font-size: 0.85rem; color: var(--k-gray-500);">
-            Catat barang titipan dari pemasok. Barang akan masuk ke stok konsinyasi.
-        </p>
+    <div class="dms-form-header">
+        <h3 class="dms-form-title">Tambah Consignment (Titip Jual)</h3>
+        <p class="dms-form-subtitle">Catat barang titipan dari pemasok. Barang akan masuk ke stok konsinyasi.</p>
     </div>
 
     <form action="{{ route('consignments.store') }}" method="POST">
@@ -22,9 +20,9 @@
                 Informasi Pemasok
             </h4>
             
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+            <div class="dms-form-grid">
                 <div>
-                    <label class="form-label">Pemasok <span style="color: var(--k-red);">*</span></label>
+                    <label class="form-label">Pemasok <span class="dms-required">*</span></label>
                     <select name="supplier_id" class="form-control" required>
                         <option value="">-- Pilih Pemasok --</option>
                         @foreach($suppliers as $supplier)
@@ -33,13 +31,13 @@
                             </option>
                         @endforeach
                     </select>
-                    @error('supplier_id') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
+                    @error('supplier_id') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
                 
                 <div>
-                    <label class="form-label">Tanggal Consignment <span style="color: var(--k-red);">*</span></label>
+                    <label class="form-label">Tanggal Consignment <span class="dms-required">*</span></label>
                     <input type="date" name="consignment_date" class="form-control" value="{{ date('Y-m-d') }}" required>
-                    @error('consignment_date') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
+                    @error('consignment_date') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
             </div>
         </div>

@@ -5,11 +5,9 @@
 
 @section('content')
 <div class="dms-card">
-    <div style="margin-bottom: 1.5rem;">
-        <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-green); margin-bottom: 0.25rem;">Buat Order Baru</h3>
-        <p style="font-size: 0.85rem; color: var(--k-gray-500);">
-            Isi form berikut untuk membuat order baru. Order akan diproses sesuai mode pemenuhan yang dipilih.
-        </p>
+    <div class="dms-form-header">
+        <h3 class="dms-form-title">Buat Order Baru</h3>
+        <p class="dms-form-subtitle">Isi form berikut untuk membuat order baru. Order akan diproses sesuai mode pemenuhan yang dipilih.</p>
     </div>
 
     <form id="order-form" action="{{ route('orders.store') }}" method="POST">
@@ -24,10 +22,10 @@
                 Informasi Pelanggan & Mode Order
             </h4>
             
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+            <div class="dms-form-grid">
                 <!-- Pelanggan -->
                 <div>
-                    <label class="form-label">Pelanggan <span style="color: var(--k-red);">*</span></label>
+                    <label class="form-label">Pelanggan <span class="dms-required">*</span></label>
                     <select name="user_id" class="form-control" required>
                         <option value="">-- Pilih Pelanggan --</option>
                         @foreach($customers as $customer)
@@ -37,22 +35,22 @@
                         @endforeach
                     </select>
                     @can('create customers')
-                    <small style="color: var(--k-gray-500);">
+                    <small class="dms-form-help">
                         <a href="{{ route('customers.create') }}" target="_blank" style="color: var(--k-green);">+ Tambah Pelanggan Baru</a>
                     </small>
                     @endcan
-                    @error('user_id') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
+                    @error('user_id') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
                 
                 <!-- Fulfillment Type -->
                 <div>
-                    <label class="form-label">Mode Pemenuhan Order <span style="color: var(--k-red);">*</span></label>
+                    <label class="form-label">Mode Pemenuhan Order <span class="dms-required">*</span></label>
                     <div style="display: flex; gap: 1rem; margin-top: 0.3rem;">
-                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <label class="dms-check">
                             <input type="radio" name="fulfillment_type" value="stock" {{ old('fulfillment_type', $defaultFulfillmentType) == 'stock' ? 'checked' : '' }} onchange="toggleFulfillmentMode()">
                             <span><i class="bi bi-archive"></i> Stock (Ambil dari Gudang)</span>
                         </label>
-                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <label class="dms-check">
                             <input type="radio" name="fulfillment_type" value="jit" {{ old('fulfillment_type') == 'jit' ? 'checked' : '' }} onchange="toggleFulfillmentMode()">
                             <span><i class="bi bi-truck"></i> JIT (Beli langsung Jual)</span>
                         </label>
@@ -63,7 +61,7 @@
                     <div id="jit-info" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: var(--k-orange-light); border-radius: 6px; font-size: 0.7rem; color: var(--k-orange);">
                         <i class="bi bi-info-circle"></i> Mode JIT: Barang akan dibeli langsung ke pedagang pasar setelah order dibayar.
                     </div>
-                    @error('fulfillment_type') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
+                    @error('fulfillment_type') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
             </div>
         </div>
@@ -137,7 +135,7 @@
                 Diskon Order
             </h4>
             
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+            <div class="dms-form-grid">
                 <div>
                     <label class="form-label">Tipe Diskon</label>
                     <select name="discount_type" id="discount_type" class="form-control" onchange="toggleDiscountType()">
@@ -160,7 +158,7 @@
                 Ongkos Kirim & Packing
             </h4>
             
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+            <div class="dms-form-grid">
                 <div>
                     <label class="form-label">Tipe Ongkir</label>
                     <select name="shipping_type" id="shipping_type" class="form-control" onchange="toggleShippingType()">
@@ -192,7 +190,7 @@
                         <span style="position: absolute; left: 0.5rem; top: 50%; transform: translateY(-50%); font-size: 0.7rem;">Rp</span>
                         <input type="number" name="packing_fee" id="packing_fee" class="form-control" value="1000" step="500" onchange="calculateGrandTotal()" style="padding-left: 1.8rem;">
                     </div>
-                    <small style="color: var(--k-gray-500);">Biaya repack per order (default: Rp 1.000)</small>
+                    <small class="dms-form-help">Biaya repack per order (default: Rp 1.000)</small>
                 </div>
             </div>
         </div>
@@ -200,7 +198,7 @@
         <!-- PPN Section -->
         <div style="margin-bottom: 1.5rem;">
             <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                <label class="dms-check">
                     <input type="checkbox" name="include_ppn" id="include_ppn" value="1" onchange="togglePPN()">
                     <span><i class="bi bi-percent"></i> Include PPN 11%</span>
                 </label>
@@ -255,27 +253,27 @@
                 Informasi Pengiriman
             </h4>
             
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+            <div class="dms-form-grid">
                 <div>
-                    <label class="form-label">Tanggal Pengiriman <span style="color: var(--k-red);">*</span></label>
+                    <label class="form-label">Tanggal Pengiriman <span class="dms-required">*</span></label>
                     <input type="date" name="delivery_date" class="form-control" value="{{ old('delivery_date', $defaultDeliveryDate) }}" required>
-                    @error('delivery_date') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
+                    @error('delivery_date') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
                 
                 <div>
-                    <label class="form-label">Waktu Pengiriman <span style="color: var(--k-red);">*</span></label>
+                    <label class="form-label">Waktu Pengiriman <span class="dms-required">*</span></label>
                     <select name="delivery_time_slot" class="form-control" required>
                         <option value="06:00-09:00">06:00 - 09:00 (Pagi)</option>
                         <option value="09:00-12:00">09:00 - 12:00 (Siang)</option>
                         <option value="12:00-15:00">12:00 - 15:00 (Sore)</option>
                     </select>
-                    @error('delivery_time_slot') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
+                    @error('delivery_time_slot') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
                 
-                <div style="grid-column: span 2;">
-                    <label class="form-label">Alamat Pengiriman <span style="color: var(--k-red);">*</span></label>
+                <div class="dms-form-span-2">
+                    <label class="form-label">Alamat Pengiriman <span class="dms-required">*</span></label>
                     <textarea name="address" class="form-control" rows="2" required placeholder="Jl. Contoh No. 123, RT/RW, Kelurahan, Kecamatan, Kota">{{ old('address') }}</textarea>
-                    @error('address') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
+                    @error('address') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
                 
                 <div>

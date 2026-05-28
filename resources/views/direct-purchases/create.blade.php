@@ -5,11 +5,9 @@
 
 @section('content')
 <div class="dms-card">
-    <div style="margin-bottom: 1.5rem;">
-        <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-green); margin-bottom: 0.25rem;">Tambah Pembelian Langsung</h3>
-        <p style="font-size: 0.85rem; color: var(--k-gray-500);">
-            Catat pembelian barang secara tunai atau barang bonus dari pemasok.
-        </p>
+    <div class="dms-form-header">
+        <h3 class="dms-form-title">Tambah Pembelian Langsung</h3>
+        <p class="dms-form-subtitle">Catat pembelian barang secara tunai atau barang bonus dari pemasok.</p>
     </div>
 
     <form action="{{ route('direct-purchases.store') }}" method="POST">
@@ -23,11 +21,11 @@
             </h4>
             
             <div style="display: flex; gap: 2rem;">
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                <label class="dms-check">
                     <input type="radio" name="purchase_type" value="cash" {{ old('purchase_type', 'cash') == 'cash' ? 'checked' : '' }} onchange="togglePurchaseType()">
                     <span><i class="bi bi-cash"></i> Cash (Pembelian Tunai)</span>
                 </label>
-                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                <label class="dms-check">
                     <input type="radio" name="purchase_type" value="foc" {{ old('purchase_type') == 'foc' ? 'checked' : '' }} onchange="togglePurchaseType()">
                     <span><i class="bi bi-gift"></i> Free of Charge (FOC / Bonus)</span>
                 </label>
@@ -49,7 +47,7 @@
                 Informasi Pedagang / Pemasok
             </h4>
             
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+            <div class="dms-form-grid">
                 <div>
                     <label class="form-label">Pilih Pemasok (Opsional)</label>
                     <select name="supplier_id" class="form-control" id="supplier-select">
@@ -63,21 +61,21 @@
                 </div>
                 
                 <div>
-                    <label class="form-label">Tanggal Pembelian <span style="color: var(--k-red);">*</span></label>
+                    <label class="form-label">Tanggal Pembelian <span class="dms-required">*</span></label>
                     <input type="date" name="purchase_date" class="form-control" value="{{ date('Y-m-d') }}" required>
-                    @error('purchase_date') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
+                    @error('purchase_date') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
                 
                 <div>
-                    <label class="form-label">Nama Pedagang <span style="color: var(--k-red);">*</span></label>
+                    <label class="form-label">Nama Pedagang <span class="dms-required">*</span></label>
                     <input type="text" name="supplier_name" id="supplier_name" class="form-control" required placeholder="Nama pedagang / pemasok">
-                    @error('supplier_name') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
+                    @error('supplier_name') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
                 
                 <div>
                     <label class="form-label">Telepon (Opsional)</label>
                     <input type="text" name="supplier_phone" id="supplier_phone" class="form-control" placeholder="Nomor telepon">
-                    @error('supplier_phone') <span style="color: var(--k-red); font-size: 0.7rem;">{{ $message }}</span> @enderror
+                    @error('supplier_phone') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
             </div>
         </div>

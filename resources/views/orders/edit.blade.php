@@ -126,7 +126,7 @@
         <div style="margin-bottom: 2rem;">
             <h4 style="font-size: 1rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 1rem;">Informasi Pengiriman</h4>
             
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
+            <div class="dms-form-grid">
                 <div class="form-group">
                     <label class="form-label">Tanggal Pengiriman</label>
                     <input type="date" name="delivery_date" class="form-control" value="{{ $order->delivery_date->format('Y-m-d') }}" required>
@@ -141,7 +141,7 @@
                     </select>
                 </div>
                 
-                <div class="form-group" style="grid-column: span 2;">
+                <div class="form-group dms-form-span-2">
                     <label class="form-label">Alamat Pengiriman</label>
                     <textarea name="address" class="form-control" rows="2" required>{{ $order->address }}</textarea>
                 </div>
@@ -155,7 +155,7 @@
         </div>
         
         <!-- Buttons -->
-        <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--k-gray-200);">
+        <div class="dms-form-actions">
             <a href="{{ route('orders.show', $order) }}" class="dms-btn dms-btn-outline">
                 <i class="bi bi-arrow-left"></i> Batal
             </a>
@@ -269,34 +269,4 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<style>
-.form-group {
-    margin-bottom: 1rem;
-}
-.form-label {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: var(--k-gray-700);
-    font-size: 0.85rem;
-}
-.form-control {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--k-gray-300);
-    border-radius: 8px;
-    font-size: 0.9rem;
-    transition: all 0.2s;
-}
-.form-control:focus {
-    outline: none;
-    border-color: var(--k-green);
-    box-shadow: 0 0 0 3px var(--k-green-light);
-}
-textarea.form-control {
-    resize: vertical;
-}
-#products-table td, #products-table th {
-    vertical-align: middle;
-}
-</style>
 @endsection

@@ -24,7 +24,7 @@
     <form action="{{ route('admin.users.store') }}" method="POST" enctype="multipart/form-data" id="createForm">
         @csrf
         
-        <div style="display: grid; grid-template-columns: 250px 1fr; gap: 2rem;">
+        <div class="dms-form-grid-wide">
             <!-- Left Column - Photo -->
             <div>
                 <div style="text-align: center; padding: 1.5rem; background: var(--dms-gray-50); border-radius: 12px; border: 1px solid var(--dms-gray-200); position: sticky; top: 2rem;">
@@ -58,7 +58,7 @@
                         Informasi Akun
                     </h4>
                     
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                    <div class="dms-form-grid">
                         <!-- Name -->
                         <div class="form-group">
                             <label class="form-label">Nama Lengkap <span style="color: var(--dms-danger);">*</span></label>
@@ -104,7 +104,7 @@
                         Password
                     </h4>
                     
-                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                    <div class="dms-form-grid">
                         <!-- Password -->
                         <div class="form-group">
                             <label class="form-label">Password <span style="color: var(--dms-danger);">*</span></label>

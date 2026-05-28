@@ -13,7 +13,7 @@
     <form action="{{ route('users.store') }}" method="POST" enctype="multipart/form-data">
         @csrf
         
-        <div style="display: grid; grid-template-columns: 250px 1fr; gap: 2rem;">
+        <div class="dms-form-grid-wide">
             <!-- Left Column - Photo -->
             <div>
                 <div style="text-align: center; padding: 1.5rem; background: var(--dms-gray-50); border-radius: 12px; border: 1px solid var(--dms-gray-200);">
@@ -40,31 +40,31 @@
 
             <!-- Right Column - Form Fields -->
             <div>
-                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                <div class="dms-form-grid">
                     <!-- Name -->
                     <div class="form-group">
-                        <label class="form-label" style="font-weight: 600;">Nama Lengkap <span style="color: var(--dms-danger);">*</span></label>
+                        <label class="form-label">Nama Lengkap <span style="color: var(--dms-danger);">*</span></label>
                         <input type="text" name="name" value="{{ old('name') }}" class="form-control" required>
                         @error('name') <span style="color: var(--dms-danger); font-size: 0.75rem;">{{ $message }}</span> @enderror
                     </div>
 
                     <!-- Email -->
                     <div class="form-group">
-                        <label class="form-label" style="font-weight: 600;">Email <span style="color: var(--dms-danger);">*</span></label>
+                        <label class="form-label">Email <span style="color: var(--dms-danger);">*</span></label>
                         <input type="email" name="email" value="{{ old('email') }}" class="form-control" required>
                         @error('email') <span style="color: var(--dms-danger); font-size: 0.75rem;">{{ $message }}</span> @enderror
                     </div>
 
                     <!-- Username -->
                     <div class="form-group">
-                        <label class="form-label" style="font-weight: 600;">Username <span style="color: var(--dms-danger);">*</span></label>
+                        <label class="form-label">Username <span style="color: var(--dms-danger);">*</span></label>
                         <input type="text" name="username" value="{{ old('username') }}" class="form-control" required>
                         @error('username') <span style="color: var(--dms-danger); font-size: 0.75rem;">{{ $message }}</span> @enderror
                     </div>
 
                     <!-- Password -->
                     <div class="form-group">
-                        <label class="form-label" style="font-weight: 600;">Password <span style="color: var(--dms-danger);">*</span></label>
+                        <label class="form-label">Password <span style="color: var(--dms-danger);">*</span></label>
                         <input type="password" name="password" class="form-control" required>
                         <small style="color: var(--dms-gray-500);">Minimal 8 karakter</small>
                         @error('password') <span style="color: var(--dms-danger); font-size: 0.75rem;">{{ $message }}</span> @enderror
@@ -96,7 +96,7 @@
                     </div>
 
                     <!-- Address -->
-                    <div class="form-group" style="grid-column: span 2;">
+                    <div class="form-group dms-form-span-2">
                         <label class="form-label">Alamat</label>
                         <textarea name="address" class="form-control" rows="3">{{ old('address') }}</textarea>
                         @error('address') <span style="color: var(--dms-danger); font-size: 0.75rem;">{{ $message }}</span> @enderror
@@ -145,8 +145,8 @@
                     </div>
 
                     <!-- Active Status -->
-                    <div class="form-group" style="grid-column: span 2;">
-                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <div class="form-group dms-form-span-2">
+                        <label class="dms-check">
                             <input type="checkbox" name="is_active" value="1" {{ old('is_active', true) ? 'checked' : '' }}>
                             <span>Aktifkan user ini</span>
                         </label>
@@ -182,32 +182,4 @@ function previewImage(input) {
 }
 </script>
 
-<style>
-.form-group {
-    margin-bottom: 1rem;
-}
-.form-label {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: var(--dms-secondary);
-    font-size: 0.9rem;
-}
-.form-control {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--dms-gray-300);
-    border-radius: 8px;
-    font-size: 0.9rem;
-    transition: all 0.2s;
-}
-.form-control:focus {
-    outline: none;
-    border-color: var(--dms-primary);
-    box-shadow: 0 0 0 3px rgba(30,60,114,0.1);
-}
-textarea.form-control {
-    resize: vertical;
-    min-height: 80px;
-}
-</style>
 @endsection

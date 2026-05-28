@@ -890,6 +890,150 @@
             font-weight: 500;
         }
 
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .dms-form-header {
+            margin-bottom: 1.25rem;
+        }
+
+        .dms-form-title {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--k-gray-900);
+            line-height: 1.25;
+            margin: 0;
+        }
+
+        .dms-form-subtitle {
+            font-size: 0.75rem;
+            color: var(--k-gray-500);
+            margin: 0.25rem 0 0;
+        }
+
+        .dms-form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+        }
+
+        .dms-form-grid-wide {
+            display: grid;
+            grid-template-columns: 250px minmax(0, 1fr);
+            gap: 1.5rem;
+            align-items: start;
+        }
+
+        .dms-form-span-2 {
+            grid-column: span 2;
+        }
+
+        .dms-form-section {
+            margin-bottom: 1.25rem;
+        }
+
+        .dms-form-section-title {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-size: 0.9rem;
+            font-weight: 800;
+            color: var(--k-gray-900);
+            margin: 0 0 0.75rem;
+            padding-bottom: 0.45rem;
+            border-bottom: 1px solid var(--k-gray-200);
+        }
+
+        .dms-form-section-title i {
+            color: var(--k-orange);
+        }
+
+        .dms-form-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            align-items: center;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--k-gray-200);
+            flex-wrap: wrap;
+        }
+
+        .dms-form-help,
+        .dms-help {
+            display: block;
+            margin-top: 0.3rem;
+            color: var(--k-gray-500);
+            font-size: 0.68rem;
+        }
+
+        .dms-form-error,
+        .dms-error {
+            display: block;
+            margin-top: 0.3rem;
+            color: var(--k-red);
+            font-size: 0.68rem;
+            font-weight: 600;
+        }
+
+        .dms-required {
+            color: var(--k-red);
+            font-weight: 800;
+        }
+
+        .dms-check {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            color: var(--k-gray-700);
+            font-size: 0.8rem;
+        }
+
+        .dms-upload-panel {
+            text-align: center;
+            padding: 1.25rem;
+            background: var(--k-gray-50);
+            border-radius: 8px;
+            border: 1px solid var(--k-gray-200);
+        }
+
+        .dms-preview-box {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 1rem;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px dashed var(--k-gray-300);
+            background: var(--k-white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .dms-money-field {
+            position: relative;
+        }
+
+        .dms-money-field > span {
+            position: absolute;
+            left: 0.8rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--k-gray-500);
+            font-size: 0.75rem;
+        }
+
+        .dms-money-field .form-control {
+            padding-left: 2.35rem;
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 80px;
+        }
+
         /* Responsive */
         @media (max-width: 1024px) {
             .stats-grid {
@@ -936,9 +1080,19 @@
             .dms-toolbar,
             .dms-search-form,
             .dms-toolbar-actions,
-            .dms-pagination {
+            .dms-pagination,
+            .dms-form-actions {
                 align-items: stretch;
                 flex-direction: column;
+            }
+
+            .dms-form-grid,
+            .dms-form-grid-wide {
+                grid-template-columns: 1fr;
+            }
+
+            .dms-form-span-2 {
+                grid-column: span 1;
             }
 
             .dms-btn,
