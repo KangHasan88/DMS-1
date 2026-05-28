@@ -812,6 +812,16 @@
             color: var(--k-blue);
         }
 
+        .dms-badge-primary {
+            background: var(--k-blue);
+            color: var(--k-white);
+        }
+
+        .dms-badge-secondary {
+            background: var(--k-gray-100);
+            color: var(--k-gray-600);
+        }
+
         /* Buttons */
         .dms-btn {
             padding: 0.35rem 0.9rem;

@@ -5,10 +5,10 @@
 
 @section('content')
 <div class="dms-card">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+    <div class="dms-section-header">
         <div>
-            <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">Return Out (Retur / Ganti Rugi)</h3>
-            <p style="font-size: 0.85rem; color: var(--k-gray-500);">
+            <h3 class="dms-section-title">Return Out (Retur / Ganti Rugi)</h3>
+            <p class="dms-section-subtitle">
                 Catatan pengeluaran barang untuk retur pelanggan, barang rusak, atau ganti rugi.
             </p>
         </div>
@@ -20,22 +20,19 @@
     </div>
 
     <!-- Filter -->
-    <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center;">
-        <div style="flex: 1; min-width: 250px;">
-            <form action="{{ route('outbound-returns.index') }}" method="GET" style="display: flex; gap: 0.5rem;">
-                <div style="position: relative; flex: 1;">
-                    <i class="bi bi-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--k-gray-400);"></i>
+    <div class="dms-toolbar">
+        <form action="{{ route('outbound-returns.index') }}" method="GET" class="dms-search-form">
+                <div class="dms-search-field">
+                    <i class="bi bi-search"></i>
                     <input type="text" name="search" placeholder="Cari nomor retur, pelanggan..."
                            value="{{ request('search') }}"
-                           style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; border: 1px solid var(--k-gray-300); border-radius: 8px; font-size: 0.9rem;">
+                           class="form-control">
                 </div>
-                <button type="submit" class="dms-btn dms-btn-primary" style="padding: 0.75rem 1.5rem;">Cari</button>
+                <button type="submit" class="dms-btn dms-btn-primary">Cari</button>
             </form>
-        </div>
-        
-        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <div class="dms-toolbar-actions">
             <!-- Filter Return Type -->
-            <select name="return_type" onchange="window.location.href = this.value" style="padding: 0.75rem 2rem 0.75rem 1rem; border: 1px solid var(--k-gray-300); border-radius: 8px; font-size: 0.9rem; background: white;">
+            <select name="return_type" onchange="window.location.href = this.value" class="form-control">
                 <option value="{{ route('outbound-returns.index', array_merge(request()->except('return_type'), ['return_type' => null])) }}">Semua Tipe</option>
                 @foreach($types as $key => $label)
                     <option value="{{ route('outbound-returns.index', array_merge(request()->except('return_type'), ['return_type' => $key])) }}" {{ request('return_type') == $key ? 'selected' : '' }}>
@@ -45,7 +42,7 @@
             </select>
             
             <!-- Per Page -->
-            <select name="per_page" onchange="window.location.href = this.value" style="padding: 0.75rem 2rem 0.75rem 1rem; border: 1px solid var(--k-gray-300); border-radius: 8px; font-size: 0.9rem; background: white;">
+            <select name="per_page" onchange="window.location.href = this.value" class="form-control">
                 <option value="{{ route('outbound-returns.index', array_merge(request()->except('per_page'), ['per_page' => 5])) }}" {{ request('per_page', 10) == 5 ? 'selected' : '' }}>5 per halaman</option>
                 <option value="{{ route('outbound-returns.index', array_merge(request()->except('per_page'), ['per_page' => 10])) }}" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10 per halaman</option>
                 <option value="{{ route('outbound-returns.index', array_merge(request()->except('per_page'), ['per_page' => 20])) }}" {{ request('per_page', 10) == 20 ? 'selected' : '' }}>20 per halaman</option>
@@ -55,7 +52,7 @@
     </div>
 
     <!-- Returns Table -->
-    <div style="overflow-x: auto;">
+    <div class="dms-table-wrap">
         <table class="dms-table">
             <thead>
                 <tr>
@@ -95,8 +92,8 @@
                     <td>{{ number_format($return->items->sum('quantity')) }}</td>
                     <td style="font-weight: 600;">Rp {{ number_format($return->total, 0, ',', '.') }}</td>
                     <td>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <a href="{{ route('outbound-returns.show', $return) }}" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem;" title="Detail">
+                        <div class="dms-actions">
+                            <a href="{{ route('outbound-returns.show', $return) }}" class="dms-btn dms-btn-outline dms-btn-sm" title="Detail">
                                 <i class="bi bi-eye"></i>
                             </a>
                         </div>
@@ -119,50 +116,7 @@
         </table>
     </div>
     
-    <div style="margin-top: 1rem;">
-        {{ $returns->links() }}
-    </div>
+    <div class="dms-pagination"><div></div><div>{{ $returns->links() }}</div></div>
 </div>
 
-<style>
-.pagination {
-    display: flex;
-    gap: 0.5rem;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-.pagination li {
-    display: inline-block;
-}
-.pagination li a, .pagination li span {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 36px;
-    height: 36px;
-    padding: 0 0.5rem;
-    border: 1px solid var(--k-gray-300);
-    border-radius: 8px;
-    color: var(--k-gray-600);
-    text-decoration: none;
-    font-size: 0.9rem;
-    transition: all 0.2s;
-}
-.pagination li.active span {
-    background: var(--k-green);
-    color: white;
-    border-color: var(--k-green);
-}
-.pagination li a:hover {
-    background: var(--k-gray-100);
-    border-color: var(--k-green);
-}
-.pagination .disabled span {
-    background: var(--k-gray-100);
-    color: var(--k-gray-400);
-    border-color: var(--k-gray-200);
-    cursor: not-allowed;
-}
-</style>
 @endsection

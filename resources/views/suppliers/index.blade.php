@@ -5,10 +5,10 @@
 
 @section('content')
 <div class="dms-card">
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem;">
+    <div class="dms-section-header">
         <div>
-            <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">Daftar Pemasok</h3>
-            <p style="font-size: 0.85rem; color: var(--k-gray-500);">Kelola semua pemasok dan pedagang pasar KurmiGO</p>
+            <h3 class="dms-section-title">Daftar Pemasok</h3>
+            <p class="dms-section-subtitle">Kelola semua pemasok dan pedagang pasar KurmiGO</p>
         </div>
         @can('create suppliers')
         <a href="{{ route('suppliers.create') }}" class="dms-btn dms-btn-primary">
@@ -19,22 +19,19 @@
     </div>
 
     <!-- Search & Filter -->
-    <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center;">
-        <div style="flex: 1; min-width: 250px;">
-            <form action="{{ route('suppliers.index') }}" method="GET" style="display: flex; gap: 0.5rem;">
-                <div style="position: relative; flex: 1;">
-                    <i class="bi bi-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--k-gray-400);"></i>
+    <div class="dms-toolbar">
+        <form action="{{ route('suppliers.index') }}" method="GET" class="dms-search-form">
+                <div class="dms-search-field">
+                    <i class="bi bi-search"></i>
                     <input type="text" name="search" placeholder="Cari nama, telepon, pasar, nomor lapak..." 
                            value="{{ request('search') }}"
-                           style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; border: 1px solid var(--k-gray-300); border-radius: 8px; font-size: 0.9rem;">
+                           class="form-control">
                 </div>
-                <button type="submit" class="dms-btn dms-btn-primary" style="padding: 0.75rem 1.5rem;">Cari</button>
+                <button type="submit" class="dms-btn dms-btn-primary">Cari</button>
             </form>
-        </div>
-        
-        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <div class="dms-toolbar-actions">
             <!-- Filter Category -->
-            <select name="category" onchange="window.location.href = this.value" style="padding: 0.75rem 2rem 0.75rem 1rem; border: 1px solid var(--k-gray-300); border-radius: 8px; font-size: 0.9rem; background: white;">
+            <select name="category" onchange="window.location.href = this.value" class="form-control">
                 <option value="{{ route('suppliers.index', array_merge(request()->except('category'), ['category' => null])) }}">Semua Kategori</option>
                 @foreach($categories as $key => $label)
                     <option value="{{ route('suppliers.index', array_merge(request()->except('category'), ['category' => $key])) }}" {{ request('category') == $key ? 'selected' : '' }}>
@@ -50,14 +47,14 @@
                    style="padding: 0.75rem 1rem; border: 1px solid var(--k-gray-300); border-radius: 8px; font-size: 0.9rem; width: 150px;">
             
             <!-- Filter Status -->
-            <select name="status" onchange="window.location.href = this.value" style="padding: 0.75rem 2rem 0.75rem 1rem; border: 1px solid var(--k-gray-300); border-radius: 8px; font-size: 0.9rem; background: white;">
+            <select name="status" onchange="window.location.href = this.value" class="form-control">
                 <option value="{{ route('suppliers.index', array_merge(request()->except('status'), ['status' => null])) }}">Semua Status</option>
                 <option value="{{ route('suppliers.index', array_merge(request()->except('status'), ['status' => 'active'])) }}" {{ request('status') == 'active' ? 'selected' : '' }}>Aktif</option>
                 <option value="{{ route('suppliers.index', array_merge(request()->except('status'), ['status' => 'inactive'])) }}" {{ request('status') == 'inactive' ? 'selected' : '' }}>Tidak Aktif</option>
             </select>
             
             <!-- Per Page -->
-            <select name="per_page" onchange="window.location.href = this.value" style="padding: 0.75rem 2rem 0.75rem 1rem; border: 1px solid var(--k-gray-300); border-radius: 8px; font-size: 0.9rem; background: white;">
+            <select name="per_page" onchange="window.location.href = this.value" class="form-control">
                 <option value="{{ route('suppliers.index', array_merge(request()->except('per_page'), ['per_page' => 5])) }}" {{ request('per_page', 10) == 5 ? 'selected' : '' }}>5 per halaman</option>
                 <option value="{{ route('suppliers.index', array_merge(request()->except('per_page'), ['per_page' => 10])) }}" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10 per halaman</option>
                 <option value="{{ route('suppliers.index', array_merge(request()->except('per_page'), ['per_page' => 20])) }}" {{ request('per_page', 10) == 20 ? 'selected' : '' }}>20 per halaman</option>
@@ -67,7 +64,7 @@
     </div>
 
     <!-- Pemasok Table -->
-    <div style="overflow-x: auto;">
+    <div class="dms-table-wrap">
         <table class="dms-table">
             <thead>
                   <tr>
@@ -86,12 +83,12 @@
                   <tr>
                     <td>{{ $suppliers->firstItem() + $index }}</td>
                     <td>
-                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <div style="width: 40px; height: 40px; background: var(--k-green-light); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                                <i class="bi bi-shop" style="color: var(--k-green);"></i>
+                        <div class="dms-identity">
+                            <div class="dms-avatar-soft">
+                                <i class="bi bi-shop"></i>
                             </div>
                             <div>
-                                <div style="font-weight: 600; color: var(--k-gray-800);">{{ $supplier->name }}</div>
+                                <div class="dms-strong">{{ $supplier->name }}</div>
                                 @if($supplier->specialty)
                                     <div style="font-size: 0.65rem; color: var(--k-gray-500);">{{ $supplier->specialty }}</div>
                                 @endif
@@ -132,20 +129,20 @@
                         </span>
                     </td>
                     <td>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <a href="{{ route('suppliers.show', $supplier) }}" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem;" title="Detail">
+                        <div class="dms-actions">
+                            <a href="{{ route('suppliers.show', $supplier) }}" class="dms-btn dms-btn-outline dms-btn-sm" title="Detail">
                                 <i class="bi bi-eye"></i>
                             </a>
                             @can('edit suppliers')
-                            <a href="{{ route('suppliers.edit', $supplier) }}" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem;" title="Edit">
+                            <a href="{{ route('suppliers.edit', $supplier) }}" class="dms-btn dms-btn-outline dms-btn-sm" title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </a>
-                            <button onclick="toggleStatus({{ $supplier->id }})" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem;" title="Toggle Status">
+                            <button onclick="toggleStatus({{ $supplier->id }})" class="dms-btn dms-btn-outline dms-btn-sm" title="Toggle Status">
                                 <i class="bi bi-power"></i>
                             </button>
                             @endcan
                             @can('delete suppliers')
-                            <button onclick="deleteSupplier({{ $supplier->id }}, '{{ $supplier->name }}')" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem; color: var(--k-red);" title="Hapus">
+                            <button onclick="deleteSupplier({{ $supplier->id }}, '{{ $supplier->name }}')" class="dms-btn dms-btn-outline dms-btn-sm" style="color: var(--k-red);" title="Hapus">
                                 <i class="bi bi-trash"></i>
                             </button>
                             @endcan
@@ -170,8 +167,8 @@
     </div>
 
     <!-- Pagination -->
-    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 2rem; flex-wrap: wrap; gap: 1rem;">
-        <div style="font-size: 0.9rem; color: var(--k-gray-600);">
+    <div class="dms-pagination">
+        <div class="dms-pagination-summary">
             Menampilkan {{ $suppliers->firstItem() ?? 0 }} - {{ $suppliers->lastItem() ?? 0 }} dari {{ $suppliers->total() }} pemasok
         </div>
         <div>
@@ -225,45 +222,4 @@ function deleteSupplier(supplierId, supplierName) {
 }
 </script>
 
-<style>
-.pagination {
-    display: flex;
-    gap: 0.5rem;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-.pagination li {
-    display: inline-block;
-}
-.pagination li a, .pagination li span {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 36px;
-    height: 36px;
-    padding: 0 0.5rem;
-    border: 1px solid var(--k-gray-300);
-    border-radius: 8px;
-    color: var(--k-gray-600);
-    text-decoration: none;
-    font-size: 0.9rem;
-    transition: all 0.2s;
-}
-.pagination li.active span {
-    background: var(--k-green);
-    color: white;
-    border-color: var(--k-green);
-}
-.pagination li a:hover {
-    background: var(--k-gray-100);
-    border-color: var(--k-green);
-}
-.pagination .disabled span {
-    background: var(--k-gray-100);
-    color: var(--k-gray-400);
-    border-color: var(--k-gray-200);
-    cursor: not-allowed;
-}
-</style>
 @endsection

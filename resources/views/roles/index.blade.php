@@ -5,10 +5,10 @@
 
 @section('content')
 <div class="dms-card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <div class="dms-section-header">
         <div>
-            <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--dms-secondary);">Daftar Roles</h3>
-            <p style="font-size: 0.85rem; color: var(--dms-gray-500);">Kelola roles dan hak akses dalam sistem</p>
+            <h3 class="dms-section-title">Daftar Roles</h3>
+            <p class="dms-section-subtitle">Kelola roles dan hak akses dalam sistem</p>
         </div>
         @can('create roles')
         <a href="{{ route('roles.create') }}" class="dms-btn dms-btn-primary">
@@ -18,27 +18,23 @@
     </div>
 
     <!-- Search -->
-    <div style="background: var(--dms-gray-50); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
-        <form method="GET" action="{{ route('roles.index') }}">
-            <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 1rem; align-items: end;">
-                <div>
-                    <label class="form-label">Cari Role</label>
-                    <input type="text" name="search" class="form-control" placeholder="Nama role..." value="{{ request('search') }}">
-                </div>
-                <div style="display: flex; gap: 0.5rem;">
-                    <button type="submit" class="dms-btn dms-btn-primary">
-                        <i class="bi bi-search"></i> Cari
-                    </button>
-                    <a href="{{ route('roles.index') }}" class="dms-btn dms-btn-outline">
-                        <i class="bi bi-x-circle"></i> Reset
-                    </a>
-                </div>
+    <div class="dms-toolbar">
+        <form method="GET" action="{{ route('roles.index') }}" class="dms-search-form">
+            <div class="dms-search-field">
+                <i class="bi bi-search"></i>
+                <input type="text" name="search" class="form-control" placeholder="Nama role..." value="{{ request('search') }}">
             </div>
+            <button type="submit" class="dms-btn dms-btn-primary">Cari</button>
         </form>
+        <div class="dms-toolbar-actions">
+            <a href="{{ route('roles.index') }}" class="dms-btn dms-btn-outline">
+                <i class="bi bi-x-circle"></i> Reset
+            </a>
+        </div>
     </div>
 
     <!-- Table -->
-    <div style="overflow-x: auto;">
+    <div class="dms-table-wrap">
         <table class="dms-table">
             <thead>
                 <tr>
@@ -56,15 +52,15 @@
                 <tr>
                     <td>{{ $roles->firstItem() + $index }}</td>
                     <td>
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <div style="width: 36px; height: 36px; background: var(--dms-primary-light); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                                <i class="bi bi-shield" style="color: var(--dms-primary);"></i>
+                        <div class="dms-identity">
+                            <div class="dms-avatar-soft">
+                                <i class="bi bi-shield"></i>
                             </div>
                             <div>
-                                <div style="font-weight: 600; color: var(--dms-secondary);">
+                                <div class="dms-strong">
                                     {{ ucwords(str_replace('-', ' ', $role->name)) }}
                                 </div>
-                                <div style="font-size: 0.7rem; color: var(--dms-gray-500);">{{ $role->name }}</div>
+                                <div class="dms-muted">{{ $role->name }}</div>
                             </div>
                         </div>
                     </td>
@@ -77,21 +73,21 @@
                     </td>
                     <td>{{ $role->created_at->format('d M Y') }}</td>
                     <td>
-                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                            <a href="{{ route('roles.show', $role) }}" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem;" title="Detail">
+                        <div class="dms-actions">
+                            <a href="{{ route('roles.show', $role) }}" class="dms-btn dms-btn-outline dms-btn-sm" title="Detail">
                                 <i class="bi bi-eye"></i>
                             </a>
                             
                             @can('edit roles')
                             @if($role->name !== 'super-admin' || auth()->user()->hasRole('super-admin'))
-                            <a href="{{ route('roles.edit', $role) }}" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem;" title="Edit">
+                            <a href="{{ route('roles.edit', $role) }}" class="dms-btn dms-btn-outline dms-btn-sm" title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </a>
                             @endif
                             @endcan
                             
                             @can('assign permissions')
-                            <a href="{{ route('roles.permissions', $role) }}" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem; color: var(--dms-success);" title="Atur Permission">
+                            <a href="{{ route('roles.permissions', $role) }}" class="dms-btn dms-btn-outline dms-btn-sm" style="color: var(--k-success);" title="Atur Permission">
                                 <i class="bi bi-shield-check"></i>
                             </a>
                             @endcan
@@ -101,7 +97,7 @@
                             <form method="POST" action="{{ route('roles.destroy', $role) }}" style="display: inline;">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem; color: var(--dms-danger);" 
+                                <button type="submit" class="dms-btn dms-btn-outline dms-btn-sm" style="color: var(--k-red);" 
                                         onclick="return confirm('Hapus role {{ $role->name }}? Semua user dengan role ini akan kehilangan akses.')">
                                     <i class="bi bi-trash"></i>
                                 </button>
@@ -113,9 +109,11 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="7" style="text-align: center; padding: 3rem;">
-                        <i class="bi bi-shield" style="font-size: 3rem; color: var(--dms-gray-400); display: block; margin-bottom: 1rem;"></i>
-                        <p style="color: var(--dms-gray-500);">Belum ada data role</p>
+                    <td colspan="7">
+                        <div class="dms-empty-state">
+                            <i class="bi bi-shield"></i>
+                            <p>Belum ada data role</p>
+                        </div>
                     </td>
                 </tr>
                 @endforelse
@@ -124,8 +122,8 @@
     </div>
 
     <!-- Pagination -->
-    <div style="margin-top: 2rem; display: flex; justify-content: space-between; align-items: center;">
-        <div style="color: var(--dms-gray-600); font-size: 0.85rem;">
+    <div class="dms-pagination">
+        <div class="dms-pagination-summary">
             Menampilkan {{ $roles->firstItem() ?? 0 }} - {{ $roles->lastItem() ?? 0 }} dari {{ $roles->total() }} data
         </div>
         <div>

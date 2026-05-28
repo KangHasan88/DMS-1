@@ -17,8 +17,8 @@
             </div>
         </div>
         <div class="stat-value">{{ number_format($totalUsers ?? 0) }}</div>
-        <div class="stat-label">Total Users</div>
-        <small style="color: var(--k-gray-400);">+{{ number_format($newUsersThisMonth ?? 0) }} this month</small>
+        <div class="stat-label">Total Pengguna</div>
+        <small style="color: var(--k-gray-400);">+{{ number_format($newUsersThisMonth ?? 0) }} bulan ini</small>
     </div>
 
     <!-- Card 2: Total Orders -->
@@ -32,8 +32,8 @@
             </div>
         </div>
         <div class="stat-value">{{ number_format($totalOrders ?? 0) }}</div>
-        <div class="stat-label">Total Orders</div>
-        <small style="color: var(--k-gray-400);">+{{ number_format($newOrdersThisWeek ?? 0) }} this week</small>
+        <div class="stat-label">{{ app()->getLocale() === 'id' ? 'Total Pesanan' : 'Total Orders' }}</div>
+        <small style="color: var(--k-gray-400);">+{{ number_format($newOrdersThisWeek ?? 0) }} minggu ini</small>
     </div>
 
     <!-- Card 3: Total Revenue -->
@@ -47,8 +47,8 @@
             </div>
         </div>
         <div class="stat-value">Rp {{ number_format($totalRevenue ?? 0, 0, ',', '.') }}</div>
-        <div class="stat-label">Total Revenue</div>
-        <small style="color: var(--k-gray-400);">This month</small>
+        <div class="stat-label">Total Pendapatan</div>
+        <small style="color: var(--k-gray-400);">Bulan ini</small>
     </div>
 
     <!-- Card 4: Active Deliveries -->
@@ -62,7 +62,7 @@
             </div>
         </div>
         <div class="stat-value">{{ number_format($activeDeliveries ?? 0) }}</div>
-        <div class="stat-label">Active Deliveries</div>
+        <div class="stat-label">Pengiriman Aktif</div>
         <small style="color: var(--k-gray-400);">{{ number_format($pendingDeliveries ?? 0) }} pending</small>
     </div>
 
@@ -74,12 +74,12 @@
             </div>
         </div>
         <div class="stat-value">{{ $pendingOrdersCount ?? 0 }}</div>
-        <div class="stat-label">Pending Orders</div>
-        <small style="color: var(--k-gray-400);">Waiting for payment</small>
+        <div class="stat-label">{{ app()->getLocale() === 'id' ? 'Pesanan Pending' : 'Pending Orders' }}</div>
+        <small style="color: var(--k-gray-400);">Menunggu pembayaran</small>
         @if(($pendingOrdersCount ?? 0) > 0)
             <div style="margin-top: 0.5rem;">
                 <a href="{{ route('orders.index', ['status' => 'pending_payment']) }}" style="font-size: 0.6rem; color: var(--k-orange); text-decoration: none;">
-                    Process Now <i class="bi bi-arrow-right"></i>
+                    Proses Sekarang <i class="bi bi-arrow-right"></i>
                 </a>
             </div>
         @endif
@@ -93,12 +93,12 @@
             </div>
         </div>
         <div class="stat-value">{{ $lowStockProducts ?? 0 }}</div>
-        <div class="stat-label">Low Stock Products</div>
-        <small style="color: var(--k-gray-400);">{{ $outOfStockProducts ?? 0 }} out of stock</small>
+        <div class="stat-label">Produk Stok Menipis</div>
+        <small style="color: var(--k-gray-400);">{{ $outOfStockProducts ?? 0 }} stok habis</small>
         @if(($lowStockProducts ?? 0) > 0)
             <div style="margin-top: 0.5rem;">
                 <a href="{{ route('stock.low-stock') }}" style="font-size: 0.6rem; color: var(--k-red); text-decoration: none;">
-                    View Details <i class="bi bi-arrow-right"></i>
+                    Lihat Detail <i class="bi bi-arrow-right"></i>
                 </a>
             </div>
         @endif
@@ -125,9 +125,9 @@
                 {{ number_format(abs($netStock)) }}
             </span>
         </div>
-        <div class="stat-label">Net Stock Movement</div>
+        <div class="stat-label">Mutasi Stok Bersih</div>
         <small style="color: var(--k-gray-400);">
-            In: {{ number_format($stockInThisMonth ?? 0) }} | Out: {{ number_format($stockOutThisMonth ?? 0) }}
+            Masuk: {{ number_format($stockInThisMonth ?? 0) }} | Keluar: {{ number_format($stockOutThisMonth ?? 0) }}
         </small>
     </div>
 
@@ -139,12 +139,12 @@
             </div>
         </div>
         <div class="stat-value">{{ $completedOrdersCount ?? 0 }}</div>
-        <div class="stat-label">Completed Orders</div>
-        <small style="color: var(--k-gray-400);">This month</small>
+        <div class="stat-label">{{ app()->getLocale() === 'id' ? 'Pesanan Selesai' : 'Completed Orders' }}</div>
+        <small style="color: var(--k-gray-400);">Bulan ini</small>
         @if(($completedOrdersCount ?? 0) > 0)
             <div style="margin-top: 0.5rem;">
                 <a href="{{ route('orders.index', ['status' => 'delivered']) }}" style="font-size: 0.6rem; color: var(--k-green); text-decoration: none;">
-                    View All <i class="bi bi-arrow-right"></i>
+                    Lihat Semua <i class="bi bi-arrow-right"></i>
                 </a>
             </div>
         @endif
@@ -156,17 +156,17 @@
     <div class="dms-toolbar-actions">
         @can('create sales order')
         <a href="{{ route('orders.create') }}" class="dms-btn dms-btn-primary" style="text-decoration: none;">
-            <i class="bi bi-plus-circle"></i> New Order
+            <i class="bi bi-plus-circle"></i> {{ app()->getLocale() === 'id' ? 'Pesanan Baru' : 'New Order' }}
         </a>
         @endcan
         <a href="{{ route('deliveries.index') }}" class="dms-btn dms-btn-primary" style="text-decoration: none;">
-            <i class="bi bi-truck"></i> Track Delivery
+            <i class="bi bi-truck"></i> Lacak Pengiriman
         </a>
         <button class="dms-btn dms-btn-outline" onclick="alert('Feature coming soon!')">
-            <i class="bi bi-file-earmark-spreadsheet"></i> Export Report
+            <i class="bi bi-file-earmark-spreadsheet"></i> Export Laporan
         </button>
         <button onclick="openSearchModal()" class="dms-btn dms-btn-outline">
-            <i class="bi bi-search"></i> Search Orders
+            <i class="bi bi-search"></i> {{ app()->getLocale() === 'id' ? 'Cari Pesanan' : 'Search Orders' }}
         </button>
     </div>
 </div>
@@ -176,7 +176,7 @@
     <div style="background: white; border-radius: 12px; padding: 1.5rem; width: 500px; max-width: 90%;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--k-gray-800);">
-                <i class="bi bi-search"></i> Search Orders
+                <i class="bi bi-search"></i> {{ app()->getLocale() === 'id' ? 'Cari Pesanan' : 'Search Orders' }}
             </h3>
             <button onclick="closeSearchModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer;">
                 <i class="bi bi-x-lg"></i>
@@ -221,7 +221,7 @@
             
             <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem;">
                 <button type="button" onclick="closeSearchModal()" class="dms-btn dms-btn-outline">Batal</button>
-                <button type="submit" class="dms-btn dms-btn-primary">Cari Order</button>
+                <button type="submit" class="dms-btn dms-btn-primary">{{ app()->getLocale() === 'id' ? 'Cari Pesanan' : 'Search Orders' }}</button>
             </div>
         </form>
     </div>
@@ -232,10 +232,10 @@
     <div class="dms-section-header">
         <h3 class="dms-section-title" style="display: flex; align-items: center; gap: 0.5rem;">
             <i class="bi bi-clock-history" style="color: var(--k-orange);"></i>
-            Recent Orders
+            {{ app()->getLocale() === 'id' ? 'Pesanan Terbaru' : 'Recent Orders' }}
         </h3>
         <a href="{{ route('orders.index') }}" style="color: var(--k-blue); text-decoration: none; font-size: 0.8rem; font-weight: 700;">
-            View All <i class="bi bi-arrow-right"></i>
+            Lihat Semua <i class="bi bi-arrow-right"></i>
         </a>
     </div>
 
@@ -318,10 +318,10 @@
                     <td colspan="6">
                         <div class="dms-empty-state">
                         <i class="bi bi-inbox"></i>
-                        <p>No recent orders found</p>
+                        <p>Belum ada {{ app()->getLocale() === 'id' ? 'Pesanan Terbaru' : 'Recent Orders' }}</p>
                         @can('create sales order')
                         <a href="{{ route('orders.create') }}" class="dms-btn dms-btn-primary" style="text-decoration: none;">
-                            <i class="bi bi-plus-circle"></i> Create First Order
+                            <i class="bi bi-plus-circle"></i> {{ app()->getLocale() === 'id' ? 'Buat Pesanan Pertama' : 'Create First Order' }}
                         </a>
                         @endcan
                         </div>

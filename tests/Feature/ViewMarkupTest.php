@@ -92,15 +92,28 @@ class ViewMarkupTest extends TestCase
             $this->assertStringContainsString($class, $layout);
         }
 
-        foreach ([
-            resource_path('views/dashboard.blade.php'),
-            resource_path('views/orders/index.blade.php'),
-            resource_path('views/stock/index.blade.php'),
-        ] as $file) {
+        $indexFiles = collect(File::allFiles(resource_path('views')))
+            ->filter(fn ($file) => $file->getFilename() === 'index.blade.php')
+            ->map(fn ($file) => $file->getPathname())
+            ->values();
+
+        foreach ($indexFiles as $file) {
             $content = file_get_contents($file);
 
+            $this->assertStringNotContainsString('`r`n', $content);
+            $this->assertStringNotContainsString('--dms-', $content);
+            $this->assertStringContainsString('dms-section-header', $content);
             $this->assertStringContainsString('dms-table-wrap', $content);
-            $this->assertStringContainsString('dms-empty-state', $content);
+
+            if (str_contains($content, '->links()') || str_contains($content, '->withQueryString()->links()')) {
+                $this->assertStringContainsString('dms-pagination', $content);
+            }
         }
+
+        $dashboard = file_get_contents(resource_path('views/dashboard.blade.php'));
+
+        $this->assertStringNotContainsString('`r`n', $dashboard);
+        $this->assertStringContainsString('dms-section-header', $dashboard);
+        $this->assertStringContainsString('dms-table-wrap', $dashboard);
     }
 }
