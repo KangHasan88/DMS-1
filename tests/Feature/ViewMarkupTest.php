@@ -147,9 +147,11 @@ class ViewMarkupTest extends TestCase
 
         $this->assertStringContainsString('kurmigo-robot.png', $layout);
         $this->assertStringContainsString('DMS KURMIGO', $layout);
+        $this->assertStringContainsString('Distribution Management System', $layout);
         $this->assertStringContainsString('--auth-blue: #061a3f;', $layout);
         $this->assertStringContainsString('auth-shell', $layout);
-        $this->assertStringContainsString('Masuk ke DMS', $login);
+        $this->assertStringContainsString('Masuk ke DMS KURMIGO', $login);
+        $this->assertStringContainsString('Distribution Management System', $login);
         $this->assertStringContainsString('auth-button', $login);
     }
 }
