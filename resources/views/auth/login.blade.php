@@ -1,7 +1,7 @@
 <x-guest-layout>
     <div class="auth-card-header">
-        <h2>Masuk ke DMS</h2>
-        <p>Gunakan akun yang sudah terdaftar untuk mengakses dashboard operasional KURMIGO.</p>
+        <h2>Masuk ke System</h2>
+        <p>Gunakan akun yang sudah terdaftar untuk mengakses DMS KURMIGO</p>
     </div>
 
     @if (session('status'))
