@@ -611,14 +611,17 @@
 
         .stat-value {
             font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--k-gray-800);
+            font-weight: 750;
+            color: var(--k-gray-900);
             margin-bottom: 0.1rem;
+            line-height: 1.15;
         }
 
         .stat-label {
-            color: var(--k-gray-500);
-            font-size: 0.65rem;
+            color: var(--k-gray-600);
+            font-size: 0.72rem;
+            font-weight: 500;
+            line-height: 1.35;
         }
 
         /* Table */
@@ -630,13 +633,14 @@
 
         .dms-table th {
             text-align: left;
-            padding: 0.6rem;
+            padding: 0.68rem 0.78rem;
             color: var(--k-gray-600);
-            font-size: 0.65rem;
+            font-size: 0.68rem;
             font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: 0.02em;
             border-bottom: 1px solid var(--k-gray-200);
-            background: var(--k-blue-light);
+            background: rgba(233, 238, 248, 0.72);
         }
 
         .dms-table tbody tr:last-child td {
@@ -670,7 +674,7 @@
         }
 
         .dms-strong {
-            font-weight: 700;
+            font-weight: 600;
             color: var(--k-gray-900);
         }
 
@@ -680,7 +684,7 @@
         }
 
         .dms-money {
-            font-weight: 800;
+            font-weight: 700;
             color: var(--k-blue);
             white-space: nowrap;
         }
@@ -773,10 +777,11 @@
         }
 
         .dms-table td {
-            padding: 0.6rem;
+            padding: 0.72rem 0.78rem;
             border-bottom: 1px solid var(--k-gray-200);
             color: var(--k-gray-700);
-            font-size: 0.7rem;
+            font-size: 0.78rem;
+            line-height: 1.45;
         }
 
         .dms-table tbody tr:hover {
@@ -785,11 +790,12 @@
 
         /* Badges */
         .dms-badge {
-            padding: 0.2rem 0.6rem;
+            padding: 0.22rem 0.62rem;
             border-radius: 999px;
-            font-size: 0.6rem;
+            font-size: 0.68rem;
             font-weight: 600;
             display: inline-block;
+            line-height: 1.2;
         }
 
         .dms-badge-success {

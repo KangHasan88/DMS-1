@@ -4,6 +4,9 @@
 @section('breadcrumb', 'Dashboard')
 
 @section('content')
+@php
+    $isIndonesian = app()->getLocale() === 'id';
+@endphp
 <!-- STATISTICS CARDS -->
 <div class="stats-grid">
     <!-- Card 1: Total Users -->
@@ -17,8 +20,8 @@
             </div>
         </div>
         <div class="stat-value">{{ number_format($totalUsers ?? 0) }}</div>
-        <div class="stat-label">Total Pengguna</div>
-        <small style="color: var(--k-gray-400);">+{{ number_format($newUsersThisMonth ?? 0) }} bulan ini</small>
+        <div class="stat-label">{{ $isIndonesian ? 'Total Pengguna' : 'Total Users' }}</div>
+        <small style="color: var(--k-gray-400);">+{{ number_format($newUsersThisMonth ?? 0) }} {{ $isIndonesian ? 'bulan ini' : 'this month' }}</small>
     </div>
 
     <!-- Card 2: Total Orders -->
@@ -32,8 +35,8 @@
             </div>
         </div>
         <div class="stat-value">{{ number_format($totalOrders ?? 0) }}</div>
-        <div class="stat-label">{{ app()->getLocale() === 'id' ? 'Total Pesanan' : 'Total Orders' }}</div>
-        <small style="color: var(--k-gray-400);">+{{ number_format($newOrdersThisWeek ?? 0) }} minggu ini</small>
+        <div class="stat-label">{{ $isIndonesian ? 'Total Pesanan' : 'Total Orders' }}</div>
+        <small style="color: var(--k-gray-400);">+{{ number_format($newOrdersThisWeek ?? 0) }} {{ $isIndonesian ? 'minggu ini' : 'this week' }}</small>
     </div>
 
     <!-- Card 3: Total Revenue -->
@@ -47,8 +50,8 @@
             </div>
         </div>
         <div class="stat-value">Rp {{ number_format($totalRevenue ?? 0, 0, ',', '.') }}</div>
-        <div class="stat-label">Total Pendapatan</div>
-        <small style="color: var(--k-gray-400);">Bulan ini</small>
+        <div class="stat-label">{{ $isIndonesian ? 'Total Pendapatan' : 'Total Revenue' }}</div>
+        <small style="color: var(--k-gray-400);">{{ $isIndonesian ? 'Bulan ini' : 'This month' }}</small>
     </div>
 
     <!-- Card 4: Active Deliveries -->
@@ -62,8 +65,8 @@
             </div>
         </div>
         <div class="stat-value">{{ number_format($activeDeliveries ?? 0) }}</div>
-        <div class="stat-label">Pengiriman Aktif</div>
-        <small style="color: var(--k-gray-400);">{{ number_format($pendingDeliveries ?? 0) }} pending</small>
+        <div class="stat-label">{{ $isIndonesian ? 'Pengiriman Aktif' : 'Active Deliveries' }}</div>
+        <small style="color: var(--k-gray-400);">{{ number_format($pendingDeliveries ?? 0) }} {{ $isIndonesian ? 'menunggu' : 'pending' }}</small>
     </div>
 
     <!-- Card 5: Pending Orders -->
@@ -74,12 +77,12 @@
             </div>
         </div>
         <div class="stat-value">{{ $pendingOrdersCount ?? 0 }}</div>
-        <div class="stat-label">{{ app()->getLocale() === 'id' ? 'Pesanan Pending' : 'Pending Orders' }}</div>
-        <small style="color: var(--k-gray-400);">Menunggu pembayaran</small>
+        <div class="stat-label">{{ $isIndonesian ? 'Pesanan Menunggu' : 'Pending Orders' }}</div>
+        <small style="color: var(--k-gray-400);">{{ $isIndonesian ? 'Menunggu pembayaran' : 'Waiting for payment' }}</small>
         @if(($pendingOrdersCount ?? 0) > 0)
             <div style="margin-top: 0.5rem;">
                 <a href="{{ route('orders.index', ['status' => 'pending_payment']) }}" style="font-size: 0.6rem; color: var(--k-orange); text-decoration: none;">
-                    Proses Sekarang <i class="bi bi-arrow-right"></i>
+                    {{ $isIndonesian ? 'Proses Sekarang' : 'Process Now' }} <i class="bi bi-arrow-right"></i>
                 </a>
             </div>
         @endif
@@ -93,12 +96,12 @@
             </div>
         </div>
         <div class="stat-value">{{ $lowStockProducts ?? 0 }}</div>
-        <div class="stat-label">Produk Stok Menipis</div>
-        <small style="color: var(--k-gray-400);">{{ $outOfStockProducts ?? 0 }} stok habis</small>
+        <div class="stat-label">{{ $isIndonesian ? 'Stok Menipis' : 'Low Stock' }}</div>
+        <small style="color: var(--k-gray-400);">{{ $outOfStockProducts ?? 0 }} {{ $isIndonesian ? 'stok habis' : 'out of stock' }}</small>
         @if(($lowStockProducts ?? 0) > 0)
             <div style="margin-top: 0.5rem;">
                 <a href="{{ route('stock.low-stock') }}" style="font-size: 0.6rem; color: var(--k-red); text-decoration: none;">
-                    Lihat Detail <i class="bi bi-arrow-right"></i>
+                    {{ $isIndonesian ? 'Lihat Detail' : 'View Detail' }} <i class="bi bi-arrow-right"></i>
                 </a>
             </div>
         @endif
@@ -125,9 +128,9 @@
                 {{ number_format(abs($netStock)) }}
             </span>
         </div>
-        <div class="stat-label">Mutasi Stok Bersih</div>
+        <div class="stat-label">{{ $isIndonesian ? 'Mutasi Stok Bersih' : 'Net Stock Movement' }}</div>
         <small style="color: var(--k-gray-400);">
-            Masuk: {{ number_format($stockInThisMonth ?? 0) }} | Keluar: {{ number_format($stockOutThisMonth ?? 0) }}
+            {{ $isIndonesian ? 'Masuk' : 'In' }}: {{ number_format($stockInThisMonth ?? 0) }} | {{ $isIndonesian ? 'Keluar' : 'Out' }}: {{ number_format($stockOutThisMonth ?? 0) }}
         </small>
     </div>
 
@@ -139,34 +142,34 @@
             </div>
         </div>
         <div class="stat-value">{{ $completedOrdersCount ?? 0 }}</div>
-        <div class="stat-label">{{ app()->getLocale() === 'id' ? 'Pesanan Selesai' : 'Completed Orders' }}</div>
-        <small style="color: var(--k-gray-400);">Bulan ini</small>
+        <div class="stat-label">{{ $isIndonesian ? 'Pesanan Selesai' : 'Completed Orders' }}</div>
+        <small style="color: var(--k-gray-400);">{{ $isIndonesian ? 'Bulan ini' : 'This month' }}</small>
         @if(($completedOrdersCount ?? 0) > 0)
             <div style="margin-top: 0.5rem;">
                 <a href="{{ route('orders.index', ['status' => 'delivered']) }}" style="font-size: 0.6rem; color: var(--k-green); text-decoration: none;">
-                    Lihat Semua <i class="bi bi-arrow-right"></i>
+                    {{ $isIndonesian ? 'Lihat Semua' : 'View All' }} <i class="bi bi-arrow-right"></i>
                 </a>
             </div>
         @endif
     </div>
 </div>
 
-<!-- QUICK ACTIONS -->
+<!-- QUICK LINKS -->
 <div class="dms-card" style="margin-bottom: 1.5rem;">
     <div class="dms-toolbar-actions">
         @can('create sales order')
         <a href="{{ route('orders.create') }}" class="dms-btn dms-btn-primary" style="text-decoration: none;">
-            <i class="bi bi-plus-circle"></i> {{ app()->getLocale() === 'id' ? 'Pesanan Baru' : 'New Order' }}
+            <i class="bi bi-plus-circle"></i> {{ $isIndonesian ? 'Pesanan Baru' : 'New Order' }}
         </a>
         @endcan
         <a href="{{ route('deliveries.index') }}" class="dms-btn dms-btn-primary" style="text-decoration: none;">
-            <i class="bi bi-truck"></i> Lacak Pengiriman
+            <i class="bi bi-truck"></i> {{ $isIndonesian ? 'Lacak Pengiriman' : 'Track Delivery' }}
         </a>
         <button class="dms-btn dms-btn-outline" onclick="alert('Feature coming soon!')">
-            <i class="bi bi-file-earmark-spreadsheet"></i> Export Laporan
+            <i class="bi bi-file-earmark-spreadsheet"></i> {{ $isIndonesian ? 'Export Laporan' : 'Export Report' }}
         </button>
         <button onclick="openSearchModal()" class="dms-btn dms-btn-outline">
-            <i class="bi bi-search"></i> {{ app()->getLocale() === 'id' ? 'Cari Pesanan' : 'Search Orders' }}
+            <i class="bi bi-search"></i> {{ $isIndonesian ? 'Cari Pesanan' : 'Search Orders' }}
         </button>
     </div>
 </div>
@@ -176,7 +179,7 @@
     <div style="background: white; border-radius: 12px; padding: 1.5rem; width: 500px; max-width: 90%;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--k-gray-800);">
-                <i class="bi bi-search"></i> {{ app()->getLocale() === 'id' ? 'Cari Pesanan' : 'Search Orders' }}
+                <i class="bi bi-search"></i> {{ $isIndonesian ? 'Cari Pesanan' : 'Search Orders' }}
             </h3>
             <button onclick="closeSearchModal()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer;">
                 <i class="bi bi-x-lg"></i>
@@ -185,43 +188,43 @@
         
         <form id="searchOrderForm" method="GET" action="{{ route('orders.index') }}">
             <div style="margin-bottom: 1rem;">
-                <label class="form-label">Order ID / Nomor Order</label>
+                <label class="form-label">{{ $isIndonesian ? 'Nomor Pesanan' : 'Order ID' }}</label>
                 <input type="text" name="search" class="form-control" placeholder="Contoh: KMG202603260001" style="width: 100%; padding: 0.6rem; border: 1px solid var(--k-gray-300); border-radius: 8px;">
             </div>
             
             <div style="margin-bottom: 1rem;">
-                <label class="form-label">Nama Pelanggan</label>
+                <label class="form-label">{{ $isIndonesian ? 'Nama Pelanggan' : 'Customer Name' }}</label>
                 <input type="text" name="customer_name" class="form-control" placeholder="Nama pelanggan" style="width: 100%; padding: 0.6rem; border: 1px solid var(--k-gray-300); border-radius: 8px;">
             </div>
             
             <div style="margin-bottom: 1rem;">
-                <label class="form-label">Tanggal Order</label>
+                <label class="form-label">{{ $isIndonesian ? 'Tanggal Pesanan' : 'Order Date' }}</label>
                 <div style="display: flex; gap: 0.5rem;">
                     <input type="date" name="date_from" class="form-control" style="flex: 1; padding: 0.6rem; border: 1px solid var(--k-gray-300); border-radius: 8px;">
-                    <span style="align-self: center;">s/d</span>
+                    <span style="align-self: center;">{{ $isIndonesian ? 's/d' : 'to' }}</span>
                     <input type="date" name="date_to" class="form-control" style="flex: 1; padding: 0.6rem; border: 1px solid var(--k-gray-300); border-radius: 8px;">
                 </div>
             </div>
             
             <div style="margin-bottom: 1rem;">
-                <label class="form-label">Status Order</label>
+                <label class="form-label">{{ $isIndonesian ? 'Status Pesanan' : 'Order Status' }}</label>
                 <select name="status" class="form-control" style="width: 100%; padding: 0.6rem; border: 1px solid var(--k-gray-300); border-radius: 8px;">
-                    <option value="">-- Semua Status --</option>
-                    <option value="pending_payment">Pending Payment</option>
-                    <option value="paid">Paid</option>
-                    <option value="checking_stock">Checking Stock</option>
-                    <option value="procuring">Procuring</option>
+                    <option value="">-- {{ $isIndonesian ? 'Semua Status' : 'All Statuses' }} --</option>
+                    <option value="pending_payment">{{ $isIndonesian ? 'Menunggu Pembayaran' : 'Pending Payment' }}</option>
+                    <option value="paid">{{ $isIndonesian ? 'Dibayar' : 'Paid' }}</option>
+                    <option value="checking_stock">{{ $isIndonesian ? 'Cek Stok' : 'Checking Stock' }}</option>
+                    <option value="procuring">{{ $isIndonesian ? 'Belanja' : 'Procuring' }}</option>
                     <option value="repacking">Repacking</option>
-                    <option value="ready">Ready</option>
-                    <option value="shipped">Shipped</option>
-                    <option value="delivered">Delivered</option>
-                    <option value="cancelled">Cancelled</option>
+                    <option value="ready">{{ $isIndonesian ? 'Siap Kirim' : 'Ready' }}</option>
+                    <option value="shipped">{{ $isIndonesian ? 'Dikirim' : 'Shipped' }}</option>
+                    <option value="delivered">{{ $isIndonesian ? 'Terkirim' : 'Delivered' }}</option>
+                    <option value="cancelled">{{ $isIndonesian ? 'Dibatalkan' : 'Cancelled' }}</option>
                 </select>
             </div>
             
             <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem;">
-                <button type="button" onclick="closeSearchModal()" class="dms-btn dms-btn-outline">Batal</button>
-                <button type="submit" class="dms-btn dms-btn-primary">{{ app()->getLocale() === 'id' ? 'Cari Pesanan' : 'Search Orders' }}</button>
+                <button type="button" onclick="closeSearchModal()" class="dms-btn dms-btn-outline">{{ $isIndonesian ? 'Batal' : 'Cancel' }}</button>
+                <button type="submit" class="dms-btn dms-btn-primary">{{ $isIndonesian ? 'Cari Pesanan' : 'Search Orders' }}</button>
             </div>
         </form>
     </div>
@@ -232,10 +235,10 @@
     <div class="dms-section-header">
         <h3 class="dms-section-title" style="display: flex; align-items: center; gap: 0.5rem;">
             <i class="bi bi-clock-history" style="color: var(--k-orange);"></i>
-            {{ app()->getLocale() === 'id' ? 'Pesanan Terbaru' : 'Recent Orders' }}
+            {{ $isIndonesian ? 'Pesanan Terbaru' : 'Recent Orders' }}
         </h3>
         <a href="{{ route('orders.index') }}" style="color: var(--k-blue); text-decoration: none; font-size: 0.8rem; font-weight: 700;">
-            Lihat Semua <i class="bi bi-arrow-right"></i>
+            {{ $isIndonesian ? 'Lihat Semua' : 'View All' }} <i class="bi bi-arrow-right"></i>
         </a>
     </div>
 
@@ -243,19 +246,19 @@
         <table class="dms-table">
             <thead>
                 <tr>
-                    <th>ORDER ID</th>
-                    <th>CUSTOMER</th>
-                    <th style="text-align: right;">AMOUNT</th>
-                    <th>STATUS</th>
-                    <th>DATE</th>
-                    <th style="text-align: center;">ACTION</th>
+                    <th>{{ $isIndonesian ? 'No. Pesanan' : 'Order ID' }}</th>
+                    <th>{{ $isIndonesian ? 'Pelanggan' : 'Customer' }}</th>
+                    <th style="text-align: right;">{{ $isIndonesian ? 'Jumlah' : 'Amount' }}</th>
+                    <th>Status</th>
+                    <th>{{ $isIndonesian ? 'Tanggal' : 'Date' }}</th>
+                    <th style="text-align: center;">{{ $isIndonesian ? 'Aksi' : 'Action' }}</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($recentOrders ?? [] as $order)
                 <tr>
                     <td>
-                        <strong style="font-family: monospace; font-size: 0.75rem;">{{ $order->order_number ?? '#' . $order->id }}</strong>
+                        <strong style="font-family: monospace; font-size: 0.76rem; font-weight: 700;">{{ $order->order_number ?? '#' . $order->id }}</strong>
                     </td>
                     <td>
                         <div class="dms-identity">
@@ -284,26 +287,26 @@
                                 'cancelled' => 'danger'
                             ];
                             $statusLabels = [
-                                'pending_payment' => 'Pending',
-                                'paid' => 'Paid',
-                                'checking_stock' => 'Cek Stock',
-                                'procuring' => 'Belanja',
+                                'pending_payment' => $isIndonesian ? 'Menunggu' : 'Pending',
+                                'paid' => $isIndonesian ? 'Dibayar' : 'Paid',
+                                'checking_stock' => $isIndonesian ? 'Cek Stok' : 'Stock Check',
+                                'procuring' => $isIndonesian ? 'Belanja' : 'Procuring',
                                 'repacking' => 'Repacking',
-                                'ready' => 'Ready',
-                                'shipped' => 'Shipped',
-                                'delivered' => 'Delivered',
-                                'cancelled' => 'Cancelled'
+                                'ready' => $isIndonesian ? 'Siap Kirim' : 'Ready',
+                                'shipped' => $isIndonesian ? 'Dikirim' : 'Shipped',
+                                'delivered' => $isIndonesian ? 'Terkirim' : 'Delivered',
+                                'cancelled' => $isIndonesian ? 'Dibatalkan' : 'Cancelled'
                             ];
                             $color = $statusColors[$order->status] ?? 'info';
                             $label = $statusLabels[$order->status] ?? ucfirst($order->status);
                         @endphp
-                        <span class="dms-badge dms-badge-{{ $color }}" style="font-size: 0.6rem; padding: 0.2rem 0.6rem;">
+                        <span class="dms-badge dms-badge-{{ $color }}">
                             {{ $label }}
                         </span>
                     </td>
                     <td>
                         <div style="display: flex; flex-direction: column;">
-                            <span style="font-size: 0.7rem;">{{ $order->created_at->format('d M Y') }}</span>
+                            <span>{{ $order->created_at->format('d M Y') }}</span>
                             <span class="dms-muted">{{ $order->created_at->format('H:i') }}</span>
                         </div>
                     </td>
@@ -318,10 +321,10 @@
                     <td colspan="6">
                         <div class="dms-empty-state">
                         <i class="bi bi-inbox"></i>
-                        <p>Belum ada {{ app()->getLocale() === 'id' ? 'Pesanan Terbaru' : 'Recent Orders' }}</p>
+                        <p>Belum ada {{ $isIndonesian ? 'Pesanan Terbaru' : 'Recent Orders' }}</p>
                         @can('create sales order')
                         <a href="{{ route('orders.create') }}" class="dms-btn dms-btn-primary" style="text-decoration: none;">
-                            <i class="bi bi-plus-circle"></i> {{ app()->getLocale() === 'id' ? 'Buat Pesanan Pertama' : 'Create First Order' }}
+                            <i class="bi bi-plus-circle"></i> {{ $isIndonesian ? 'Buat Pesanan Pertama' : 'Create First Order' }}
                         </a>
                         @endcan
                         </div>

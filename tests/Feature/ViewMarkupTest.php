@@ -158,4 +158,22 @@ class ViewMarkupTest extends TestCase
         $this->assertStringNotContainsString('Distribution Management System', $login);
         $this->assertStringContainsString('auth-button', $login);
     }
+
+    public function test_dashboard_content_typography_and_labels_are_professional(): void
+    {
+        $dashboard = file_get_contents(resource_path('views/dashboard.blade.php'));
+        $layout = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));
+
+        foreach (['No. Pesanan', 'Pelanggan', 'Jumlah', 'Status', 'Tanggal', 'Aksi'] as $label) {
+            $this->assertStringContainsString($label, $dashboard);
+        }
+
+        foreach (['ORDER ID', 'CUSTOMER', 'AMOUNT', 'ACTION', 'Pesanan Pending', 'Produk Stok Menipis'] as $legacyLabel) {
+            $this->assertStringNotContainsString($legacyLabel, $dashboard);
+        }
+
+        $this->assertStringContainsString('font-size: 0.78rem;', $layout);
+        $this->assertStringContainsString('background: rgba(233, 238, 248, 0.72);', $layout);
+        $this->assertStringContainsString('font-weight: 600;', $layout);
+    }
 }
