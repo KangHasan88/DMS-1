@@ -139,4 +139,17 @@ class ViewMarkupTest extends TestCase
             $this->assertStringNotContainsString('`r`n', $content);
         }
     }
+
+    public function test_auth_pages_use_kurmigo_branding(): void
+    {
+        $layout = file_get_contents(resource_path('views/layouts/guest.blade.php'));
+        $login = file_get_contents(resource_path('views/auth/login.blade.php'));
+
+        $this->assertStringContainsString('kurmigo-robot.png', $layout);
+        $this->assertStringContainsString('DMS KURMIGO', $layout);
+        $this->assertStringContainsString('--auth-blue: #061a3f;', $layout);
+        $this->assertStringContainsString('auth-shell', $layout);
+        $this->assertStringContainsString('Masuk ke DMS', $login);
+        $this->assertStringContainsString('auth-button', $login);
+    }
 }
