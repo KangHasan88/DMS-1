@@ -1,13 +1,13 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Return Out Management')
-@section('breadcrumb', 'Outbound / Return Out')
+@section('page-title', 'Retur Penjualan')
+@section('breadcrumb', 'Operasional / Retur Penjualan')
 
 @section('content')
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Return Out (Retur / Ganti Rugi)</h3>
+            <h3 class="dms-section-title">Retur Penjualan</h3>
             <p class="dms-section-subtitle">
                 Catatan pengeluaran barang untuk retur pelanggan, barang rusak, atau ganti rugi.
             </p>

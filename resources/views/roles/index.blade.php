@@ -1,14 +1,14 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Role & Permission Management')
-@section('breadcrumb', 'Roles / List')
+@section('page-title', 'Peran & Hak Akses')
+@section('breadcrumb', 'Administrasi / Peran & Hak Akses')
 
 @section('content')
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Daftar Roles</h3>
-            <p class="dms-section-subtitle">Kelola roles dan hak akses dalam sistem</p>
+            <h3 class="dms-section-title">Peran & Hak Akses</h3>
+            <p class="dms-section-subtitle">Atur role, permission, dan batas akses pengguna.</p>
         </div>
         @can('create roles')
         <a href="{{ route('roles.create') }}" class="dms-btn dms-btn-primary">

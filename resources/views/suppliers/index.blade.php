@@ -1,14 +1,14 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Manajemen Pemasok')
+@section('page-title', 'Pemasok')
 @section('breadcrumb', 'Pemasok')
 
 @section('content')
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Daftar Pemasok</h3>
-            <p class="dms-section-subtitle">Kelola semua pemasok dan pedagang pasar KurmiGO</p>
+            <h3 class="dms-section-title">Pemasok</h3>
+            <p class="dms-section-subtitle">Kelola data pemasok, kategori, dan histori pembelian.</p>
         </div>
         @can('create suppliers')
         <a href="{{ route('suppliers.create') }}" class="dms-btn dms-btn-primary">

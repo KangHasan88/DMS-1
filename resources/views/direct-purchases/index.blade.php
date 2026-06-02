@@ -1,7 +1,7 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Direct Purchase')
-@section('breadcrumb', 'Direct Purchase')
+@section('page-title', 'Pembelian Langsung')
+@section('breadcrumb', 'Pembelian / Pembelian Langsung')
 
 @section('content')
 <div class="dms-card">
@@ -9,7 +9,7 @@
         <div>
             <h3 class="dms-section-title">Pembelian Langsung</h3>
             <p class="dms-section-subtitle">
-                Catatan pembelian barang secara tunai atau barang bonus dari pemasok.
+                Catat pembelian tunai atau barang bonus yang langsung menambah stok.
             </p>
         </div>
         @can('create direct purchase')

@@ -1,14 +1,14 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Product Management')
-@section('breadcrumb', 'Products')
+@section('page-title', 'Produk')
+@section('breadcrumb', 'Katalog / Produk')
 
 @section('content')
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Daftar Produk</h3>
-            <p class="dms-section-subtitle">Kelola semua produk KurmiGO</p>
+            <h3 class="dms-section-title">Produk</h3>
+            <p class="dms-section-subtitle">Kelola katalog produk, harga, satuan, dan status produk.</p>
         </div>
         @can('create products')
         <a href="{{ route('products.create') }}" class="dms-btn dms-btn-primary">

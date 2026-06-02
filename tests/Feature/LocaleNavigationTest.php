@@ -134,6 +134,33 @@ class LocaleNavigationTest extends TestCase
         );
     }
 
+    public function test_primary_module_headers_use_professional_indonesian_copy(): void
+    {
+        $views = [
+            'stock.index',
+            'deliveries.index',
+            'outbound-focs.index',
+            'purchase-orders.index',
+            'orders.index',
+            'outbound-returns.index',
+            'roles.index',
+            'consignments.index',
+            'products.index',
+            'customers.index',
+            'suppliers.index',
+            'direct-purchases.index',
+            'stock-opnames.index',
+        ];
+
+        foreach ($views as $view) {
+            $content = file_get_contents(resource_path('views/'.str_replace('.', '/', $view).'.blade.php'));
+
+            $this->assertStringNotContainsString("Management')", $content, $view.' should not use generic Management page title.');
+            $this->assertStringNotContainsString('Kelola semua', $content, $view.' should use specific subtitle copy.');
+            $this->assertStringNotContainsString('Daftar ', $content, $view.' should avoid redundant Daftar headings.');
+        }
+    }
+
     public function test_legacy_navbar_layout_is_removed(): void
     {
         $this->assertFileDoesNotExist(resource_path('views/layouts/navbar.blade.php'));

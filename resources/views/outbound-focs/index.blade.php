@@ -1,13 +1,13 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'FOC Out Management')
-@section('breadcrumb', 'Outbound / FOC Out')
+@section('page-title', 'Barang Bonus')
+@section('breadcrumb', 'Operasional / Barang Bonus')
 
 @section('content')
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">FOC Out (Hadiah / Sample)</h3>
+            <h3 class="dms-section-title">Barang Bonus</h3>
             <p class="dms-section-subtitle">
                 Catatan pengeluaran barang untuk hadiah, sampel, dukungan pelanggan, atau kompensasi.
             </p>

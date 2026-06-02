@@ -1,14 +1,14 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Stock Management')
-@section('breadcrumb', 'Stock')
+@section('page-title', 'Manajemen Stok')
+@section('breadcrumb', 'Inventori / Manajemen Stok')
 
 @section('content')
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Daftar Stok Produk</h3>
-            <p class="dms-section-subtitle">Kelola stok produk di gudang</p>
+            <h3 class="dms-section-title">Manajemen Stok</h3>
+            <p class="dms-section-subtitle">Pantau stok produk, status ketersediaan, dan akses mutasi barang.</p>
         </div>
         <a href="{{ route('stock.low-stock') }}" class="dms-btn dms-btn-outline">
             <i class="bi bi-exclamation-triangle"></i> Low Stock Alert

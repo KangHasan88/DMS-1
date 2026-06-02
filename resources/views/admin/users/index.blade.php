@@ -1,14 +1,14 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'User Management')
-@section('breadcrumb', 'Users / List')
+@section('page-title', 'Pengguna')
+@section('breadcrumb', 'Administrasi / Pengguna')
 
 @section('content')
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Daftar User</h3>
-            <p class="dms-section-subtitle">Kelola semua user dalam sistem</p>
+            <h3 class="dms-section-title">Pengguna</h3>
+            <p class="dms-section-subtitle">Kelola akun internal, status aktif, role, dan keamanan akses.</p>
         </div>
         @can('create users')
         <a href="{{ route('admin.users.create') }}" class="dms-btn dms-btn-primary">

@@ -1,14 +1,14 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Delivery Management')
-@section('breadcrumb', 'Deliveries')
+@section('page-title', 'Pengiriman')
+@section('breadcrumb', 'Operasional / Pengiriman')
 
 @section('content')
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Daftar Pengiriman</h3>
-            <p class="dms-section-subtitle">Kelola semua pengiriman KurmiGO</p>
+            <h3 class="dms-section-title">Pengiriman</h3>
+            <p class="dms-section-subtitle">Pantau proses kirim, kurir, status, dan bukti pengantaran.</p>
         </div>
         @can('create deliveries')
         <a href="{{ route('deliveries.create') }}" class="dms-btn dms-btn-primary">

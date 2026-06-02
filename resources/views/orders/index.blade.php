@@ -1,14 +1,14 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Order Management')
-@section('breadcrumb', 'Orders')
+@section('page-title', 'Pesanan Penjualan')
+@section('breadcrumb', 'Operasional / Pesanan Penjualan')
 
 @section('content')
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Daftar Order</h3>
-            <p class="dms-section-subtitle">Kelola semua order KurmiGO</p>
+            <h3 class="dms-section-title">Pesanan Penjualan</h3>
+            <p class="dms-section-subtitle">Kelola pesanan pelanggan dari pembayaran, pemenuhan, sampai pengiriman.</p>
         </div>
         @can('create sales order')
         <a href="{{ route('orders.create') }}" class="dms-btn dms-btn-primary">

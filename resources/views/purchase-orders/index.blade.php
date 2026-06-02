@@ -1,14 +1,14 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Purchase Order Management')
-@section('breadcrumb', 'Purchase Orders')
+@section('page-title', 'Pesanan Pembelian')
+@section('breadcrumb', 'Pembelian / Pesanan Pembelian')
 
 @section('content')
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Daftar Purchase Order</h3>
-            <p class="dms-section-subtitle">Kelola semua pembelian ke pemasok</p>
+            <h3 class="dms-section-title">Pesanan Pembelian</h3>
+            <p class="dms-section-subtitle">Kelola PO pemasok dari draft, approval, sampai penerimaan barang.</p>
         </div>
         @can('create purchase order')
         <div class="dms-toolbar-actions">

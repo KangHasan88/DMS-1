@@ -1,15 +1,15 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Consignment Management')
-@section('breadcrumb', 'Consignments')
+@section('page-title', 'Konsinyasi')
+@section('breadcrumb', 'Pembelian / Konsinyasi')
 
 @section('content')
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Consignment (Titip Jual)</h3>
+            <h3 class="dms-section-title">Konsinyasi</h3>
             <p class="dms-section-subtitle">
-                Kelola barang titipan dari pemasok. Barang baru dibayar setelah terjual.
+                Kelola barang titipan pemasok, pembayaran, dan retur konsinyasi.
             </p>
         </div>
         @can('create consignments')

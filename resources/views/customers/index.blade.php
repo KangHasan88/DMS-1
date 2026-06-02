@@ -1,14 +1,14 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Manajemen Pelanggan')
+@section('page-title', 'Pelanggan')
 @section('breadcrumb', 'Pelanggan')
 
 @section('content')
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Daftar Pelanggan</h3>
-            <p class="dms-section-subtitle">Kelola semua data pelanggan KurmiGO</p>
+            <h3 class="dms-section-title">Pelanggan</h3>
+            <p class="dms-section-subtitle">Kelola data pelanggan, status akun, wallet, dan riwayat pesanan.</p>
         </div>
         @can('create customers')
         <a href="{{ route('customers.create') }}" class="dms-btn dms-btn-primary">
