@@ -10,12 +10,18 @@
             <h3 class="dms-section-title">Data Pemasok</h3>
             <p class="dms-section-subtitle">Kelola data pemasok, kategori, dan histori pembelian.</p>
         </div>
-        @can('create suppliers')
-        <a href="{{ route('suppliers.create') }}" class="dms-btn dms-btn-primary">
-            <i class="bi bi-plus-circle"></i>
-            Tambah Pemasok
-        </a>
-        @endcan
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            @can('create suppliers')
+            <a href="{{ route('supplier-categories.create') }}" class="dms-btn dms-btn-outline">
+                <i class="bi bi-bookmark"></i>
+                Tambah Kategori
+            </a>
+            <a href="{{ route('suppliers.create') }}" class="dms-btn dms-btn-primary">
+                <i class="bi bi-plus-circle"></i>
+                Tambah Pemasok
+            </a>
+            @endcan
+        </div>
     </div>
 
     <!-- Search & Filter -->

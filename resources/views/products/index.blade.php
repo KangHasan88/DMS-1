@@ -10,12 +10,20 @@
             <h3 class="dms-section-title">Data Produk</h3>
             <p class="dms-section-subtitle">Kelola katalog produk, harga, satuan, dan status produk.</p>
         </div>
-        @can('create products')
-        <a href="{{ route('products.create') }}" class="dms-btn dms-btn-primary">
-            <i class="bi bi-plus-circle"></i>
-            Tambah Produk
-        </a>
-        @endcan
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            @can('create categories')
+            <a href="{{ route('product-categories.create') }}" class="dms-btn dms-btn-outline">
+                <i class="bi bi-tags"></i>
+                Tambah Kategori
+            </a>
+            @endcan
+            @can('create products')
+            <a href="{{ route('products.create') }}" class="dms-btn dms-btn-primary">
+                <i class="bi bi-plus-circle"></i>
+                Tambah Produk
+            </a>
+            @endcan
+        </div>
     </div>
 
     <!-- Search & Filter -->

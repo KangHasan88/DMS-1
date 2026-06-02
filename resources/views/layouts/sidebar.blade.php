@@ -1323,16 +1323,6 @@
                 <div class="nav-section">
                     <div class="nav-section-title">{{ __('navigation.catalog') }}</div>
                     <ul style="list-style: none; padding: 0;">
-                        <!-- Product Categories -->
-                        @can('view categories')
-                        <li class="nav-item">
-                            <a href="{{ route('product-categories.index') }}" class="nav-link {{ request()->routeIs('product-categories.*') ? 'active' : '' }}">
-                                <i class="bi bi-tags"></i>
-                                <span>Kategori Produk</span>
-                            </a>
-                        </li>
-                        @endcan
-
                         <!-- Units -->
                         @can('view units')
                         <li class="nav-item">
@@ -1359,16 +1349,6 @@
                 <div class="nav-section">
                     <div class="nav-section-title">{{ __('navigation.business_relations') }}</div>
                     <ul style="list-style: none; padding: 0;">
-                        <!-- Supplier Categories -->
-                        @can('view suppliers')
-                        <li class="nav-item">
-                            <a href="{{ route('supplier-categories.index') }}" class="nav-link {{ request()->routeIs('supplier-categories.*') ? 'active' : '' }}">
-                                <i class="bi bi-bookmark"></i>
-                                <span>Kategori Pemasok</span>
-                            </a>
-                        </li>
-                        @endcan
-
                         <!-- Customers -->
                         @can('view customers')
                         <li class="nav-item">

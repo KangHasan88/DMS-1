@@ -204,8 +204,10 @@ class ViewMarkupTest extends TestCase
             $this->assertStringNotContainsString('<option value="Bumbu"', $content);
         }
 
-        $this->assertStringContainsString('product-categories.index', $sidebar);
-        $this->assertStringContainsString('Kategori Produk', $sidebar);
+        $this->assertStringContainsString('product-categories.create', $index);
+        $this->assertStringContainsString('Tambah Kategori', $index);
+        $this->assertStringNotContainsString('product-categories.index', $sidebar);
+        $this->assertStringNotContainsString('Kategori Produk', $sidebar);
     }
 
     public function test_supplier_category_options_are_loaded_from_master_data(): void
@@ -213,6 +215,7 @@ class ViewMarkupTest extends TestCase
         $controller = file_get_contents(app_path('Http/Controllers/SupplierController.php'));
         $create = file_get_contents(resource_path('views/suppliers/create.blade.php'));
         $edit = file_get_contents(resource_path('views/suppliers/edit.blade.php'));
+        $index = file_get_contents(resource_path('views/suppliers/index.blade.php'));
         $sidebar = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));
 
         $this->assertStringContainsString('SupplierCategory::active()', $controller);
@@ -223,37 +226,35 @@ class ViewMarkupTest extends TestCase
             $this->assertStringContainsString('supplier-categories.index', $content);
         }
 
-        $this->assertStringContainsString('supplier-categories.index', $sidebar);
-        $this->assertStringContainsString('Kategori Pemasok', $sidebar);
+        $this->assertStringContainsString('supplier-categories.create', $index);
+        $this->assertStringContainsString('Tambah Kategori', $index);
+        $this->assertStringNotContainsString('supplier-categories.index', $sidebar);
+        $this->assertStringNotContainsString('Kategori Pemasok', $sidebar);
     }
 
-    public function test_sidebar_orders_master_data_before_primary_records(): void
+    public function test_sidebar_keeps_primary_records_visible_and_moves_supporting_categories_to_page_actions(): void
     {
         $sidebar = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));
 
         $catalogStart = strpos($sidebar, '<!-- SECTION: CATALOG -->');
-        $productCategories = strpos($sidebar, 'product-categories.index', $catalogStart);
         $units = strpos($sidebar, 'units.index', $catalogStart);
         $products = strpos($sidebar, 'products.index', $catalogStart);
 
         $this->assertNotFalse($catalogStart);
-        $this->assertNotFalse($productCategories);
         $this->assertNotFalse($units);
         $this->assertNotFalse($products);
-        $this->assertLessThan($units, $productCategories);
         $this->assertLessThan($products, $units);
+        $this->assertStringNotContainsString('product-categories.index', $sidebar);
 
         $relationsStart = strpos($sidebar, '<!-- SECTION: BUSINESS RELATIONS -->');
-        $supplierCategories = strpos($sidebar, 'supplier-categories.index', $relationsStart);
         $customers = strpos($sidebar, 'customers.index', $relationsStart);
         $suppliers = strpos($sidebar, 'suppliers.index', $relationsStart);
 
         $this->assertNotFalse($relationsStart);
-        $this->assertNotFalse($supplierCategories);
         $this->assertNotFalse($customers);
         $this->assertNotFalse($suppliers);
-        $this->assertLessThan($customers, $supplierCategories);
         $this->assertLessThan($suppliers, $customers);
+        $this->assertStringNotContainsString('supplier-categories.index', $sidebar);
     }
 
     public function test_global_typography_uses_professional_scale(): void
