@@ -10,12 +10,18 @@
             <h3 class="dms-section-title">Kategori Pemasok</h3>
             <p class="dms-section-subtitle">Kelola kategori pemasok sesuai kebutuhan pembelian.</p>
         </div>
-        @can('create suppliers')
-        <a href="{{ route('supplier-categories.create') }}" class="dms-btn dms-btn-primary">
-            <i class="bi bi-plus-circle"></i>
-            Tambah Kategori
-        </a>
-        @endcan
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <a href="{{ route('suppliers.index') }}" class="dms-btn dms-btn-outline">
+                <i class="bi bi-arrow-left"></i>
+                Kembali
+            </a>
+            @can('create suppliers')
+            <a href="{{ route('supplier-categories.create') }}" class="dms-btn dms-btn-primary">
+                <i class="bi bi-plus-circle"></i>
+                Tambah Kategori
+            </a>
+            @endcan
+        </div>
     </div>
 
     <div class="dms-toolbar">

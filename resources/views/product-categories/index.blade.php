@@ -10,12 +10,18 @@
             <h3 class="dms-section-title">Kategori Produk</h3>
             <p class="dms-section-subtitle">Kelola kategori katalog produk sesuai kebutuhan bisnis.</p>
         </div>
-        @can('create categories')
-        <a href="{{ route('product-categories.create') }}" class="dms-btn dms-btn-primary">
-            <i class="bi bi-plus-circle"></i>
-            Tambah Kategori
-        </a>
-        @endcan
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <a href="{{ route('products.index') }}" class="dms-btn dms-btn-outline">
+                <i class="bi bi-arrow-left"></i>
+                Kembali
+            </a>
+            @can('create categories')
+            <a href="{{ route('product-categories.create') }}" class="dms-btn dms-btn-primary">
+                <i class="bi bi-plus-circle"></i>
+                Tambah Kategori
+            </a>
+            @endcan
+        </div>
     </div>
 
     <div class="dms-toolbar">

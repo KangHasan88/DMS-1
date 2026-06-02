@@ -243,6 +243,8 @@ class ViewMarkupTest extends TestCase
     public function test_sidebar_keeps_primary_records_visible_and_moves_supporting_categories_to_page_actions(): void
     {
         $sidebar = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));
+        $productCategories = file_get_contents(resource_path('views/product-categories/index.blade.php'));
+        $supplierCategories = file_get_contents(resource_path('views/supplier-categories/index.blade.php'));
 
         $catalogStart = strpos($sidebar, '<!-- SECTION: CATALOG -->');
         $units = strpos($sidebar, 'units.index', $catalogStart);
@@ -263,6 +265,11 @@ class ViewMarkupTest extends TestCase
         $this->assertNotFalse($suppliers);
         $this->assertLessThan($suppliers, $customers);
         $this->assertStringNotContainsString('supplier-categories.index', $sidebar);
+
+        $this->assertStringContainsString('products.index', $productCategories);
+        $this->assertStringContainsString('suppliers.index', $supplierCategories);
+        $this->assertStringContainsString('Kembali', $productCategories);
+        $this->assertStringContainsString('Kembali', $supplierCategories);
     }
 
     public function test_global_typography_uses_professional_scale(): void
