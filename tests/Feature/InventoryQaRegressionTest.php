@@ -450,6 +450,33 @@ class InventoryQaRegressionTest extends TestCase
         ]);
     }
 
+    public function test_proposed_purchase_order_explains_when_no_reorder_is_needed(): void
+    {
+        $user = $this->superAdmin();
+        $product = Product::create([
+            'name' => 'Produk Aman',
+            'category' => 'Sayur',
+            'price' => 10000,
+            'base_price' => 7000,
+            'is_active' => true,
+        ]);
+        ProductStock::create([
+            'product_id' => $product->id,
+            'quantity' => 30,
+            'min_stock' => 10,
+        ]);
+
+        $this->actingAs($user)
+            ->get('/purchase-orders/proposed?target_weeks=12')
+            ->assertOk()
+            ->assertSee('Produk Aktif')
+            ->assertSee('Ada Penjualan 30 Hari')
+            ->assertSee('Di Bawah Min Stock')
+            ->assertSee('Usulan Reorder')
+            ->assertSee('Tidak ada produk yang perlu reorder untuk target 12 minggu.')
+            ->assertSee('Stok saat ini masih memenuhi min stock dan target week-cover');
+    }
+
     private function superAdmin(string $email = 'admin@example.test'): User
     {
         return $this->userWithRole('super-admin', $email);

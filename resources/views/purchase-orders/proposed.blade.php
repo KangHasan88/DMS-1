@@ -29,10 +29,20 @@
         </form>
     </div>
 
+    @include('reports._summary', ['items' => [
+        ['label' => 'Produk Aktif', 'value' => number_format($proposalSummary['active_products']), 'icon' => 'bi-box-seam'],
+        ['label' => 'Ada Penjualan 30 Hari', 'value' => number_format($proposalSummary['products_with_sales']), 'icon' => 'bi-graph-up'],
+        ['label' => 'Di Bawah Min Stock', 'value' => number_format($proposalSummary['below_min_stock']), 'icon' => 'bi-exclamation-triangle', 'bg' => 'var(--k-orange-light)', 'color' => 'var(--k-orange)'],
+        ['label' => 'Usulan Reorder', 'value' => number_format($proposalSummary['recommendations']), 'icon' => 'bi-lightbulb', 'bg' => 'var(--k-blue-light)', 'color' => 'var(--k-blue)'],
+    ]])
+
     @if($recommendations->isEmpty())
         <div class="dms-empty-state">
             <i class="bi bi-check-circle"></i>
             <p>Tidak ada produk yang perlu reorder untuk target {{ $targetWeeks }} minggu.</p>
+            <p style="max-width: 640px; margin: 0 auto; line-height: 1.6;">
+                Stok saat ini masih memenuhi min stock dan target week-cover, atau belum ada histori penjualan shipped/delivered dalam 30 hari terakhir untuk dihitung sebagai demand.
+            </p>
         </div>
     @else
         <form action="{{ route('purchase-orders.store') }}" method="POST">

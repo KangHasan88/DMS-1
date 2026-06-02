@@ -121,9 +121,20 @@ class PurchaseOrderController extends Controller
             ->filter()
             ->values();
 
+        $proposalSummary = [
+            'active_products' => $products->count(),
+            'products_with_sales' => $salesVelocity->count(),
+            'below_min_stock' => $products->filter(function (Product $product) {
+                $stock = $product->stock;
+
+                return $stock && $stock->quantity < $stock->min_stock;
+            })->count(),
+            'recommendations' => $recommendations->count(),
+        ];
+
         $suppliers = Supplier::active()->orderBy('name')->get();
 
-        return view('purchase-orders.proposed', compact('recommendations', 'suppliers', 'targetWeeks'));
+        return view('purchase-orders.proposed', compact('recommendations', 'proposalSummary', 'suppliers', 'targetWeeks'));
     }
 
     /**
