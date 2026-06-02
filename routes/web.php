@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\SupplierController;
@@ -84,6 +85,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('units', UnitController::class)->only(['edit', 'update'])->middleware('permission:edit units');
     Route::resource('units', UnitController::class)->only(['destroy'])->middleware('permission:delete units');
     Route::post('units/{unit}/toggle-status', [UnitController::class, 'toggleStatus'])->middleware('permission:edit units')->name('units.toggle-status');
+
+    // ============= PRODUCT CATEGORY MANAGEMENT =============
+    Route::get('product-categories', [ProductCategoryController::class, 'index'])->middleware('permission:view categories')->name('product-categories.index');
+    Route::get('product-categories/create', [ProductCategoryController::class, 'create'])->middleware('permission:create categories')->name('product-categories.create');
+    Route::post('product-categories', [ProductCategoryController::class, 'store'])->middleware('permission:create categories')->name('product-categories.store');
+    Route::get('product-categories/{productCategory}/edit', [ProductCategoryController::class, 'edit'])->middleware('permission:edit categories')->name('product-categories.edit');
+    Route::put('product-categories/{productCategory}', [ProductCategoryController::class, 'update'])->middleware('permission:edit categories')->name('product-categories.update');
+    Route::delete('product-categories/{productCategory}', [ProductCategoryController::class, 'destroy'])->middleware('permission:delete categories')->name('product-categories.destroy');
+    Route::post('product-categories/{productCategory}/toggle-status', [ProductCategoryController::class, 'toggleStatus'])->middleware('permission:edit categories')->name('product-categories.toggle-status');
     
     // ============= PRODUCT MANAGEMENT =============
     Route::get('products/{product}/stock-info', [OrderController::class, 'getStockInfo'])->middleware('permission:view products')->name('products.stock-info');

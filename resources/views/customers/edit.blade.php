@@ -181,15 +181,4 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 
-<style>
-.dms-field-disabled {
-    opacity: 0.58;
-}
-
-.dms-field-disabled .form-control {
-    background: var(--k-gray-50);
-    cursor: not-allowed;
-}
-</style>
-
 @endsection

@@ -980,6 +980,15 @@
             font-size: 0.68rem;
         }
 
+        .dms-field-disabled {
+            opacity: 0.58;
+        }
+
+        .dms-field-disabled .form-control {
+            background: var(--k-gray-50);
+            cursor: not-allowed;
+        }
+
         .dms-form-error,
         .dms-error {
             display: block;
@@ -1320,6 +1329,16 @@
                             <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
                                 <i class="bi bi-box-seam"></i>
                                 <span>{{ __('navigation.products') }}</span>
+                            </a>
+                        </li>
+                        @endcan
+
+                        <!-- Product Categories -->
+                        @can('view categories')
+                        <li class="nav-item">
+                            <a href="{{ route('product-categories.index') }}" class="nav-link {{ request()->routeIs('product-categories.*') ? 'active' : '' }}">
+                                <i class="bi bi-tags"></i>
+                                <span>Kategori Produk</span>
                             </a>
                         </li>
                         @endcan

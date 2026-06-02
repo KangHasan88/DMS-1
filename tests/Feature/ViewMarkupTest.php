@@ -189,6 +189,25 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('<th style="width: 220px;">Aksi</th>', $products);
     }
 
+    public function test_product_category_options_are_loaded_from_master_data(): void
+    {
+        $create = file_get_contents(resource_path('views/products/create.blade.php'));
+        $edit = file_get_contents(resource_path('views/products/edit.blade.php'));
+        $index = file_get_contents(resource_path('views/products/index.blade.php'));
+        $sidebar = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));
+
+        foreach ([$create, $edit, $index] as $content) {
+            $this->assertStringContainsString('$categories', $content);
+            $this->assertStringNotContainsString('<option value="Sayur"', $content);
+            $this->assertStringNotContainsString('<option value="Buah"', $content);
+            $this->assertStringNotContainsString('<option value="Lauk"', $content);
+            $this->assertStringNotContainsString('<option value="Bumbu"', $content);
+        }
+
+        $this->assertStringContainsString('product-categories.index', $sidebar);
+        $this->assertStringContainsString('Kategori Produk', $sidebar);
+    }
+
     public function test_global_typography_uses_professional_scale(): void
     {
         $layout = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));

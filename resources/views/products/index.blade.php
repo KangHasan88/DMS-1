@@ -33,11 +33,11 @@
             <!-- Filter Category -->
             <select name="category" onchange="window.location.href = this.value" class="form-control">
                 <option value="{{ route('products.index', array_merge(request()->except('category'), ['category' => null])) }}">Semua Kategori</option>
-                <option value="{{ route('products.index', array_merge(request()->except('category'), ['category' => 'Sayur'])) }}" {{ request('category') == 'Sayur' ? 'selected' : '' }}>Sayur</option>
-                <option value="{{ route('products.index', array_merge(request()->except('category'), ['category' => 'Buah'])) }}" {{ request('category') == 'Buah' ? 'selected' : '' }}>Buah</option>
-                <option value="{{ route('products.index', array_merge(request()->except('category'), ['category' => 'Lauk'])) }}" {{ request('category') == 'Lauk' ? 'selected' : '' }}>Lauk</option>
-                <option value="{{ route('products.index', array_merge(request()->except('category'), ['category' => 'Bumbu'])) }}" {{ request('category') == 'Bumbu' ? 'selected' : '' }}>Bumbu</option>
-                <option value="{{ route('products.index', array_merge(request()->except('category'), ['category' => 'Lainnya'])) }}" {{ request('category') == 'Lainnya' ? 'selected' : '' }}>Lainnya</option>
+                @foreach($categories as $category)
+                    <option value="{{ route('products.index', array_merge(request()->except('category'), ['category' => $category])) }}" {{ request('category') == $category ? 'selected' : '' }}>
+                        {{ $category }}
+                    </option>
+                @endforeach
             </select>
             
             <!-- Filter Status -->

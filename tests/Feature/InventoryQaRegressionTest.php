@@ -9,6 +9,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OutboundFoc;
 use App\Models\Product;
+use App\Models\ProductCategory;
 use App\Models\ProductStock;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
@@ -61,6 +62,43 @@ class InventoryQaRegressionTest extends TestCase
         $this->assertDatabaseHas('products', [
             'name' => 'Bayam Test',
             'unit_id' => $unit->id,
+        ]);
+    }
+
+    public function test_product_store_uses_master_product_category(): void
+    {
+        $user = $this->superAdmin('category-admin@example.test');
+        $unit = Unit::firstOrCreate(
+            ['code' => 'ikat'],
+            [
+                'name' => 'Ikat',
+                'symbol' => 'ikt',
+                'is_active' => true,
+            ]
+        );
+        ProductCategory::create([
+            'name' => 'Sayur Premium',
+            'slug' => 'sayur-premium',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['_token' => 'test-token'])
+            ->post('/products', [
+                '_token' => 'test-token',
+                'name' => 'Kale Premium',
+                'category' => 'Sayur Premium',
+                'unit_id' => $unit->id,
+                'price' => 25000,
+                'base_price' => 15000,
+                'is_active' => '1',
+            ])
+            ->assertRedirect('/products');
+
+        $this->assertDatabaseHas('products', [
+            'name' => 'Kale Premium',
+            'category' => 'Sayur Premium',
         ]);
     }
 

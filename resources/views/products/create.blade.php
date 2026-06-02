@@ -54,12 +54,16 @@
                         <label class="form-label">Kategori</label>
                         <select name="category" class="form-control">
                             <option value="">-- Pilih Kategori --</option>
-                            <option value="Sayur" {{ old('category') == 'Sayur' ? 'selected' : '' }}>Sayur</option>
-                            <option value="Buah" {{ old('category') == 'Buah' ? 'selected' : '' }}>Buah</option>
-                            <option value="Lauk" {{ old('category') == 'Lauk' ? 'selected' : '' }}>Lauk</option>
-                            <option value="Bumbu" {{ old('category') == 'Bumbu' ? 'selected' : '' }}>Bumbu</option>
-                            <option value="Lainnya" {{ old('category') == 'Lainnya' ? 'selected' : '' }}>Lainnya</option>
+                            @foreach($categories as $category)
+                                <option value="{{ $category->name }}" {{ old('category') == $category->name ? 'selected' : '' }}>
+                                    {{ $category->name }}
+                                </option>
+                            @endforeach
                         </select>
+                        <small class="dms-form-help">
+                            <i class="bi bi-info-circle"></i>
+                            <a href="{{ route('product-categories.index') }}" target="_blank" style="color: var(--k-green);">Kelola kategori produk</a>
+                        </small>
                         @error('category') <span class="dms-error">{{ $message }}</span> @enderror
                     </div>
 

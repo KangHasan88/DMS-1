@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\ProductCategory;
 use App\Models\ProductPriceHistory;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 
@@ -41,7 +43,7 @@ class ProductController extends Controller
         $products = $query->orderBy('created_at', 'desc')->paginate($perPage);
         
         // Get categories for filter
-        $categories = Product::select('category')->distinct()->whereNotNull('category')->pluck('category');
+        $categories = ProductCategory::active()->orderBy('sort_order')->orderBy('name')->pluck('name');
         
         return view('products.index', compact('products', 'categories'));
     }
@@ -51,7 +53,9 @@ class ProductController extends Controller
      */
     public function create()
     {
-        return view('products.create');
+        $categories = ProductCategory::active()->orderBy('sort_order')->orderBy('name')->get();
+
+        return view('products.create', compact('categories'));
     }
 
     /**
@@ -61,7 +65,7 @@ class ProductController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'category' => 'nullable|string|max:100',
+            'category' => ['nullable', 'string', 'max:100', Rule::exists('product_categories', 'name')->where('is_active', true)],
             'unit_id' => 'required|exists:units,id',
             'price' => 'required|numeric|min:0',
             'base_price' => 'nullable|numeric|min:0',
@@ -108,7 +112,9 @@ class ProductController extends Controller
      */
     public function edit(Product $product)
     {
-        return view('products.edit', compact('product'));
+        $categories = ProductCategory::active()->orderBy('sort_order')->orderBy('name')->get();
+
+        return view('products.edit', compact('product', 'categories'));
     }
 
     /**
@@ -118,7 +124,7 @@ class ProductController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'category' => 'nullable|string|max:100',
+            'category' => ['nullable', 'string', 'max:100', Rule::exists('product_categories', 'name')->where('is_active', true)],
             'unit_id' => 'required|exists:units,id',
             'price' => 'required|numeric|min:0',
             'base_price' => 'nullable|numeric|min:0',
