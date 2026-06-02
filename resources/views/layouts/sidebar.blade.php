@@ -87,7 +87,7 @@
             --k-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
             --k-shadow-md: 0 10px 28px rgba(15, 23, 42, 0.06);
             --k-shadow-lg: 0 18px 44px rgba(15, 23, 42, 0.10);
-            --k-shadow-green: 0 8px 18px rgba(18, 59, 122, 0.18);
+            --k-shadow-green: 0 8px 18px rgba(18, 59, 122, 0.12);
 
             --k-font-xs: 0.72rem;
             --k-font-sm: 0.78rem;
@@ -539,13 +539,13 @@
         .dms-search-form .dms-btn {
             min-width: 64px;
             justify-content: center;
-            box-shadow: 0 6px 14px rgba(18, 59, 122, 0.14);
+            box-shadow: 0 4px 10px rgba(18, 59, 122, 0.10);
         }
 
         .dms-table-wrap {
             width: 100%;
             overflow-x: auto;
-            border: 1px solid var(--k-gray-200);
+            border: 1px solid #e3ebf5;
             border-radius: 8px;
             background: var(--k-white);
         }
@@ -630,14 +630,14 @@
 
         .dms-table th {
             text-align: left;
-            padding: 0.7rem 0.78rem;
-            color: #33455c;
+            padding: 0.64rem 0.78rem;
+            color: #5b6f86;
             font-size: var(--k-font-xs);
-            font-weight: 700;
+            font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.035em;
-            border-bottom: 1px solid var(--k-gray-200);
-            background: #f1f5f9;
+            letter-spacing: 0.02em;
+            border-bottom: 1px solid #e3ebf5;
+            background: #f8fafc;
         }
 
         .dms-table tbody tr:last-child td {
@@ -648,7 +648,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.4rem;
+            gap: 0.35rem;
             flex-wrap: nowrap;
             white-space: nowrap;
         }
@@ -660,8 +660,8 @@
         }
 
         .dms-avatar-soft {
-            width: 34px;
-            height: 34px;
+            width: 32px;
+            height: 32px;
             border-radius: 8px;
             display: inline-flex;
             align-items: center;
@@ -672,8 +672,8 @@
         }
 
         .dms-strong {
-            font-weight: 600;
-            color: var(--k-gray-900);
+            font-weight: 500;
+            color: #0f172a;
         }
 
         .dms-muted {
@@ -682,8 +682,8 @@
         }
 
         .dms-money {
-            font-weight: 700;
-            color: var(--k-blue);
+            font-weight: 600;
+            color: #17345f;
             white-space: nowrap;
         }
 
@@ -776,15 +776,15 @@
         }
 
         .dms-table td {
-            padding: 0.74rem 0.78rem;
-            border-bottom: 1px solid var(--k-gray-200);
-            color: #334155;
+            padding: 0.62rem 0.78rem;
+            border-bottom: 1px solid #edf2f7;
+            color: #475569;
             font-size: 0.8rem;
-            line-height: 1.45;
+            line-height: 1.4;
         }
 
         .dms-table tbody tr:hover {
-            background: #f8fbff;
+            background: #fbfdff;
         }
 
         /* Badges */
@@ -798,8 +798,8 @@
         }
 
         .dms-badge-success {
-            background: var(--k-success-light);
-            color: var(--k-success);
+            background: #ecfdf3;
+            color: #15803d;
         }
 
         .dms-badge-warning {
@@ -813,8 +813,8 @@
         }
 
         .dms-badge-info {
-            background: var(--k-blue-light);
-            color: var(--k-blue);
+            background: #f1f5f9;
+            color: #1e3a5f;
         }
 
         .dms-badge-primary {
@@ -843,13 +843,13 @@
         }
 
         .dms-btn-sm {
-            min-width: 36px;
-            width: 36px;
-            height: 36px;
+            min-width: 32px;
+            width: 32px;
+            height: 32px;
             padding: 0;
             font-size: 0.65rem;
             justify-content: center;
-            flex: 0 0 36px;
+            flex: 0 0 32px;
         }
 
         .dms-btn-primary {
@@ -865,8 +865,8 @@
 
         .dms-btn-outline {
             background: var(--k-white);
-            border: 1px solid var(--k-gray-300);
-            color: #334155;
+            border: 1px solid #d6e1ef;
+            color: #52657d;
         }
 
         .dms-btn-outline:hover {

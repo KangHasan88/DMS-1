@@ -70,7 +70,7 @@
                     <th>Harga Jual</th>
                     <th>Harga Beli</th>
                     <th>Status</th>
-                    <th style="width: 240px;">Aksi</th>
+                    <th style="width: 220px;">Aksi</th>
                   </tr>
             </thead>
             <tbody>

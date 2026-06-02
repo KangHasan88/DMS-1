@@ -174,7 +174,7 @@ class ViewMarkupTest extends TestCase
         }
 
         $this->assertStringContainsString('font-size: 0.78rem;', $layout);
-        $this->assertStringContainsString('background: #f1f5f9;', $layout);
+        $this->assertStringContainsString('background: #f8fafc;', $layout);
         $this->assertStringContainsString('font-weight: 600;', $layout);
     }
 
@@ -185,8 +185,8 @@ class ViewMarkupTest extends TestCase
 
         $this->assertStringContainsString('flex-wrap: nowrap;', $layout);
         $this->assertStringContainsString('white-space: nowrap;', $layout);
-        $this->assertStringContainsString('flex: 0 0 36px;', $layout);
-        $this->assertStringContainsString('<th style="width: 240px;">Aksi</th>', $products);
+        $this->assertStringContainsString('flex: 0 0 32px;', $layout);
+        $this->assertStringContainsString('<th style="width: 220px;">Aksi</th>', $products);
     }
 
     public function test_global_typography_uses_professional_scale(): void
