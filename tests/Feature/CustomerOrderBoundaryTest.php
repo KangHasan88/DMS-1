@@ -122,6 +122,36 @@ class CustomerOrderBoundaryTest extends TestCase
         $this->assertTrue($createdUser->hasRole('customer'));
     }
 
+    public function test_cash_customer_credit_fields_are_normalized_on_store(): void
+    {
+        $admin = $this->superAdmin('cash-normalize-admin@example.test');
+
+        $this->actingAs($admin)
+            ->withSession(['_token' => 'test-token'])
+            ->post('/customers', [
+                '_token' => 'test-token',
+                'name' => 'Cash Normalize Test',
+                'phone' => '081288877766',
+                'email' => 'cash-normalize@example.test',
+                'customer_type' => 'regular',
+                'payment_term' => Customer::PAYMENT_CASH,
+                'credit_limit' => 999999,
+                'max_outstanding_orders' => 9,
+                'credit_status' => Customer::CREDIT_BLOCKED,
+                'credit_notes' => 'Should be cleared',
+                'is_active' => '1',
+            ])
+            ->assertRedirect('/customers');
+
+        $customer = Customer::where('email', 'cash-normalize@example.test')->firstOrFail();
+
+        $this->assertSame(Customer::PAYMENT_CASH, $customer->payment_term);
+        $this->assertSame(0, $customer->credit_limit);
+        $this->assertSame(0, $customer->max_outstanding_orders);
+        $this->assertSame(Customer::CREDIT_NORMAL, $customer->credit_status);
+        $this->assertNull($customer->credit_notes);
+    }
+
     public function test_blocked_credit_customer_cannot_create_order(): void
     {
         $admin = $this->superAdmin('blocked-admin@example.test');

@@ -50,7 +50,7 @@
 
             <div class="form-group">
                 <label class="form-label">Termin Pembayaran</label>
-                <select name="payment_term" class="form-control">
+                <select name="payment_term" class="form-control js-payment-term">
                     <option value="cash" {{ old('payment_term', 'cash') == 'cash' ? 'selected' : '' }}>Tunai</option>
                     <option value="credit" {{ old('payment_term') == 'credit' ? 'selected' : '' }}>Kredit</option>
                 </select>
@@ -60,21 +60,21 @@
 
             <div class="form-group">
                 <label class="form-label">Credit Limit</label>
-                <input type="number" name="credit_limit" value="{{ old('credit_limit', 0) }}" class="form-control" min="0" placeholder="0">
+                <input type="number" name="credit_limit" value="{{ old('credit_limit', 0) }}" class="form-control js-credit-control" min="0" placeholder="0">
                 <small class="dms-form-help">Hanya berlaku untuk termin Kredit.</small>
                 @error('credit_limit') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
 
             <div class="form-group">
                 <label class="form-label">Maks. Outstanding Order</label>
-                <input type="number" name="max_outstanding_orders" value="{{ old('max_outstanding_orders', 0) }}" class="form-control" min="0" max="999" placeholder="0">
+                <input type="number" name="max_outstanding_orders" value="{{ old('max_outstanding_orders', 0) }}" class="form-control js-credit-control" min="0" max="999" placeholder="0">
                 <small class="dms-form-help">Hanya berlaku untuk termin Kredit. Isi 0 jika tidak dibatasi.</small>
                 @error('max_outstanding_orders') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
 
             <div class="form-group">
                 <label class="form-label">Status Kredit <span class="dms-required">*</span></label>
-                <select name="credit_status" class="form-control" required>
+                <select name="credit_status" class="form-control js-credit-control" required>
                     <option value="normal" {{ old('credit_status', 'normal') == 'normal' ? 'selected' : '' }}>Normal</option>
                     <option value="watchlist" {{ old('credit_status') == 'watchlist' ? 'selected' : '' }}>Watchlist</option>
                     <option value="blocked" {{ old('credit_status') == 'blocked' ? 'selected' : '' }}>Blocked</option>
@@ -85,7 +85,7 @@
 
             <div class="form-group">
                 <label class="form-label">Catatan Kredit</label>
-                <textarea name="credit_notes" class="form-control" rows="2" placeholder="Catatan pembayaran, termin, atau alasan watchlist">{{ old('credit_notes') }}</textarea>
+                <textarea name="credit_notes" class="form-control js-credit-control" rows="2" placeholder="Catatan pembayaran, termin, atau alasan watchlist">{{ old('credit_notes') }}</textarea>
                 @error('credit_notes') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
 
@@ -138,5 +138,47 @@
         </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const paymentTerm = document.querySelector('.js-payment-term');
+    const creditControls = document.querySelectorAll('.js-credit-control');
+
+    function syncCreditControls() {
+        const isCash = paymentTerm && paymentTerm.value === 'cash';
+
+        creditControls.forEach((field) => {
+            field.disabled = isCash;
+            field.closest('.form-group')?.classList.toggle('dms-field-disabled', isCash);
+
+            if (isCash) {
+                if (field.name === 'credit_limit' || field.name === 'max_outstanding_orders') {
+                    field.value = 0;
+                }
+                if (field.name === 'credit_status') {
+                    field.value = 'normal';
+                }
+                if (field.name === 'credit_notes') {
+                    field.value = '';
+                }
+            }
+        });
+    }
+
+    paymentTerm?.addEventListener('change', syncCreditControls);
+    syncCreditControls();
+});
+</script>
+
+<style>
+.dms-field-disabled {
+    opacity: 0.58;
+}
+
+.dms-field-disabled .form-control {
+    background: var(--k-gray-50);
+    cursor: not-allowed;
+}
+</style>
 
 @endsection

@@ -100,9 +100,7 @@ class CustomerController extends Controller
             $validated['user_id'] = $user->id;
             $validated['is_active'] = $validated['is_active'] ?? true;
             $validated['payment_term'] = $validated['payment_term'] ?? Customer::PAYMENT_CASH;
-            $validated['credit_limit'] = $validated['credit_limit'] ?? 0;
-            $validated['max_outstanding_orders'] = $validated['max_outstanding_orders'] ?? 0;
-            $validated['credit_status'] = $validated['credit_status'] ?? Customer::CREDIT_NORMAL;
+            $validated = $this->normalizeCreditControls($validated);
             
             Customer::create($validated);
             
@@ -188,9 +186,7 @@ class CustomerController extends Controller
             // Update customer profile
             $validated['is_active'] = $validated['is_active'] ?? true;
             $validated['payment_term'] = $validated['payment_term'] ?? Customer::PAYMENT_CASH;
-            $validated['credit_limit'] = $validated['credit_limit'] ?? 0;
-            $validated['max_outstanding_orders'] = $validated['max_outstanding_orders'] ?? 0;
-            $validated['credit_status'] = $validated['credit_status'] ?? Customer::CREDIT_NORMAL;
+            $validated = $this->normalizeCreditControls($validated);
             $customer->update($validated);
             
             DB::commit();
@@ -288,5 +284,23 @@ class CustomerController extends Controller
         $orders = $customer->orders()->with('items')->orderBy('created_at', 'desc')->paginate(10);
         
         return view('customers.order-history', compact('customer', 'orders'));
+    }
+
+    private function normalizeCreditControls(array $validated): array
+    {
+        if (($validated['payment_term'] ?? Customer::PAYMENT_CASH) === Customer::PAYMENT_CASH) {
+            $validated['credit_limit'] = 0;
+            $validated['max_outstanding_orders'] = 0;
+            $validated['credit_status'] = Customer::CREDIT_NORMAL;
+            $validated['credit_notes'] = null;
+
+            return $validated;
+        }
+
+        $validated['credit_limit'] = $validated['credit_limit'] ?? 0;
+        $validated['max_outstanding_orders'] = $validated['max_outstanding_orders'] ?? 0;
+        $validated['credit_status'] = $validated['credit_status'] ?? Customer::CREDIT_NORMAL;
+
+        return $validated;
     }
 }
