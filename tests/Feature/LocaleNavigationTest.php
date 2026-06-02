@@ -90,20 +90,18 @@ class LocaleNavigationTest extends TestCase
             ->assertDontSee('notification-badge', false);
     }
 
-    public function test_sidebar_uses_kurmigo_robot_branding(): void
+    public function test_sidebar_uses_compact_dms_branding(): void
     {
         $user = $this->superAdmin();
-
-        $this->assertFileExists(public_path('images/brand/kurmigo-robot.png'));
 
         $this->actingAs($user)
             ->get('/dashboard')
             ->assertOk()
             ->assertSee('DMS', false)
-            ->assertSee('DMS KURMIGO', false)
-            ->assertSee('Digitalisasi dan Otomasi')
-            ->assertSee('images/brand/kurmigo-robot.png', false)
-            ->assertSee('brand-robot', false);
+            ->assertDontSee('DMS KURMIGO', false)
+            ->assertDontSee('Digitalisasi dan Otomasi')
+            ->assertDontSee('images/brand/kurmigo-robot.png', false)
+            ->assertDontSee('brand-robot', false);
     }
 
     public function test_stock_navigation_stays_active_on_stock_work_pages(): void
