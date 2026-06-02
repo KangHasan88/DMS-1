@@ -48,6 +48,9 @@
                     <span class="dms-badge dms-badge-{{ $customer->customer_type == 'premium' ? 'success' : ($customer->customer_type == 'wholesale' ? 'warning' : 'info') }}">
                         {{ ucfirst($customer->customer_type) }}
                     </span>
+                    <span class="dms-badge {{ $customer->credit_status_badge }}" style="margin-left: 0.35rem;">
+                        {{ $customer->credit_status_label }}
+                    </span>
                 </div>
                 
                 <!-- Status -->
@@ -81,6 +84,34 @@
                     <i class="bi bi-plus-circle"></i> Topup
                 </button>
                 @endcan
+            </div>
+
+            <div style="margin-top: 1rem; padding: 1rem; background: var(--k-gray-50); border-radius: 12px; border: 1px solid var(--k-gray-200);">
+                <div style="font-size: 0.75rem; color: var(--k-gray-500); margin-bottom: 0.75rem;">Kontrol Kredit</div>
+                <div style="display: grid; gap: 0.75rem;">
+                    <div>
+                        <div style="font-size: 0.7rem; color: var(--k-gray-500);">Credit Limit</div>
+                        <div style="font-weight: 700; color: var(--k-gray-900);">{{ $customer->formatted_credit_limit }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.7rem; color: var(--k-gray-500);">Outstanding Aktif</div>
+                        <div style="font-weight: 700; color: var(--k-gray-900);">Rp {{ number_format($customer->outstandingAmount(), 0, ',', '.') }}</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.7rem; color: var(--k-gray-500);">Order Aktif</div>
+                        <div style="font-weight: 700; color: var(--k-gray-900);">
+                            {{ number_format($customer->outstandingOrdersCount()) }}
+                            @if(($customer->max_outstanding_orders ?? 0) > 0)
+                                / {{ number_format($customer->max_outstanding_orders) }}
+                            @endif
+                        </div>
+                    </div>
+                    @if($customer->credit_notes)
+                        <div style="padding-top: 0.75rem; border-top: 1px solid var(--k-gray-200); color: var(--k-gray-600); font-size: 0.8rem; line-height: 1.5;">
+                            {{ $customer->credit_notes }}
+                        </div>
+                    @endif
+                </div>
             </div>
         </div>
 

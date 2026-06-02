@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
+use App\Models\Customer;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -50,6 +51,7 @@ class CustomerOrderBoundaryTest extends TestCase
     public function test_customer_store_forces_order_ownership_and_removes_discounts(): void
     {
         $customer = $this->customer('customer-store-a@example.test');
+        $this->customerProfile($customer);
         $otherCustomer = $this->customer('customer-store-b@example.test');
         $product = Product::create([
             'name' => 'Bayam Customer',
@@ -116,6 +118,45 @@ class CustomerOrderBoundaryTest extends TestCase
         $this->assertTrue($createdUser->hasRole('customer'));
     }
 
+    public function test_blocked_credit_customer_cannot_create_order(): void
+    {
+        $admin = $this->superAdmin('blocked-admin@example.test');
+        $customer = $this->customer('blocked-credit@example.test');
+        $this->customerProfile($customer, [
+            'credit_status' => Customer::CREDIT_BLOCKED,
+        ]);
+        $product = $this->product('Blocked Credit Product');
+
+        $this->actingAs($admin)
+            ->from('/orders/create')
+            ->post('/orders', $this->orderPayload($customer, $product))
+            ->assertRedirect('/orders/create')
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseMissing('orders', [
+            'user_id' => $customer->id,
+        ]);
+    }
+
+    public function test_customer_credit_limit_blocks_order_when_outstanding_would_exceed_limit(): void
+    {
+        $admin = $this->superAdmin('limit-admin@example.test');
+        $customer = $this->customer('limit-credit@example.test');
+        $this->customerProfile($customer, [
+            'credit_limit' => 15000,
+        ]);
+        $product = $this->product('Limit Credit Product');
+        $this->createOrderFor($customer, 'KMGCREDITLIMIT1');
+
+        $this->actingAs($admin)
+            ->from('/orders/create')
+            ->post('/orders', $this->orderPayload($customer, $product))
+            ->assertRedirect('/orders/create')
+            ->assertSessionHas('error');
+
+        $this->assertSame(1, Order::where('user_id', $customer->id)->count());
+    }
+
     private function customer(string $email): User
     {
         $user = User::factory()->create(['email' => $email]);
@@ -124,12 +165,64 @@ class CustomerOrderBoundaryTest extends TestCase
         return $user;
     }
 
-    private function superAdmin(): User
+    private function superAdmin(string $email = 'customer-admin@example.test'): User
     {
-        $user = User::factory()->create(['email' => 'customer-admin@example.test']);
+        $user = User::factory()->create(['email' => $email]);
         $user->assignRole('super-admin');
 
         return $user;
+    }
+
+    private function customerProfile(User $user, array $overrides = []): Customer
+    {
+        return Customer::create(array_merge([
+            'user_id' => $user->id,
+            'name' => $user->name,
+            'phone' => '08' . str_pad((string) $user->id, 10, '0', STR_PAD_LEFT),
+            'email' => $user->email,
+            'customer_type' => 'regular',
+            'credit_limit' => 0,
+            'max_outstanding_orders' => 0,
+            'credit_status' => Customer::CREDIT_NORMAL,
+            'is_active' => true,
+        ], $overrides));
+    }
+
+    private function product(string $name): Product
+    {
+        return Product::create([
+            'name' => $name,
+            'category' => 'Sayur',
+            'price' => 10000,
+            'base_price' => 5000,
+            'is_active' => true,
+        ]);
+    }
+
+    private function orderPayload(User $customer, Product $product): array
+    {
+        return [
+            'user_id' => $customer->id,
+            'delivery_date' => now()->addDay()->toDateString(),
+            'delivery_time_slot' => '06:00-09:00',
+            'address' => 'Jl. Credit Test',
+            'order_source' => Order::ORDER_SOURCE_ADMIN,
+            'fulfillment_type' => Order::FULFILLMENT_JIT,
+            'payment_method' => Order::PAYMENT_MANUAL,
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 1,
+                ],
+            ],
+            'discount_type' => Order::DISCOUNT_NONE,
+            'discount_value' => 0,
+            'shipping_type' => Order::SHIPPING_FLAT,
+            'shipping_rate' => 0,
+            'packing_fee' => 1000,
+            'include_ppn' => false,
+            'ppn_rate' => 0,
+        ];
     }
 
     private function createOrderFor(User $user, string $orderNumber): Order

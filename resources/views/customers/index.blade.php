@@ -44,6 +44,13 @@
                 <option value="{{ route('customers.index', array_merge(request()->except('status'), ['status' => 'active'])) }}" {{ request('status') == 'active' ? 'selected' : '' }}>Aktif</option>
                 <option value="{{ route('customers.index', array_merge(request()->except('status'), ['status' => 'inactive'])) }}" {{ request('status') == 'inactive' ? 'selected' : '' }}>Tidak Aktif</option>
             </select>
+
+            <select name="credit_status" onchange="window.location.href = this.value" class="form-control">
+                <option value="{{ route('customers.index', array_merge(request()->except('credit_status'), ['credit_status' => null])) }}">Semua Kredit</option>
+                <option value="{{ route('customers.index', array_merge(request()->except('credit_status'), ['credit_status' => 'normal'])) }}" {{ request('credit_status') == 'normal' ? 'selected' : '' }}>Normal</option>
+                <option value="{{ route('customers.index', array_merge(request()->except('credit_status'), ['credit_status' => 'watchlist'])) }}" {{ request('credit_status') == 'watchlist' ? 'selected' : '' }}>Watchlist</option>
+                <option value="{{ route('customers.index', array_merge(request()->except('credit_status'), ['credit_status' => 'blocked'])) }}" {{ request('credit_status') == 'blocked' ? 'selected' : '' }}>Blocked</option>
+            </select>
             
             <!-- Per Page -->
             <select name="per_page" onchange="window.location.href = this.value" class="form-control">
@@ -64,6 +71,7 @@
                     <th>Nama</th>
                     <th>Kontak</th>
                     <th>Tipe</th>
+                    <th>Kredit</th>
                     <th>Total Order</th>
                     <th>Total Belanja</th>
                     <th>Status</th>
@@ -100,6 +108,16 @@
                             {{ ucfirst($customer->customer_type) }}
                         </span>
                     </td>
+                    <td>
+                        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <span class="dms-badge {{ $customer->credit_status_badge }}">
+                                {{ $customer->credit_status_label }}
+                            </span>
+                            @if(($customer->credit_limit ?? 0) > 0)
+                                <span style="font-size: 0.7rem; color: var(--k-gray-500);">Limit {{ $customer->formatted_credit_limit }}</span>
+                            @endif
+                        </div>
+                    </td>
                     <td>{{ number_format($customer->total_orders) }}</td>
                     <td class="dms-money">Rp {{ number_format($customer->total_spent, 0, ',', '.') }}</td>
                     <td>
@@ -130,7 +148,7 @@
                   </tr>
                 @empty
                   <tr>
-                    <td colspan="8" style="text-align: center; padding: 3rem;">
+                    <td colspan="9" style="text-align: center; padding: 3rem;">
                         <i class="bi bi-people" style="font-size: 3rem; color: var(--k-gray-300);"></i>
                         <p style="margin-top: 1rem; color: var(--k-gray-500);">Tidak ada data pelanggan</p>
                         @can('create customers')

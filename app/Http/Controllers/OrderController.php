@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\ProductStock;
 use App\Models\StockMovement;
 use App\Models\User;
+use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -203,6 +204,18 @@ class OrderController extends Controller
             if ($request->order_source === Order::ORDER_SOURCE_ADMIN && !$paymentMethod) {
                 $paymentMethod = Order::PAYMENT_MANUAL;
             }
+
+            $customerUser = User::with('customer')->findOrFail($request->user_id);
+            $customer = $customerUser->customer;
+            $creditWarning = null;
+
+            if ($customer) {
+                $this->ensureCustomerCreditAllowsOrder($customer, (int) $totals['grand_total']);
+
+                if ($customer->isCreditWatchlisted()) {
+                    $creditWarning = 'Customer masuk watchlist kredit. Order tetap dibuat, mohon cek pembayaran/outstanding.';
+                }
+            }
             
             $order = Order::create([
                 'user_id' => $request->user_id,
@@ -232,7 +245,7 @@ class OrderController extends Controller
                 'order_source' => $request->order_source,
                 'fulfillment_type' => $request->fulfillment_type,
                 'payment_method' => $paymentMethod,
-                'admin_notes' => 'Order dibuat oleh ' . Auth::user()->name,
+                'admin_notes' => trim('Order dibuat oleh ' . Auth::user()->name . "\n" . ($creditWarning ?? '')),
             ]);
             
             foreach ($orderItems as $item) {
@@ -254,8 +267,14 @@ class OrderController extends Controller
             }
             $message .= "Total: Rp " . number_format($totals['grand_total'], 0, ',', '.');
             
-            return redirect()->route('orders.show', $order)
+            $redirect = redirect()->route('orders.show', $order)
                 ->with('success', $message);
+
+            if ($creditWarning) {
+                $redirect->with('warning', $creditWarning);
+            }
+
+            return $redirect;
                 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -688,6 +707,30 @@ class OrderController extends Controller
         $user = Auth::user();
 
         return $user?->hasRole('customer') && !$user->hasAnyRole(['super-admin', 'admin', 'manager', 'sales']);
+    }
+
+    private function ensureCustomerCreditAllowsOrder(Customer $customer, int $grandTotal): void
+    {
+        if ($customer->isCreditBlocked()) {
+            throw new \Exception('Customer diblokir untuk order baru oleh kontrol kredit.');
+        }
+
+        $limit = (int) ($customer->credit_limit ?? 0);
+        if ($limit > 0) {
+            $outstanding = $customer->outstandingAmount();
+            if (($outstanding + $grandTotal) > $limit) {
+                throw new \Exception(
+                    'Credit limit customer terlampaui. Limit: Rp ' . number_format($limit, 0, ',', '.') .
+                    ', outstanding: Rp ' . number_format($outstanding, 0, ',', '.') .
+                    ', order baru: Rp ' . number_format($grandTotal, 0, ',', '.')
+                );
+            }
+        }
+
+        $maxOutstanding = (int) ($customer->max_outstanding_orders ?? 0);
+        if ($maxOutstanding > 0 && $customer->outstandingOrdersCount() >= $maxOutstanding) {
+            throw new \Exception('Batas outstanding order customer sudah tercapai.');
+        }
     }
 
     private function authorizeCustomerOrder(Order $order): void

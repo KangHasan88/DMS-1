@@ -47,6 +47,37 @@
                 @error('customer_type') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
 
+            <div class="form-group">
+                <label class="form-label">Credit Limit</label>
+                <input type="number" name="credit_limit" value="{{ old('credit_limit', $customer->credit_limit ?? 0) }}" class="form-control" min="0">
+                <small class="dms-form-help">Isi 0 jika pelanggan tidak memakai batas kredit.</small>
+                @error('credit_limit') <span class="dms-error">{{ $message }}</span> @enderror
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Maks. Outstanding Order</label>
+                <input type="number" name="max_outstanding_orders" value="{{ old('max_outstanding_orders', $customer->max_outstanding_orders ?? 0) }}" class="form-control" min="0" max="999">
+                <small class="dms-form-help">Isi 0 jika tidak dibatasi jumlah order aktif.</small>
+                @error('max_outstanding_orders') <span class="dms-error">{{ $message }}</span> @enderror
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Status Kredit <span class="dms-required">*</span></label>
+                <select name="credit_status" class="form-control" required>
+                    <option value="normal" {{ old('credit_status', $customer->credit_status ?? 'normal') == 'normal' ? 'selected' : '' }}>Normal</option>
+                    <option value="watchlist" {{ old('credit_status', $customer->credit_status) == 'watchlist' ? 'selected' : '' }}>Watchlist</option>
+                    <option value="blocked" {{ old('credit_status', $customer->credit_status) == 'blocked' ? 'selected' : '' }}>Blocked</option>
+                </select>
+                <small class="dms-form-help">Blocked akan menolak order baru dari pelanggan ini.</small>
+                @error('credit_status') <span class="dms-error">{{ $message }}</span> @enderror
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Catatan Kredit</label>
+                <textarea name="credit_notes" class="form-control" rows="2">{{ old('credit_notes', $customer->credit_notes) }}</textarea>
+                @error('credit_notes') <span class="dms-error">{{ $message }}</span> @enderror
+            </div>
+
             <!-- Address -->
             <div class="form-group dms-form-span-2">
                 <label class="form-label">Alamat</label>

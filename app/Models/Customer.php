@@ -24,6 +24,10 @@ class Customer extends Model
         'referral_code',
         'referred_by',
         'customer_type',
+        'credit_limit',
+        'max_outstanding_orders',
+        'credit_status',
+        'credit_notes',
         'total_orders',
         'total_spent',
         'is_active',
@@ -33,10 +37,16 @@ class Customer extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'credit_limit' => 'integer',
+        'max_outstanding_orders' => 'integer',
         'total_orders' => 'integer',
         'total_spent' => 'integer',
         'last_order_at' => 'datetime',
     ];
+
+    public const CREDIT_NORMAL = 'normal';
+    public const CREDIT_WATCHLIST = 'watchlist';
+    public const CREDIT_BLOCKED = 'blocked';
 
     // ===================== RELATIONSHIPS =====================
     
@@ -80,7 +90,77 @@ class Customer extends Model
         return 'Rp ' . number_format($this->total_spent, 0, ',', '.');
     }
 
+    public function getFormattedCreditLimitAttribute(): string
+    {
+        return 'Rp ' . number_format($this->credit_limit ?? 0, 0, ',', '.');
+    }
+
+    public function getCreditStatusLabelAttribute(): string
+    {
+        return match ($this->credit_status) {
+            self::CREDIT_WATCHLIST => 'Watchlist',
+            self::CREDIT_BLOCKED => 'Blocked',
+            default => 'Normal',
+        };
+    }
+
+    public function getCreditStatusBadgeAttribute(): string
+    {
+        return match ($this->credit_status) {
+            self::CREDIT_WATCHLIST => 'dms-badge-warning',
+            self::CREDIT_BLOCKED => 'dms-badge-danger',
+            default => 'dms-badge-success',
+        };
+    }
+
     // ===================== HELPER METHODS =====================
+
+    public function creditOpenStatuses(): array
+    {
+        return [
+            Order::STATUS_PENDING_PAYMENT,
+            Order::STATUS_PAID,
+            Order::STATUS_CHECKING_STOCK,
+            Order::STATUS_PROCURING,
+            Order::STATUS_REPACKING,
+            Order::STATUS_READY,
+            Order::STATUS_SHIPPED,
+        ];
+    }
+
+    public function outstandingOrderQuery()
+    {
+        return $this->orders()->whereIn('status', $this->creditOpenStatuses());
+    }
+
+    public function outstandingAmount(): int
+    {
+        return (int) $this->outstandingOrderQuery()->sum('grand_total');
+    }
+
+    public function outstandingOrdersCount(): int
+    {
+        return $this->outstandingOrderQuery()->count();
+    }
+
+    public function availableCredit(): int
+    {
+        if (($this->credit_limit ?? 0) <= 0) {
+            return 0;
+        }
+
+        return max(0, (int) $this->credit_limit - $this->outstandingAmount());
+    }
+
+    public function isCreditBlocked(): bool
+    {
+        return $this->credit_status === self::CREDIT_BLOCKED;
+    }
+
+    public function isCreditWatchlisted(): bool
+    {
+        return $this->credit_status === self::CREDIT_WATCHLIST;
+    }
     
     public function updateStats(): void
     {

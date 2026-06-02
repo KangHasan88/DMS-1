@@ -35,6 +35,10 @@ class CustomerController extends Controller
         if ($request->filled('status')) {
             $query->where('is_active', $request->status === 'active');
         }
+
+        if ($request->filled('credit_status')) {
+            $query->where('credit_status', $request->credit_status);
+        }
         
         $perPage = $request->get('per_page', 10);
         $customers = $query->orderBy('created_at', 'desc')->paginate($perPage);
@@ -66,6 +70,10 @@ class CustomerController extends Controller
             'latitude' => 'nullable|string',
             'longitude' => 'nullable|string',
             'customer_type' => 'required|in:regular,premium,wholesale',
+            'credit_limit' => 'nullable|integer|min:0',
+            'max_outstanding_orders' => 'nullable|integer|min:0|max:999',
+            'credit_status' => 'nullable|in:normal,watchlist,blocked',
+            'credit_notes' => 'nullable|string',
             'notes' => 'nullable|string',
             'is_active' => 'boolean',
         ]);
@@ -86,6 +94,9 @@ class CustomerController extends Controller
             // Create customer profile
             $validated['user_id'] = $user->id;
             $validated['is_active'] = $validated['is_active'] ?? true;
+            $validated['credit_limit'] = $validated['credit_limit'] ?? 0;
+            $validated['max_outstanding_orders'] = $validated['max_outstanding_orders'] ?? 0;
+            $validated['credit_status'] = $validated['credit_status'] ?? Customer::CREDIT_NORMAL;
             
             Customer::create($validated);
             
@@ -146,6 +157,10 @@ class CustomerController extends Controller
             'latitude' => 'nullable|string',
             'longitude' => 'nullable|string',
             'customer_type' => 'required|in:regular,premium,wholesale',
+            'credit_limit' => 'nullable|integer|min:0',
+            'max_outstanding_orders' => 'nullable|integer|min:0|max:999',
+            'credit_status' => 'nullable|in:normal,watchlist,blocked',
+            'credit_notes' => 'nullable|string',
             'notes' => 'nullable|string',
             'is_active' => 'boolean',
         ]);
@@ -165,6 +180,9 @@ class CustomerController extends Controller
             
             // Update customer profile
             $validated['is_active'] = $validated['is_active'] ?? true;
+            $validated['credit_limit'] = $validated['credit_limit'] ?? 0;
+            $validated['max_outstanding_orders'] = $validated['max_outstanding_orders'] ?? 0;
+            $validated['credit_status'] = $validated['credit_status'] ?? Customer::CREDIT_NORMAL;
             $customer->update($validated);
             
             DB::commit();

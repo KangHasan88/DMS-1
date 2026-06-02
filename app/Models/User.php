@@ -125,6 +125,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Relasi ke profil pelanggan.
+     */
+    public function customer()
+    {
+        return $this->hasOne(Customer::class);
+    }
+
+    /**
      * Relasi ke Orders (satu user bisa punya banyak order)
      */
     public function orders()
