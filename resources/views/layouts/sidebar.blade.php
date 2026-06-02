@@ -88,6 +88,13 @@
             --k-shadow-md: 0 10px 28px rgba(15, 23, 42, 0.06);
             --k-shadow-lg: 0 18px 44px rgba(15, 23, 42, 0.10);
             --k-shadow-green: 0 8px 18px rgba(18, 59, 122, 0.18);
+
+            --k-font-xs: 0.72rem;
+            --k-font-sm: 0.78rem;
+            --k-font-md: 0.82rem;
+            --k-font-lg: 1.02rem;
+            --k-font-page-title: 1.12rem;
+            --k-font-stat: 1.3rem;
         }
 
         /* Layout Container */
@@ -209,7 +216,7 @@
             text-decoration: none;
             border-radius: 8px;
             transition: all 0.2s ease;
-            font-weight: 500;
+            font-weight: 600;
         }
 
         .nav-link i {
@@ -219,7 +226,7 @@
         }
 
         .nav-link span {
-            font-size: 0.78rem;
+            font-size: var(--k-font-sm);
             font-weight: 600;
         }
 
@@ -247,8 +254,8 @@
             margin-left: auto;
             background: var(--k-orange);
             color: var(--k-white);
-            font-size: 0.5rem;
-            font-weight: 600;
+            font-size: 0.62rem;
+            font-weight: 700;
             padding: 0.1rem 0.4rem;
             border-radius: 30px;
         }
@@ -283,7 +290,7 @@
         }
 
         .page-title h1 {
-            font-size: 1.08rem;
+            font-size: var(--k-font-page-title);
             font-weight: 700;
             color: var(--k-blue-darker);
             margin: 0;
@@ -295,7 +302,7 @@
             align-items: center;
             gap: 0.4rem;
             color: #63758c;
-            font-size: 0.72rem;
+            font-size: var(--k-font-xs);
             margin-top: 0.2rem;
         }
 
@@ -345,11 +352,11 @@
         .user-detail .name {
             font-weight: 600;
             color: var(--k-gray-800);
-            font-size: 0.7rem;
+            font-size: var(--k-font-xs);
         }
 
         .user-detail .role {
-            font-size: 0.55rem;
+            font-size: 0.62rem;
             color: var(--k-gray-500);
             display: flex;
             align-items: center;
@@ -361,8 +368,8 @@
             color: var(--k-orange-dark);
             padding: 0.05rem 0.3rem;
             border-radius: 20px;
-            font-size: 0.45rem;
-            font-weight: 600;
+            font-size: 0.58rem;
+            font-weight: 700;
         }
 
         /* Date Display */
@@ -374,7 +381,7 @@
             background: var(--k-white);
             border-radius: 24px;
             color: #4a5b70;
-            font-size: 0.65rem;
+            font-size: var(--k-font-xs);
             border: 1px solid var(--k-gray-200);
             box-shadow: var(--k-shadow-sm);
         }
@@ -394,8 +401,8 @@
             border: 1px solid var(--k-gray-300);
             border-radius: 24px;
             color: var(--k-gray-600);
-            font-size: 0.65rem;
-            font-weight: 500;
+            font-size: var(--k-font-xs);
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
         }
@@ -431,7 +438,7 @@
             padding: 0.2rem 0.45rem;
             background: transparent;
             color: var(--k-gray-500);
-            font-size: 0.6rem;
+            font-size: 0.68rem;
             font-weight: 700;
             cursor: pointer;
         }
@@ -466,7 +473,7 @@
         }
 
         .dms-section-title {
-            font-size: 1.02rem;
+            font-size: var(--k-font-lg);
             font-weight: 700;
             line-height: 1.25;
             color: var(--k-blue-darker);
@@ -474,7 +481,7 @@
         }
 
         .dms-section-subtitle {
-            font-size: 0.78rem;
+            font-size: var(--k-font-sm);
             color: #5d7088;
             margin: 0.25rem 0 0;
         }
@@ -600,8 +607,8 @@
         }
 
         .stat-value {
-            font-size: 1.3rem;
-            font-weight: 750;
+            font-size: var(--k-font-stat);
+            font-weight: 700;
             color: var(--k-gray-900);
             margin-bottom: 0.1rem;
             line-height: 1.15;
@@ -609,7 +616,7 @@
 
         .stat-label {
             color: var(--k-gray-600);
-            font-size: 0.72rem;
+            font-size: var(--k-font-xs);
             font-weight: 600;
             line-height: 1.35;
         }
@@ -625,7 +632,7 @@
             text-align: left;
             padding: 0.7rem 0.78rem;
             color: #33455c;
-            font-size: 0.7rem;
+            font-size: var(--k-font-xs);
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.035em;
@@ -715,7 +722,7 @@
         }
 
         .dms-pagination-summary {
-            font-size: 0.8rem;
+            font-size: var(--k-font-md);
             color: #52657d;
         }
 
@@ -784,7 +791,7 @@
         .dms-badge {
             padding: 0.22rem 0.62rem;
             border-radius: 999px;
-            font-size: 0.68rem;
+            font-size: 0.7rem;
             font-weight: 700;
             display: inline-block;
             line-height: 1.2;
@@ -826,7 +833,7 @@
             padding: 0.42rem 0.9rem;
             border-radius: 8px;
             font-weight: 700;
-            font-size: 0.76rem;
+            font-size: var(--k-font-sm);
             border: none;
             cursor: pointer;
             display: inline-flex;
@@ -877,7 +884,7 @@
             border: 1px solid var(--k-gray-300);
             border-radius: 8px;
             color: var(--k-gray-900);
-            font-size: 0.82rem;
+            font-size: var(--k-font-md);
             transition: all 0.2s;
         }
 
@@ -891,7 +898,7 @@
             display: block;
             margin-bottom: 0.3rem;
             color: var(--k-gray-700);
-            font-size: 0.78rem;
+            font-size: var(--k-font-sm);
             font-weight: 600;
         }
 
@@ -904,7 +911,7 @@
         }
 
         .dms-form-title {
-            font-size: 1.02rem;
+            font-size: var(--k-font-lg);
             font-weight: 700;
             color: var(--k-blue-darker);
             line-height: 1.25;
@@ -912,7 +919,7 @@
         }
 
         .dms-form-subtitle {
-            font-size: 0.78rem;
+            font-size: var(--k-font-sm);
             color: #5d7088;
             margin: 0.25rem 0 0;
         }
@@ -942,9 +949,9 @@
             display: flex;
             align-items: center;
             gap: 0.45rem;
-            font-size: 0.9rem;
-            font-weight: 800;
-            color: var(--k-gray-900);
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--k-blue-darker);
             margin: 0 0 0.75rem;
             padding-bottom: 0.45rem;
             border-bottom: 1px solid var(--k-gray-200);

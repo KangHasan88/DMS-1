@@ -188,4 +188,28 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('flex: 0 0 36px;', $layout);
         $this->assertStringContainsString('<th style="width: 240px;">Aksi</th>', $products);
     }
+
+    public function test_global_typography_uses_professional_scale(): void
+    {
+        $layout = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));
+
+        foreach ([
+            '--k-font-xs: 0.72rem;',
+            '--k-font-sm: 0.78rem;',
+            '--k-font-md: 0.82rem;',
+            '--k-font-lg: 1.02rem;',
+            '--k-font-page-title: 1.12rem;',
+            'font-family: \'Inter\'',
+            'font-size: var(--k-font-page-title);',
+            'font-size: var(--k-font-lg);',
+            'font-size: var(--k-font-md);',
+            'font-size: var(--k-font-sm);',
+        ] as $expected) {
+            $this->assertStringContainsString($expected, $layout);
+        }
+
+        $this->assertStringNotContainsString('font-weight: 750;', $layout);
+        $this->assertStringNotContainsString('font-size: 0.45rem;', $layout);
+        $this->assertStringNotContainsString('font-size: 0.55rem;', $layout);
+    }
 }
