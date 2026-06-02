@@ -240,10 +240,45 @@ class ViewMarkupTest extends TestCase
         $this->assertStringNotContainsString('Kategori Pemasok', $sidebar);
     }
 
+    public function test_unit_category_options_are_loaded_from_master_data(): void
+    {
+        $controller = file_get_contents(app_path('Http/Controllers/UnitController.php'));
+        $create = file_get_contents(resource_path('views/units/create.blade.php'));
+        $edit = file_get_contents(resource_path('views/units/edit.blade.php'));
+        $index = file_get_contents(resource_path('views/units/index.blade.php'));
+        $sidebar = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));
+
+        $this->assertStringContainsString('UnitCategory::active()', $controller);
+        $this->assertStringNotContainsString("Unit::select('category')", $controller);
+
+        foreach ([$create, $edit, $index] as $content) {
+            $this->assertStringContainsString('$categories', $content);
+            $this->assertStringNotContainsString('<option value="Berat"', $content);
+            $this->assertStringNotContainsString('<option value="Jumlah"', $content);
+            $this->assertStringNotContainsString('<option value="Volume"', $content);
+            $this->assertStringNotContainsString('<option value="Panjang"', $content);
+            $this->assertStringNotContainsString('<option value="Lainnya"', $content);
+        }
+
+        foreach ([$create, $edit] as $content) {
+            $this->assertStringContainsString('unit-categories.index', $content);
+        }
+
+        $this->assertStringContainsString('Tambah Kategori', $index);
+        $this->assertStringContainsString('unit-category-panel', $index);
+        $this->assertStringContainsString('toggleInlineCategoryForm', $index);
+        $this->assertStringContainsString('unit-categories.store', $index);
+        $this->assertStringContainsString('unit-categories.index', $index);
+        $this->assertStringContainsString('Lihat Daftar', $index);
+        $this->assertStringNotContainsString('unit-categories.index', $sidebar);
+        $this->assertStringNotContainsString('Kategori Satuan', $sidebar);
+    }
+
     public function test_sidebar_keeps_primary_records_visible_and_moves_supporting_categories_to_page_actions(): void
     {
         $sidebar = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));
         $productCategories = file_get_contents(resource_path('views/product-categories/index.blade.php'));
+        $unitCategories = file_get_contents(resource_path('views/unit-categories/index.blade.php'));
         $supplierCategories = file_get_contents(resource_path('views/supplier-categories/index.blade.php'));
 
         $catalogStart = strpos($sidebar, '<!-- SECTION: CATALOG -->');
@@ -255,6 +290,7 @@ class ViewMarkupTest extends TestCase
         $this->assertNotFalse($products);
         $this->assertLessThan($products, $units);
         $this->assertStringNotContainsString('product-categories.index', $sidebar);
+        $this->assertStringNotContainsString('unit-categories.index', $sidebar);
 
         $relationsStart = strpos($sidebar, '<!-- SECTION: BUSINESS RELATIONS -->');
         $customers = strpos($sidebar, 'customers.index', $relationsStart);
@@ -267,8 +303,10 @@ class ViewMarkupTest extends TestCase
         $this->assertStringNotContainsString('supplier-categories.index', $sidebar);
 
         $this->assertStringContainsString('products.index', $productCategories);
+        $this->assertStringContainsString('units.index', $unitCategories);
         $this->assertStringContainsString('suppliers.index', $supplierCategories);
         $this->assertStringContainsString('Kembali', $productCategories);
+        $this->assertStringContainsString('Kembali', $unitCategories);
         $this->assertStringContainsString('Kembali', $supplierCategories);
     }
 

@@ -39,12 +39,13 @@
                 <label class="form-label">Kategori</label>
                 <select name="category" class="form-control">
                     <option value="">-- Pilih Kategori --</option>
-                    <option value="Berat" {{ old('category', $unit->category) == 'Berat' ? 'selected' : '' }}>Berat</option>
-                    <option value="Jumlah" {{ old('category', $unit->category) == 'Jumlah' ? 'selected' : '' }}>Jumlah</option>
-                    <option value="Volume" {{ old('category', $unit->category) == 'Volume' ? 'selected' : '' }}>Volume</option>
-                    <option value="Panjang" {{ old('category', $unit->category) == 'Panjang' ? 'selected' : '' }}>Panjang</option>
-                    <option value="Lainnya" {{ old('category', $unit->category) == 'Lainnya' ? 'selected' : '' }}>Lainnya</option>
+                    @foreach($categories as $category)
+                    <option value="{{ $category }}" {{ old('category', $unit->category) == $category ? 'selected' : '' }}>{{ $category }}</option>
+                    @endforeach
                 </select>
+                <small class="dms-form-help">
+                    <a href="{{ route('unit-categories.index') }}">Kelola kategori satuan</a>
+                </small>
                 @error('category') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
 

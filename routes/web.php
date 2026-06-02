@@ -7,6 +7,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\UnitController;
+use App\Http\Controllers\UnitCategoryController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierCategoryController;
@@ -86,6 +87,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('units', UnitController::class)->only(['edit', 'update'])->middleware('permission:edit units');
     Route::resource('units', UnitController::class)->only(['destroy'])->middleware('permission:delete units');
     Route::post('units/{unit}/toggle-status', [UnitController::class, 'toggleStatus'])->middleware('permission:edit units')->name('units.toggle-status');
+
+    // ============= UNIT CATEGORY MANAGEMENT =============
+    Route::get('unit-categories', [UnitCategoryController::class, 'index'])->middleware('permission:view units')->name('unit-categories.index');
+    Route::get('unit-categories/create', [UnitCategoryController::class, 'create'])->middleware('permission:create units')->name('unit-categories.create');
+    Route::post('unit-categories', [UnitCategoryController::class, 'store'])->middleware('permission:create units')->name('unit-categories.store');
+    Route::get('unit-categories/{unitCategory}/edit', [UnitCategoryController::class, 'edit'])->middleware('permission:edit units')->name('unit-categories.edit');
+    Route::put('unit-categories/{unitCategory}', [UnitCategoryController::class, 'update'])->middleware('permission:edit units')->name('unit-categories.update');
+    Route::delete('unit-categories/{unitCategory}', [UnitCategoryController::class, 'destroy'])->middleware('permission:delete units')->name('unit-categories.destroy');
+    Route::post('unit-categories/{unitCategory}/toggle-status', [UnitCategoryController::class, 'toggleStatus'])->middleware('permission:edit units')->name('unit-categories.toggle-status');
 
     // ============= PRODUCT CATEGORY MANAGEMENT =============
     Route::get('product-categories', [ProductCategoryController::class, 'index'])->middleware('permission:view categories')->name('product-categories.index');

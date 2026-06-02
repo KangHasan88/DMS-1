@@ -20,6 +20,7 @@ use App\Models\StockOpname;
 use App\Models\Supplier;
 use App\Models\SupplierCategory;
 use App\Models\Unit;
+use App\Models\UnitCategory;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -100,6 +101,35 @@ class InventoryQaRegressionTest extends TestCase
         $this->assertDatabaseHas('products', [
             'name' => 'Kale Premium',
             'category' => 'Sayur Premium',
+        ]);
+    }
+
+    public function test_unit_store_uses_master_unit_category(): void
+    {
+        $user = $this->superAdmin('unit-category-admin@example.test');
+        UnitCategory::create([
+            'name' => 'Kemasan',
+            'slug' => 'kemasan',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['_token' => 'test-token'])
+            ->post('/units', [
+                '_token' => 'test-token',
+                'name' => 'Karton',
+                'code' => 'karton',
+                'symbol' => 'ktn',
+                'category' => 'Kemasan',
+                'is_active' => '1',
+                'sort_order' => 1,
+            ])
+            ->assertRedirect('/units');
+
+        $this->assertDatabaseHas('units', [
+            'name' => 'Karton',
+            'category' => 'Kemasan',
         ]);
     }
 

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Unit;
+use App\Models\UnitCategory;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class UnitController extends Controller
 {
@@ -30,9 +32,9 @@ class UnitController extends Controller
         }
         
         $perPage = $request->get('per_page', 10);
-        $units = $query->orderBy('sort_order')->orderBy('name')->paginate($perPage);
+        $units = $query->withCount('products')->orderBy('sort_order')->orderBy('name')->paginate($perPage);
         
-        $categories = Unit::select('category')->distinct()->whereNotNull('category')->pluck('category');
+        $categories = UnitCategory::active()->orderBy('sort_order')->orderBy('name')->pluck('name');
         
         return view('units.index', compact('units', 'categories'));
     }
@@ -42,7 +44,9 @@ class UnitController extends Controller
      */
     public function create()
     {
-        return view('units.create');
+        $categories = UnitCategory::active()->orderBy('sort_order')->orderBy('name')->pluck('name');
+
+        return view('units.create', compact('categories'));
     }
 
     /**
@@ -54,7 +58,12 @@ class UnitController extends Controller
             'name' => 'required|string|max:100|unique:units,name',
             'code' => 'required|string|max:20|unique:units,code',
             'symbol' => 'nullable|string|max:10',
-            'category' => 'nullable|string|max:50',
+            'category' => [
+                'nullable',
+                'string',
+                'max:100',
+                Rule::exists('unit_categories', 'name')->where('is_active', true),
+            ],
             'description' => 'nullable|string',
             'is_active' => 'boolean',
             'sort_order' => 'nullable|integer',
@@ -83,7 +92,9 @@ class UnitController extends Controller
      */
     public function edit(Unit $unit)
     {
-        return view('units.edit', compact('unit'));
+        $categories = UnitCategory::active()->orderBy('sort_order')->orderBy('name')->pluck('name');
+
+        return view('units.edit', compact('unit', 'categories'));
     }
 
     /**
@@ -95,7 +106,12 @@ class UnitController extends Controller
             'name' => 'required|string|max:100|unique:units,name,' . $unit->id,
             'code' => 'required|string|max:20|unique:units,code,' . $unit->id,
             'symbol' => 'nullable|string|max:10',
-            'category' => 'nullable|string|max:50',
+            'category' => [
+                'nullable',
+                'string',
+                'max:100',
+                Rule::exists('unit_categories', 'name')->where('is_active', true),
+            ],
             'description' => 'nullable|string',
             'is_active' => 'boolean',
             'sort_order' => 'nullable|integer',
