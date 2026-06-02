@@ -11,10 +11,16 @@
             <p class="dms-section-subtitle">Kelola semua pembelian ke pemasok</p>
         </div>
         @can('create purchase order')
-        <a href="{{ route('purchase-orders.create') }}" class="dms-btn dms-btn-primary">
-            <i class="bi bi-plus-circle"></i>
-            Buat PO Baru
-        </a>
+        <div class="dms-toolbar-actions">
+            <a href="{{ route('purchase-orders.proposed') }}" class="dms-btn dms-btn-outline">
+                <i class="bi bi-lightbulb"></i>
+                Usulan Pembelian
+            </a>
+            <a href="{{ route('purchase-orders.create') }}" class="dms-btn dms-btn-primary">
+                <i class="bi bi-plus-circle"></i>
+                Buat PO Baru
+            </a>
+        </div>
         @endcan
     </div>
 

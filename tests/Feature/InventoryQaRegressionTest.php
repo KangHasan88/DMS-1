@@ -379,6 +379,77 @@ class InventoryQaRegressionTest extends TestCase
         $this->assertDatabaseCount('stock_movements', 0);
     }
 
+    public function test_proposed_purchase_order_recommends_reorder_from_week_cover(): void
+    {
+        $user = $this->superAdmin();
+        $supplier = Supplier::create([
+            'name' => 'Pemasok Proposed',
+            'phone' => '081111111111',
+            'category' => 'all',
+            'is_active' => true,
+        ]);
+        $product = Product::create([
+            'name' => 'Produk Proposed',
+            'category' => 'Sayur',
+            'price' => 10000,
+            'base_price' => 7000,
+            'is_active' => true,
+        ]);
+        ProductStock::create([
+            'product_id' => $product->id,
+            'quantity' => 5,
+            'min_stock' => 8,
+        ]);
+        $order = $this->createOrder(Order::STATUS_DELIVERED, 'KMGPROP0001');
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'product_name' => $product->name,
+            'price' => 10000,
+            'quantity' => 10,
+            'subtotal' => 100000,
+            'fulfillment_status' => OrderItem::FULFILLMENT_FULFILLED,
+        ]);
+
+        $this->actingAs($user)
+            ->get('/purchase-orders/proposed?target_weeks=4')
+            ->assertOk()
+            ->assertSee('Usulan Pembelian')
+            ->assertSee('Produk Proposed')
+            ->assertSee('Buat PO dari Usulan');
+
+        $this->actingAs($user)
+            ->post('/purchase-orders', [
+                'supplier_id' => $supplier->id,
+                'order_date' => now()->toDateString(),
+                'expected_delivery_date' => now()->addDay()->toDateString(),
+                'notes' => 'PO test dari usulan',
+                'internal_notes' => 'Dibuat dari Usulan Pembelian.',
+                'items' => [
+                    [
+                        'product_id' => $product->id,
+                        'quantity' => 5,
+                        'price' => 7000,
+                        'notes' => 'Stok 5, target 10',
+                    ],
+                ],
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('purchase_orders', [
+            'supplier_id' => $supplier->id,
+            'status' => PurchaseOrder::STATUS_DRAFT,
+            'subtotal' => 35000,
+            'total' => 35000,
+        ]);
+        $this->assertDatabaseHas('purchase_order_items', [
+            'product_id' => $product->id,
+            'quantity' => 5,
+            'price' => 7000,
+            'subtotal' => 35000,
+        ]);
+    }
+
     private function superAdmin(string $email = 'admin@example.test'): User
     {
         return $this->userWithRole('super-admin', $email);

@@ -110,6 +110,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('suppliers/{supplier}/toggle-status', [SupplierController::class, 'toggleStatus'])->middleware('permission:edit suppliers')->name('suppliers.toggle-status');
     
     // ============= PURCHASE ORDER MANAGEMENT =============
+    Route::get('purchase-orders/proposed', [PurchaseOrderController::class, 'proposed'])->middleware('permission:create purchase order')->name('purchase-orders.proposed');
     Route::resource('purchase-orders', PurchaseOrderController::class)->only(['create', 'store'])->middleware('permission:create purchase order');
     Route::resource('purchase-orders', PurchaseOrderController::class)->only(['index', 'show'])->middleware('permission:view purchase order');
     Route::resource('purchase-orders', PurchaseOrderController::class)->only(['edit', 'update'])->middleware('permission:edit purchase order');

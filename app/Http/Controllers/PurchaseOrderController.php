@@ -6,6 +6,8 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\Supplier;
 use App\Models\Product;
+use App\Models\Order;
+use App\Models\OrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -65,6 +67,63 @@ class PurchaseOrderController extends Controller
         $products = Product::active()->orderBy('name')->get();
         
         return view('purchase-orders.create', compact('suppliers', 'products'));
+    }
+
+    /**
+     * Show proposed purchase order recommendations based on inventory velocity.
+     */
+    public function proposed(Request $request)
+    {
+        $targetWeeks = max(1, min(12, (int) $request->get('target_weeks', 4)));
+        $salesWindowStart = now()->subDays(30)->startOfDay();
+
+        $products = Product::with('unit', 'stock')
+            ->active()
+            ->orderBy('name')
+            ->get();
+
+        $salesVelocity = OrderItem::query()
+            ->select('product_id', DB::raw('SUM(quantity) as sold_last_30_days'))
+            ->whereIn('product_id', $products->pluck('id'))
+            ->whereHas('order', function ($query) use ($salesWindowStart) {
+                $query->whereIn('status', [Order::STATUS_SHIPPED, Order::STATUS_DELIVERED])
+                    ->where('created_at', '>=', $salesWindowStart);
+            })
+            ->groupBy('product_id')
+            ->pluck('sold_last_30_days', 'product_id');
+
+        $recommendations = $products->map(function (Product $product) use ($salesVelocity, $targetWeeks) {
+                $stock = $product->stock;
+                $currentStock = $stock?->quantity ?? 0;
+                $minStock = $stock?->min_stock ?? 0;
+                $soldLast30Days = (int) ($salesVelocity[$product->id] ?? 0);
+                $weeklySalesAverage = $soldLast30Days > 0 ? $soldLast30Days / (30 / 7) : 0;
+                $targetQuantity = max((int) ceil($weeklySalesAverage * $targetWeeks), $minStock);
+                $recommendedQuantity = max(0, $targetQuantity - $currentStock);
+                $weekCover = $weeklySalesAverage > 0 ? round($currentStock / $weeklySalesAverage, 1) : null;
+
+                if ($recommendedQuantity <= 0) {
+                    return null;
+                }
+
+                return [
+                    'product' => $product,
+                    'current_stock' => $currentStock,
+                    'min_stock' => $minStock,
+                    'sold_last_30_days' => $soldLast30Days,
+                    'weekly_sales_average' => round($weeklySalesAverage, 1),
+                    'week_cover' => $weekCover,
+                    'target_quantity' => $targetQuantity,
+                    'recommended_quantity' => $recommendedQuantity,
+                    'estimated_price' => $product->base_price ?: $product->price,
+                ];
+            })
+            ->filter()
+            ->values();
+
+        $suppliers = Supplier::active()->orderBy('name')->get();
+
+        return view('purchase-orders.proposed', compact('recommendations', 'suppliers', 'targetWeeks'));
     }
 
     /**
