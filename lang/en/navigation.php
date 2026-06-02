@@ -12,6 +12,7 @@ return [
     'foc_out' => 'Complimentary Items',
     'return_out' => 'Sales Returns',
     'procurement' => 'Procurement',
+    'proposed_purchase_orders' => 'Proposed Orders',
     'purchase_orders' => 'Purchase Orders',
     'direct_purchase' => 'Direct Purchase',
     'consignment' => 'Consignment',

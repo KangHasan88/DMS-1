@@ -1199,7 +1199,13 @@
                         <!-- Purchase Orders (Tempo) -->
                         @can('view purchase order')
                         <li class="nav-item">
-                            <a href="{{ route('purchase-orders.index') }}" class="nav-link {{ request()->routeIs('purchase-orders.*') ? 'active' : '' }}">
+                            <a href="{{ route('purchase-orders.proposed') }}" class="nav-link {{ request()->routeIs('purchase-orders.proposed') ? 'active' : '' }}">
+                                <i class="bi bi-lightbulb"></i>
+                                <span>{{ __('navigation.proposed_purchase_orders') }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('purchase-orders.index') }}" class="nav-link {{ request()->routeIs('purchase-orders.*') && ! request()->routeIs('purchase-orders.proposed') ? 'active' : '' }}">
                                 <i class="bi bi-receipt"></i>
                                 <span>{{ __('navigation.purchase_orders') }}</span>
                                 @php

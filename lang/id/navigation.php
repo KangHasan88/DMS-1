@@ -12,6 +12,7 @@ return [
     'foc_out' => 'Barang Bonus',
     'return_out' => 'Retur Penjualan',
     'procurement' => 'Pembelian',
+    'proposed_purchase_orders' => 'Usulan Pembelian',
     'purchase_orders' => 'Pesanan Pembelian',
     'direct_purchase' => 'Pembelian Langsung',
     'consignment' => 'Konsinyasi',
