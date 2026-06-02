@@ -9,6 +9,7 @@ use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\SupplierCategoryController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\ReportController;
@@ -112,6 +113,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('customers/{customer}/toggle-status', [CustomerController::class, 'toggleStatus'])->middleware('permission:edit customers')->name('customers.toggle-status');
     Route::post('customers/{customer}/topup-wallet', [CustomerController::class, 'topupWallet'])->middleware('permission:process payment')->name('customers.topup-wallet');
     Route::get('customers/{customer}/order-history', [CustomerController::class, 'orderHistory'])->middleware('permission:view order history')->name('customers.order-history');
+
+    // ============= SUPPLIER CATEGORY MANAGEMENT =============
+    Route::get('supplier-categories', [SupplierCategoryController::class, 'index'])->middleware('permission:view suppliers')->name('supplier-categories.index');
+    Route::get('supplier-categories/create', [SupplierCategoryController::class, 'create'])->middleware('permission:create suppliers')->name('supplier-categories.create');
+    Route::post('supplier-categories', [SupplierCategoryController::class, 'store'])->middleware('permission:create suppliers')->name('supplier-categories.store');
+    Route::get('supplier-categories/{supplierCategory}/edit', [SupplierCategoryController::class, 'edit'])->middleware('permission:edit suppliers')->name('supplier-categories.edit');
+    Route::put('supplier-categories/{supplierCategory}', [SupplierCategoryController::class, 'update'])->middleware('permission:edit suppliers')->name('supplier-categories.update');
+    Route::delete('supplier-categories/{supplierCategory}', [SupplierCategoryController::class, 'destroy'])->middleware('permission:delete suppliers')->name('supplier-categories.destroy');
+    Route::post('supplier-categories/{supplierCategory}/toggle-status', [SupplierCategoryController::class, 'toggleStatus'])->middleware('permission:edit suppliers')->name('supplier-categories.toggle-status');
     
     // ============= SUPPLIER MANAGEMENT =============
     Route::resource('suppliers', SupplierController::class)->only(['create', 'store'])->middleware('permission:create suppliers');

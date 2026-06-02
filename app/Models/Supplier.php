@@ -41,15 +41,7 @@ class Supplier extends Model
         'last_purchase_at' => 'datetime',
     ];
 
-    // Category options
-    const CATEGORIES = [
-        'sayur' => 'Sayur',
-        'buah' => 'Buah',
-        'lauk' => 'Lauk',
-        'bumbu' => 'Bumbu',
-        'sembako' => 'Sembako',
-        'all' => 'Semua Kategori',
-    ];
+    const CATEGORY_ALL = 'all';
 
     // ===================== RELATIONSHIPS =====================
     
@@ -80,7 +72,8 @@ class Supplier extends Model
 
     public function getCategoryLabelAttribute(): string
     {
-        return self::CATEGORIES[$this->category] ?? ucfirst($this->category);
+        return SupplierCategory::where('code', $this->category)->value('name')
+            ?? ucfirst((string) $this->category);
     }
 
     public function getFormattedTotalPurchaseAttribute(): string
@@ -117,7 +110,7 @@ class Supplier extends Model
 
     public function scopeByCategory($query, $category)
     {
-        return $query->where('category', $category)->orWhere('category', 'all');
+        return $query->where('category', $category)->orWhere('category', self::CATEGORY_ALL);
     }
 
     public function scopeByMarket($query, $market)

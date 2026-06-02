@@ -18,6 +18,7 @@ use App\Models\ConsignmentItem;
 use App\Models\StockMovement;
 use App\Models\StockOpname;
 use App\Models\Supplier;
+use App\Models\SupplierCategory;
 use App\Models\Unit;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
@@ -247,6 +248,33 @@ class InventoryQaRegressionTest extends TestCase
             ->assertSessionHas('error');
 
         $this->assertDatabaseHas('suppliers', ['id' => $supplier->id]);
+    }
+
+    public function test_supplier_store_uses_master_supplier_category(): void
+    {
+        $user = $this->superAdmin('supplier-category-admin@example.test');
+        SupplierCategory::create([
+            'code' => 'frozen-food',
+            'name' => 'Frozen Food',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['_token' => 'test-token'])
+            ->post('/suppliers', [
+                '_token' => 'test-token',
+                'name' => 'Supplier Frozen Test',
+                'phone' => '081277766655',
+                'category' => 'frozen-food',
+                'is_active' => '1',
+            ])
+            ->assertRedirect('/suppliers');
+
+        $this->assertDatabaseHas('suppliers', [
+            'name' => 'Supplier Frozen Test',
+            'category' => 'frozen-food',
+        ]);
     }
 
     public function test_kurir_cannot_access_another_kurir_delivery(): void

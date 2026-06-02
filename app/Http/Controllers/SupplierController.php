@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Supplier;
+use App\Models\SupplierCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class SupplierController extends Controller
 {
@@ -27,12 +29,12 @@ class SupplierController extends Controller
         
         // Filter by category
         if ($request->filled('category')) {
-            if ($request->category == 'all') {
-                $query->where('category', 'all');
+            if ($request->category == Supplier::CATEGORY_ALL) {
+                $query->where('category', Supplier::CATEGORY_ALL);
             } else {
                 $query->where(function($q) use ($request) {
                     $q->where('category', $request->category)
-                      ->orWhere('category', 'all');
+                      ->orWhere('category', Supplier::CATEGORY_ALL);
                 });
             }
         }
@@ -51,7 +53,7 @@ class SupplierController extends Controller
         $suppliers = $query->orderBy('name')->paginate($perPage);
         
         // Get categories for filter
-        $categories = Supplier::CATEGORIES;
+        $categories = SupplierCategory::active()->orderBy('sort_order')->orderBy('name')->pluck('name', 'code');
         
         return view('suppliers.index', compact('suppliers', 'categories'));
     }
@@ -61,7 +63,7 @@ class SupplierController extends Controller
      */
     public function create()
     {
-        $categories = Supplier::CATEGORIES;
+        $categories = SupplierCategory::active()->orderBy('sort_order')->orderBy('name')->pluck('name', 'code');
         return view('suppliers.create', compact('categories'));
     }
 
@@ -80,7 +82,7 @@ class SupplierController extends Controller
             'address' => 'nullable|string',
             'latitude' => 'nullable|string',
             'longitude' => 'nullable|string',
-            'category' => 'required|in:' . implode(',', array_keys(Supplier::CATEGORIES)),
+            'category' => ['required', Rule::exists('supplier_categories', 'code')->where('is_active', true)],
             'specialty' => 'nullable|string|max:255',
             'min_order' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
@@ -113,7 +115,7 @@ class SupplierController extends Controller
      */
     public function edit(Supplier $supplier)
     {
-        $categories = Supplier::CATEGORIES;
+        $categories = SupplierCategory::active()->orderBy('sort_order')->orderBy('name')->pluck('name', 'code');
         return view('suppliers.edit', compact('supplier', 'categories'));
     }
 
@@ -132,7 +134,7 @@ class SupplierController extends Controller
             'address' => 'nullable|string',
             'latitude' => 'nullable|string',
             'longitude' => 'nullable|string',
-            'category' => 'required|in:' . implode(',', array_keys(Supplier::CATEGORIES)),
+            'category' => ['required', Rule::exists('supplier_categories', 'code')->where('is_active', true)],
             'specialty' => 'nullable|string|max:255',
             'min_order' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',

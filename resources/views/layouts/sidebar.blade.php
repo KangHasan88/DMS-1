@@ -1368,6 +1368,16 @@
                             </a>
                         </li>
                         @endcan
+
+                        <!-- Supplier Categories -->
+                        @can('view suppliers')
+                        <li class="nav-item">
+                            <a href="{{ route('supplier-categories.index') }}" class="nav-link {{ request()->routeIs('supplier-categories.*') ? 'active' : '' }}">
+                                <i class="bi bi-bookmark"></i>
+                                <span>Kategori Pemasok</span>
+                            </a>
+                        </li>
+                        @endcan
                         
                         <!-- Suppliers -->
                         @can('view suppliers')

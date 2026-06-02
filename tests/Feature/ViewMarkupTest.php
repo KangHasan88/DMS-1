@@ -208,6 +208,25 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('Kategori Produk', $sidebar);
     }
 
+    public function test_supplier_category_options_are_loaded_from_master_data(): void
+    {
+        $controller = file_get_contents(app_path('Http/Controllers/SupplierController.php'));
+        $create = file_get_contents(resource_path('views/suppliers/create.blade.php'));
+        $edit = file_get_contents(resource_path('views/suppliers/edit.blade.php'));
+        $sidebar = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));
+
+        $this->assertStringContainsString('SupplierCategory::active()', $controller);
+        $this->assertStringNotContainsString('Supplier::CATEGORIES', $controller);
+
+        foreach ([$create, $edit] as $content) {
+            $this->assertStringContainsString('$categories', $content);
+            $this->assertStringContainsString('supplier-categories.index', $content);
+        }
+
+        $this->assertStringContainsString('supplier-categories.index', $sidebar);
+        $this->assertStringContainsString('Kategori Pemasok', $sidebar);
+    }
+
     public function test_global_typography_uses_professional_scale(): void
     {
         $layout = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));

@@ -73,6 +73,10 @@
                         <option value="{{ $key }}" {{ old('category', $supplier->category) == $key ? 'selected' : '' }}>{{ $label }}</option>
                     @endforeach
                 </select>
+                <small class="dms-form-help">
+                    <i class="bi bi-info-circle"></i>
+                    <a href="{{ route('supplier-categories.index') }}" target="_blank" style="color: var(--k-green);">Kelola kategori pemasok</a>
+                </small>
                 @error('category') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
 
