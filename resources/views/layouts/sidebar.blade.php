@@ -642,7 +642,8 @@
             align-items: center;
             justify-content: center;
             gap: 0.4rem;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
+            white-space: nowrap;
         }
 
         .dms-identity {
@@ -835,8 +836,13 @@
         }
 
         .dms-btn-sm {
-            padding: 0.25rem 0.65rem;
+            min-width: 36px;
+            width: 36px;
+            height: 36px;
+            padding: 0;
             font-size: 0.65rem;
+            justify-content: center;
+            flex: 0 0 36px;
         }
 
         .dms-btn-primary {

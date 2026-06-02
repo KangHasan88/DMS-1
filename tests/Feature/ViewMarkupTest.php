@@ -177,4 +177,15 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('background: #f1f5f9;', $layout);
         $this->assertStringContainsString('font-weight: 600;', $layout);
     }
+
+    public function test_table_action_buttons_stay_in_one_row(): void
+    {
+        $layout = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));
+        $products = file_get_contents(resource_path('views/products/index.blade.php'));
+
+        $this->assertStringContainsString('flex-wrap: nowrap;', $layout);
+        $this->assertStringContainsString('white-space: nowrap;', $layout);
+        $this->assertStringContainsString('flex: 0 0 36px;', $layout);
+        $this->assertStringContainsString('<th style="width: 240px;">Aksi</th>', $products);
+    }
 }
