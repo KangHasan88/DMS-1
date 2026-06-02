@@ -154,10 +154,16 @@ class LocaleNavigationTest extends TestCase
 
         foreach ($views as $view) {
             $content = file_get_contents(resource_path('views/'.str_replace('.', '/', $view).'.blade.php'));
+            preg_match("/@section\\('page-title', '([^']+)'\\)/", $content, $matches);
 
             $this->assertStringNotContainsString("Management')", $content, $view.' should not use generic Management page title.');
             $this->assertStringNotContainsString('Kelola semua', $content, $view.' should use specific subtitle copy.');
             $this->assertStringNotContainsString('Daftar ', $content, $view.' should avoid redundant Daftar headings.');
+            $this->assertStringNotContainsString(
+                '<h3 class="dms-section-title">'.($matches[1] ?? '').'</h3>',
+                $content,
+                $view.' should not repeat the page title inside the main content card.'
+            );
         }
     }
 

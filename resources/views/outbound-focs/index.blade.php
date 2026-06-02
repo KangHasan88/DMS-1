@@ -7,7 +7,7 @@
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Barang Bonus</h3>
+            <h3 class="dms-section-title">Catatan Barang Bonus</h3>
             <p class="dms-section-subtitle">
                 Catatan pengeluaran barang untuk hadiah, sampel, dukungan pelanggan, atau kompensasi.
             </p>

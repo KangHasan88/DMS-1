@@ -7,7 +7,7 @@
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Peran & Hak Akses</h3>
+            <h3 class="dms-section-title">Data Peran</h3>
             <p class="dms-section-subtitle">Atur role, permission, dan batas akses pengguna.</p>
         </div>
         @can('create roles')

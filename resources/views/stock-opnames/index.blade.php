@@ -7,7 +7,7 @@
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Stock Opname</h3>
+            <h3 class="dms-section-title">Dokumen Opname</h3>
             <p class="dms-section-subtitle">Hitung stok fisik, bandingkan dengan sistem, lalu catat selisih secara auditabel.</p>
         </div>
         <a href="{{ route('stock-opnames.create') }}" class="dms-btn dms-btn-primary">

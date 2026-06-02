@@ -7,7 +7,7 @@
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Konsinyasi</h3>
+            <h3 class="dms-section-title">Data Konsinyasi</h3>
             <p class="dms-section-subtitle">
                 Kelola barang titipan pemasok, pembayaran, dan retur konsinyasi.
             </p>

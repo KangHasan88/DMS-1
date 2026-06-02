@@ -70,7 +70,7 @@
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Activity Log</h3>
+            <h3 class="dms-section-title">Riwayat Aktivitas</h3>
             <p class="dms-section-subtitle">Catatan semua aktivitas dalam sistem</p>
         </div>
         @can('delete logs')

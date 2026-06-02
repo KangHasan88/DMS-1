@@ -7,7 +7,7 @@
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Pemasok</h3>
+            <h3 class="dms-section-title">Data Pemasok</h3>
             <p class="dms-section-subtitle">Kelola data pemasok, kategori, dan histori pembelian.</p>
         </div>
         @can('create suppliers')

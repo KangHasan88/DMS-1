@@ -7,7 +7,7 @@
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Pesanan Penjualan</h3>
+            <h3 class="dms-section-title">Data Pesanan</h3>
             <p class="dms-section-subtitle">Kelola pesanan pelanggan dari pembayaran, pemenuhan, sampai pengiriman.</p>
         </div>
         @can('create sales order')

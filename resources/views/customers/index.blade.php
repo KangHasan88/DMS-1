@@ -7,7 +7,7 @@
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Pelanggan</h3>
+            <h3 class="dms-section-title">Data Pelanggan</h3>
             <p class="dms-section-subtitle">Kelola data pelanggan, status akun, wallet, dan riwayat pesanan.</p>
         </div>
         @can('create customers')

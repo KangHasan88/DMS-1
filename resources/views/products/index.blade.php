@@ -7,7 +7,7 @@
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Produk</h3>
+            <h3 class="dms-section-title">Data Produk</h3>
             <p class="dms-section-subtitle">Kelola katalog produk, harga, satuan, dan status produk.</p>
         </div>
         @can('create products')

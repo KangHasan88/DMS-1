@@ -7,7 +7,7 @@
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Manajemen Stok</h3>
+            <h3 class="dms-section-title">Data Stok</h3>
             <p class="dms-section-subtitle">Pantau stok produk, status ketersediaan, dan akses mutasi barang.</p>
         </div>
         <a href="{{ route('stock.low-stock') }}" class="dms-btn dms-btn-outline">

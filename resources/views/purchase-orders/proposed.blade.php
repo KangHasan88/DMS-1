@@ -7,7 +7,7 @@
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Usulan Pembelian</h3>
+            <h3 class="dms-section-title">Rekomendasi Pembelian</h3>
             <p class="dms-section-subtitle">Rekomendasi reorder berdasarkan stok, penjualan 30 hari terakhir, dan target week-cover.</p>
         </div>
         <a href="{{ route('purchase-orders.index') }}" class="dms-btn dms-btn-outline">

@@ -7,7 +7,7 @@
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Retur Penjualan</h3>
+            <h3 class="dms-section-title">Catatan Retur Penjualan</h3>
             <p class="dms-section-subtitle">
                 Catatan pengeluaran barang untuk retur pelanggan, barang rusak, atau ganti rugi.
             </p>

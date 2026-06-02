@@ -7,7 +7,7 @@
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Pengguna</h3>
+            <h3 class="dms-section-title">Data Pengguna</h3>
             <p class="dms-section-subtitle">Kelola akun internal, status aktif, role, dan keamanan akses.</p>
         </div>
         @can('create users')
