@@ -48,6 +48,9 @@
                     <span class="dms-badge dms-badge-{{ $customer->customer_type == 'premium' ? 'success' : ($customer->customer_type == 'wholesale' ? 'warning' : 'info') }}">
                         {{ ucfirst($customer->customer_type) }}
                     </span>
+                    <span class="dms-badge {{ $customer->payment_term_badge }}" style="margin-left: 0.35rem;">
+                        {{ $customer->payment_term_label }}
+                    </span>
                     <span class="dms-badge {{ $customer->credit_status_badge }}" style="margin-left: 0.35rem;">
                         {{ $customer->credit_status_label }}
                     </span>
@@ -87,11 +90,17 @@
             </div>
 
             <div style="margin-top: 1rem; padding: 1rem; background: var(--k-gray-50); border-radius: 12px; border: 1px solid var(--k-gray-200);">
-                <div style="font-size: 0.75rem; color: var(--k-gray-500); margin-bottom: 0.75rem;">Kontrol Kredit</div>
+                <div style="font-size: 0.75rem; color: var(--k-gray-500); margin-bottom: 0.75rem;">Termin & Kontrol Kredit</div>
                 <div style="display: grid; gap: 0.75rem;">
                     <div>
+                        <div style="font-size: 0.7rem; color: var(--k-gray-500);">Termin Pembayaran</div>
+                        <div style="font-weight: 700; color: var(--k-gray-900);">{{ $customer->payment_term_label }}</div>
+                    </div>
+                    <div>
                         <div style="font-size: 0.7rem; color: var(--k-gray-500);">Credit Limit</div>
-                        <div style="font-weight: 700; color: var(--k-gray-900);">{{ $customer->formatted_credit_limit }}</div>
+                        <div style="font-weight: 700; color: var(--k-gray-900);">
+                            {{ $customer->usesCreditTerm() ? $customer->formatted_credit_limit : 'Tidak berlaku untuk tunai' }}
+                        </div>
                     </div>
                     <div>
                         <div style="font-size: 0.7rem; color: var(--k-gray-500);">Outstanding Aktif</div>

@@ -51,6 +51,12 @@
                 <option value="{{ route('customers.index', array_merge(request()->except('credit_status'), ['credit_status' => 'watchlist'])) }}" {{ request('credit_status') == 'watchlist' ? 'selected' : '' }}>Watchlist</option>
                 <option value="{{ route('customers.index', array_merge(request()->except('credit_status'), ['credit_status' => 'blocked'])) }}" {{ request('credit_status') == 'blocked' ? 'selected' : '' }}>Blocked</option>
             </select>
+
+            <select name="payment_term" onchange="window.location.href = this.value" class="form-control">
+                <option value="{{ route('customers.index', array_merge(request()->except('payment_term'), ['payment_term' => null])) }}">Semua Termin</option>
+                <option value="{{ route('customers.index', array_merge(request()->except('payment_term'), ['payment_term' => 'cash'])) }}" {{ request('payment_term') == 'cash' ? 'selected' : '' }}>Tunai</option>
+                <option value="{{ route('customers.index', array_merge(request()->except('payment_term'), ['payment_term' => 'credit'])) }}" {{ request('payment_term') == 'credit' ? 'selected' : '' }}>Kredit</option>
+            </select>
             
             <!-- Per Page -->
             <select name="per_page" onchange="window.location.href = this.value" class="form-control">
@@ -110,10 +116,13 @@
                     </td>
                     <td>
                         <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                            <span class="dms-badge {{ $customer->payment_term_badge }}">
+                                {{ $customer->payment_term_label }}
+                            </span>
                             <span class="dms-badge {{ $customer->credit_status_badge }}">
                                 {{ $customer->credit_status_label }}
                             </span>
-                            @if(($customer->credit_limit ?? 0) > 0)
+                            @if($customer->usesCreditTerm() && ($customer->credit_limit ?? 0) > 0)
                                 <span style="font-size: 0.7rem; color: var(--k-gray-500);">Limit {{ $customer->formatted_credit_limit }}</span>
                             @endif
                         </div>

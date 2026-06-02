@@ -24,6 +24,7 @@ class Customer extends Model
         'referral_code',
         'referred_by',
         'customer_type',
+        'payment_term',
         'credit_limit',
         'max_outstanding_orders',
         'credit_status',
@@ -47,6 +48,9 @@ class Customer extends Model
     public const CREDIT_NORMAL = 'normal';
     public const CREDIT_WATCHLIST = 'watchlist';
     public const CREDIT_BLOCKED = 'blocked';
+
+    public const PAYMENT_CASH = 'cash';
+    public const PAYMENT_CREDIT = 'credit';
 
     // ===================== RELATIONSHIPS =====================
     
@@ -113,6 +117,16 @@ class Customer extends Model
         };
     }
 
+    public function getPaymentTermLabelAttribute(): string
+    {
+        return $this->payment_term === self::PAYMENT_CREDIT ? 'Kredit' : 'Tunai';
+    }
+
+    public function getPaymentTermBadgeAttribute(): string
+    {
+        return $this->payment_term === self::PAYMENT_CREDIT ? 'dms-badge-info' : 'dms-badge-secondary';
+    }
+
     // ===================== HELPER METHODS =====================
 
     public function creditOpenStatuses(): array
@@ -160,6 +174,11 @@ class Customer extends Model
     public function isCreditWatchlisted(): bool
     {
         return $this->credit_status === self::CREDIT_WATCHLIST;
+    }
+
+    public function usesCreditTerm(): bool
+    {
+        return $this->payment_term === self::PAYMENT_CREDIT;
     }
     
     public function updateStats(): void

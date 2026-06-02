@@ -39,6 +39,10 @@ class CustomerController extends Controller
         if ($request->filled('credit_status')) {
             $query->where('credit_status', $request->credit_status);
         }
+
+        if ($request->filled('payment_term')) {
+            $query->where('payment_term', $request->payment_term);
+        }
         
         $perPage = $request->get('per_page', 10);
         $customers = $query->orderBy('created_at', 'desc')->paginate($perPage);
@@ -70,6 +74,7 @@ class CustomerController extends Controller
             'latitude' => 'nullable|string',
             'longitude' => 'nullable|string',
             'customer_type' => 'required|in:regular,premium,wholesale',
+            'payment_term' => 'nullable|in:cash,credit',
             'credit_limit' => 'nullable|integer|min:0',
             'max_outstanding_orders' => 'nullable|integer|min:0|max:999',
             'credit_status' => 'nullable|in:normal,watchlist,blocked',
@@ -94,6 +99,7 @@ class CustomerController extends Controller
             // Create customer profile
             $validated['user_id'] = $user->id;
             $validated['is_active'] = $validated['is_active'] ?? true;
+            $validated['payment_term'] = $validated['payment_term'] ?? Customer::PAYMENT_CASH;
             $validated['credit_limit'] = $validated['credit_limit'] ?? 0;
             $validated['max_outstanding_orders'] = $validated['max_outstanding_orders'] ?? 0;
             $validated['credit_status'] = $validated['credit_status'] ?? Customer::CREDIT_NORMAL;
@@ -157,6 +163,7 @@ class CustomerController extends Controller
             'latitude' => 'nullable|string',
             'longitude' => 'nullable|string',
             'customer_type' => 'required|in:regular,premium,wholesale',
+            'payment_term' => 'nullable|in:cash,credit',
             'credit_limit' => 'nullable|integer|min:0',
             'max_outstanding_orders' => 'nullable|integer|min:0|max:999',
             'credit_status' => 'nullable|in:normal,watchlist,blocked',
@@ -180,6 +187,7 @@ class CustomerController extends Controller
             
             // Update customer profile
             $validated['is_active'] = $validated['is_active'] ?? true;
+            $validated['payment_term'] = $validated['payment_term'] ?? Customer::PAYMENT_CASH;
             $validated['credit_limit'] = $validated['credit_limit'] ?? 0;
             $validated['max_outstanding_orders'] = $validated['max_outstanding_orders'] ?? 0;
             $validated['credit_status'] = $validated['credit_status'] ?? Customer::CREDIT_NORMAL;

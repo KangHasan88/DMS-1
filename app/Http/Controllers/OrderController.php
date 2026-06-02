@@ -212,7 +212,7 @@ class OrderController extends Controller
             if ($customer) {
                 $this->ensureCustomerCreditAllowsOrder($customer, (int) $totals['grand_total']);
 
-                if ($customer->isCreditWatchlisted()) {
+                if ($customer->usesCreditTerm() && $customer->isCreditWatchlisted()) {
                     $creditWarning = 'Customer masuk watchlist kredit. Order tetap dibuat, mohon cek pembayaran/outstanding.';
                 }
             }
@@ -711,6 +711,10 @@ class OrderController extends Controller
 
     private function ensureCustomerCreditAllowsOrder(Customer $customer, int $grandTotal): void
     {
+        if (!$customer->usesCreditTerm()) {
+            return;
+        }
+
         if ($customer->isCreditBlocked()) {
             throw new \Exception('Customer diblokir untuk order baru oleh kontrol kredit.');
         }

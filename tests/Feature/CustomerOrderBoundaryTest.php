@@ -62,7 +62,9 @@ class CustomerOrderBoundaryTest extends TestCase
         ]);
 
         $this->actingAs($customer)
+            ->withSession(['_token' => 'test-token'])
             ->post('/orders', [
+                '_token' => 'test-token',
                 'user_id' => $otherCustomer->id,
                 'delivery_date' => now()->addDay()->toDateString(),
                 'delivery_time_slot' => '06:00-09:00',
@@ -102,7 +104,9 @@ class CustomerOrderBoundaryTest extends TestCase
         $admin = $this->superAdmin();
 
         $this->actingAs($admin)
+            ->withSession(['_token' => 'test-token'])
             ->post('/customers', [
+                '_token' => 'test-token',
                 'name' => 'Customer Password Test',
                 'phone' => '081299988877',
                 'email' => 'customer-password@example.test',
@@ -123,11 +127,13 @@ class CustomerOrderBoundaryTest extends TestCase
         $admin = $this->superAdmin('blocked-admin@example.test');
         $customer = $this->customer('blocked-credit@example.test');
         $this->customerProfile($customer, [
+            'payment_term' => Customer::PAYMENT_CREDIT,
             'credit_status' => Customer::CREDIT_BLOCKED,
         ]);
         $product = $this->product('Blocked Credit Product');
 
         $this->actingAs($admin)
+            ->withSession(['_token' => 'test-token'])
             ->from('/orders/create')
             ->post('/orders', $this->orderPayload($customer, $product))
             ->assertRedirect('/orders/create')
@@ -143,16 +149,37 @@ class CustomerOrderBoundaryTest extends TestCase
         $admin = $this->superAdmin('limit-admin@example.test');
         $customer = $this->customer('limit-credit@example.test');
         $this->customerProfile($customer, [
+            'payment_term' => Customer::PAYMENT_CREDIT,
             'credit_limit' => 15000,
         ]);
         $product = $this->product('Limit Credit Product');
         $this->createOrderFor($customer, 'KMGCREDITLIMIT1');
 
         $this->actingAs($admin)
+            ->withSession(['_token' => 'test-token'])
             ->from('/orders/create')
             ->post('/orders', $this->orderPayload($customer, $product))
             ->assertRedirect('/orders/create')
             ->assertSessionHas('error');
+
+        $this->assertSame(1, Order::where('user_id', $customer->id)->count());
+    }
+
+    public function test_cash_customer_ignores_credit_limit_and_credit_status(): void
+    {
+        $admin = $this->superAdmin('cash-admin@example.test');
+        $customer = $this->customer('cash-credit-ignored@example.test');
+        $this->customerProfile($customer, [
+            'payment_term' => Customer::PAYMENT_CASH,
+            'credit_limit' => 1,
+            'credit_status' => Customer::CREDIT_BLOCKED,
+        ]);
+        $product = $this->product('Cash Customer Product');
+
+        $this->actingAs($admin)
+            ->withSession(['_token' => 'test-token'])
+            ->post('/orders', $this->orderPayload($customer, $product))
+            ->assertRedirect();
 
         $this->assertSame(1, Order::where('user_id', $customer->id)->count());
     }
@@ -181,6 +208,7 @@ class CustomerOrderBoundaryTest extends TestCase
             'phone' => '08' . str_pad((string) $user->id, 10, '0', STR_PAD_LEFT),
             'email' => $user->email,
             'customer_type' => 'regular',
+            'payment_term' => Customer::PAYMENT_CASH,
             'credit_limit' => 0,
             'max_outstanding_orders' => 0,
             'credit_status' => Customer::CREDIT_NORMAL,
@@ -202,6 +230,7 @@ class CustomerOrderBoundaryTest extends TestCase
     private function orderPayload(User $customer, Product $product): array
     {
         return [
+            '_token' => 'test-token',
             'user_id' => $customer->id,
             'delivery_date' => now()->addDay()->toDateString(),
             'delivery_time_slot' => '06:00-09:00',

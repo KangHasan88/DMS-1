@@ -48,16 +48,26 @@
             </div>
 
             <div class="form-group">
+                <label class="form-label">Termin Pembayaran</label>
+                <select name="payment_term" class="form-control">
+                    <option value="cash" {{ old('payment_term', $customer->payment_term ?? 'cash') == 'cash' ? 'selected' : '' }}>Tunai</option>
+                    <option value="credit" {{ old('payment_term', $customer->payment_term ?? 'cash') == 'credit' ? 'selected' : '' }}>Kredit</option>
+                </select>
+                <small class="dms-form-help">Tunai tidak memakai credit limit. Kredit memakai aturan kredit di bawah.</small>
+                @error('payment_term') <span class="dms-error">{{ $message }}</span> @enderror
+            </div>
+
+            <div class="form-group">
                 <label class="form-label">Credit Limit</label>
                 <input type="number" name="credit_limit" value="{{ old('credit_limit', $customer->credit_limit ?? 0) }}" class="form-control" min="0">
-                <small class="dms-form-help">Isi 0 jika pelanggan tidak memakai batas kredit.</small>
+                <small class="dms-form-help">Hanya berlaku untuk termin Kredit.</small>
                 @error('credit_limit') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
 
             <div class="form-group">
                 <label class="form-label">Maks. Outstanding Order</label>
                 <input type="number" name="max_outstanding_orders" value="{{ old('max_outstanding_orders', $customer->max_outstanding_orders ?? 0) }}" class="form-control" min="0" max="999">
-                <small class="dms-form-help">Isi 0 jika tidak dibatasi jumlah order aktif.</small>
+                <small class="dms-form-help">Hanya berlaku untuk termin Kredit. Isi 0 jika tidak dibatasi.</small>
                 @error('max_outstanding_orders') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
 
@@ -68,7 +78,7 @@
                     <option value="watchlist" {{ old('credit_status', $customer->credit_status) == 'watchlist' ? 'selected' : '' }}>Watchlist</option>
                     <option value="blocked" {{ old('credit_status', $customer->credit_status) == 'blocked' ? 'selected' : '' }}>Blocked</option>
                 </select>
-                <small class="dms-form-help">Blocked akan menolak order baru dari pelanggan ini.</small>
+                <small class="dms-form-help">Hanya berlaku untuk termin Kredit. Tunai mengabaikan status kredit.</small>
                 @error('credit_status') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
 
