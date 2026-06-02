@@ -1323,16 +1323,6 @@
                 <div class="nav-section">
                     <div class="nav-section-title">{{ __('navigation.catalog') }}</div>
                     <ul style="list-style: none; padding: 0;">
-                        <!-- Products -->
-                        @can('view products')
-                        <li class="nav-item">
-                            <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
-                                <i class="bi bi-box-seam"></i>
-                                <span>{{ __('navigation.products') }}</span>
-                            </a>
-                        </li>
-                        @endcan
-
                         <!-- Product Categories -->
                         @can('view categories')
                         <li class="nav-item">
@@ -1352,6 +1342,16 @@
                             </a>
                         </li>
                         @endcan
+
+                        <!-- Products -->
+                        @can('view products')
+                        <li class="nav-item">
+                            <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
+                                <i class="bi bi-box-seam"></i>
+                                <span>{{ __('navigation.products') }}</span>
+                            </a>
+                        </li>
+                        @endcan
                     </ul>
                 </div>
 
@@ -1359,22 +1359,22 @@
                 <div class="nav-section">
                     <div class="nav-section-title">{{ __('navigation.business_relations') }}</div>
                     <ul style="list-style: none; padding: 0;">
-                        <!-- Customers -->
-                        @can('view customers')
-                        <li class="nav-item">
-                            <a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') ? 'active' : '' }}">
-                                <i class="bi bi-people"></i>
-                                <span>{{ __('navigation.customers') }}</span>
-                            </a>
-                        </li>
-                        @endcan
-
                         <!-- Supplier Categories -->
                         @can('view suppliers')
                         <li class="nav-item">
                             <a href="{{ route('supplier-categories.index') }}" class="nav-link {{ request()->routeIs('supplier-categories.*') ? 'active' : '' }}">
                                 <i class="bi bi-bookmark"></i>
                                 <span>Kategori Pemasok</span>
+                            </a>
+                        </li>
+                        @endcan
+
+                        <!-- Customers -->
+                        @can('view customers')
+                        <li class="nav-item">
+                            <a href="{{ route('customers.index') }}" class="nav-link {{ request()->routeIs('customers.*') ? 'active' : '' }}">
+                                <i class="bi bi-people"></i>
+                                <span>{{ __('navigation.customers') }}</span>
                             </a>
                         </li>
                         @endcan
