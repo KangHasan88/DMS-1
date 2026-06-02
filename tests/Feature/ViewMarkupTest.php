@@ -176,6 +176,9 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('font-size: 0.78rem;', $layout);
         $this->assertStringContainsString('background: #f8fafc;', $layout);
         $this->assertStringContainsString('font-weight: 600;', $layout);
+        $this->assertStringContainsString('<th style="width: 88px; text-align: center;">{{ $isIndonesian ? \'Aksi\' : \'Action\' }}</th>', $dashboard);
+        $this->assertStringContainsString('aria-label="{{ $isIndonesian ? \'Lihat Detail Pesanan\' : \'View Order Detail\' }}"', $dashboard);
+        $this->assertStringNotContainsString('</i> Detail', $dashboard);
     }
 
     public function test_table_action_buttons_stay_in_one_row(): void

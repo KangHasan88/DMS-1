@@ -251,7 +251,7 @@
                     <th style="text-align: right;">{{ $isIndonesian ? 'Jumlah' : 'Amount' }}</th>
                     <th>Status</th>
                     <th>{{ $isIndonesian ? 'Tanggal' : 'Date' }}</th>
-                    <th style="text-align: center;">{{ $isIndonesian ? 'Aksi' : 'Action' }}</th>
+                    <th style="width: 88px; text-align: center;">{{ $isIndonesian ? 'Aksi' : 'Action' }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -310,10 +310,12 @@
                             <span class="dms-muted">{{ $order->created_at->format('H:i') }}</span>
                         </div>
                     </td>
-                    <td style="text-align: center;">
-                        <a href="{{ route('orders.show', $order) }}" class="dms-btn dms-btn-outline dms-btn-sm" style="text-decoration: none;">
-                            <i class="bi bi-eye" style="font-size: 0.7rem;"></i> Detail
-                        </a>
+                    <td>
+                        <div class="dms-actions">
+                            <a href="{{ route('orders.show', $order) }}" class="dms-btn dms-btn-outline dms-btn-sm" title="{{ $isIndonesian ? 'Lihat Detail' : 'View Detail' }}" aria-label="{{ $isIndonesian ? 'Lihat Detail Pesanan' : 'View Order Detail' }}">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 @empty
