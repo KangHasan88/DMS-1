@@ -36,6 +36,7 @@ class LocaleNavigationTest extends TestCase
             ->assertSee('Katalog')
             ->assertSee('Relasi Bisnis')
             ->assertSee('Laporan Inventori')
+            ->assertSee('Stock Opname')
             ->assertDontSee('Hadiah / FOC')
             ->assertDontSee('PO Pembelian')
             ->assertDontSee('Role & Hak Akses');
@@ -61,6 +62,7 @@ class LocaleNavigationTest extends TestCase
             ->assertSee('Sales Returns')
             ->assertSee('Proposed Orders')
             ->assertSee('Stock Management')
+            ->assertSee('Stock Opname')
             ->assertSee('Catalog')
             ->assertSee('Business Relations')
             ->assertSee('Inventory Report')

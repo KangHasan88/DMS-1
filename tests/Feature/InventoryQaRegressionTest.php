@@ -15,6 +15,7 @@ use App\Models\PurchaseOrderItem;
 use App\Models\Consignment;
 use App\Models\ConsignmentItem;
 use App\Models\StockMovement;
+use App\Models\StockOpname;
 use App\Models\Supplier;
 use App\Models\Unit;
 use App\Models\User;
@@ -475,6 +476,99 @@ class InventoryQaRegressionTest extends TestCase
             ->assertSee('Usulan Reorder')
             ->assertSee('Tidak ada produk yang perlu reorder untuk target 12 minggu.')
             ->assertSee('Stok saat ini masih memenuhi min stock dan target week-cover');
+    }
+
+    public function test_stock_opname_completes_and_adjusts_product_stock(): void
+    {
+        $user = $this->superAdmin();
+        $product = Product::create([
+            'name' => 'Produk Opname',
+            'category' => 'Sayur',
+            'price' => 10000,
+            'base_price' => 7000,
+            'is_active' => true,
+        ]);
+        ProductStock::create([
+            'product_id' => $product->id,
+            'quantity' => 10,
+            'min_stock' => 2,
+        ]);
+
+        $this->actingAs($user)
+            ->post('/stock-opnames', [
+                'opname_date' => now()->toDateString(),
+                'notes' => 'Opname test',
+            ])
+            ->assertRedirect('/stock-opnames');
+
+        $stockOpname = StockOpname::with('items')->firstOrFail();
+        $item = $stockOpname->items->firstWhere('product_id', $product->id);
+
+        $this->actingAs($user)
+            ->put(route('stock-opnames.update', $stockOpname), [
+                'items' => [
+                    [
+                        'id' => $item->id,
+                        'counted_quantity' => 7,
+                        'notes' => 'Selisih fisik',
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('stock-opnames.show', $stockOpname));
+
+        $this->actingAs($user)
+            ->post(route('stock-opnames.complete', $stockOpname))
+            ->assertRedirect(route('stock-opnames.show', $stockOpname));
+
+        $this->assertSame(StockOpname::STATUS_COMPLETED, $stockOpname->fresh()->status);
+        $this->assertSame(7, $product->stock()->first()->quantity);
+        $this->assertDatabaseHas('stock_opname_items', [
+            'stock_opname_id' => $stockOpname->id,
+            'product_id' => $product->id,
+            'system_quantity' => 10,
+            'counted_quantity' => 7,
+            'difference_quantity' => -3,
+        ]);
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $product->id,
+            'source_type' => StockMovement::SOURCE_ADJUSTMENT,
+            'source_id' => $stockOpname->id,
+            'type' => StockMovement::TYPE_ADJUSTMENT,
+            'quantity' => 3,
+            'before_quantity' => 10,
+            'after_quantity' => 7,
+        ]);
+    }
+
+    public function test_stock_opname_requires_all_items_counted_before_complete(): void
+    {
+        $user = $this->superAdmin();
+        $product = Product::create([
+            'name' => 'Produk Opname Belum Hitung',
+            'category' => 'Sayur',
+            'price' => 10000,
+            'base_price' => 7000,
+            'is_active' => true,
+        ]);
+        ProductStock::create([
+            'product_id' => $product->id,
+            'quantity' => 10,
+        ]);
+
+        $this->actingAs($user)->post('/stock-opnames', [
+            'opname_date' => now()->toDateString(),
+        ]);
+
+        $stockOpname = StockOpname::firstOrFail();
+
+        $this->actingAs($user)
+            ->from(route('stock-opnames.show', $stockOpname))
+            ->post(route('stock-opnames.complete', $stockOpname))
+            ->assertRedirect(route('stock-opnames.show', $stockOpname))
+            ->assertSessionHas('error');
+
+        $this->assertSame(StockOpname::STATUS_DRAFT, $stockOpname->fresh()->status);
+        $this->assertSame(10, $product->stock()->first()->quantity);
     }
 
     private function superAdmin(string $email = 'admin@example.test'): User

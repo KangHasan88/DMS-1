@@ -13,6 +13,7 @@ use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\StockController;
+use App\Http\Controllers\StockOpnameController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\DirectPurchaseController;
 use App\Http\Controllers\ConsignmentController;
@@ -131,6 +132,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('consignments/{consignment}/return', [ConsignmentController::class, 'processReturn'])->middleware('permission:edit consignments')->name('consignments.return');
     
     // ============= STOCK MANAGEMENT =============
+    Route::resource('stock-opnames', StockOpnameController::class)
+        ->only(['index', 'create', 'store', 'show', 'update'])
+        ->middleware('permission:manage warehouse');
+    Route::post('stock-opnames/{stockOpname}/complete', [StockOpnameController::class, 'complete'])
+        ->middleware('permission:manage warehouse')
+        ->name('stock-opnames.complete');
+
     Route::prefix('stock')->name('stock.')->group(function () {
         Route::get('/', [StockController::class, 'index'])->middleware('permission:view warehouse')->name('index');
         Route::get('/low-stock', [StockController::class, 'lowStock'])->middleware('permission:view warehouse')->name('low-stock');

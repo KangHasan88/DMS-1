@@ -18,6 +18,7 @@ return [
     'consignment' => 'Konsinyasi',
     'inventory' => 'Inventori',
     'stock_management' => 'Manajemen Stok',
+    'stock_opnames' => 'Stock Opname',
     'stock_movements' => 'Mutasi Stok',
     'master_data' => 'Master Data',
     'catalog' => 'Katalog',

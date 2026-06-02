@@ -1259,6 +1259,16 @@
                             </a>
                         </li>
                         @endcan
+
+                        <!-- Stock Opname -->
+                        @can('manage warehouse')
+                        <li class="nav-item">
+                            <a href="{{ route('stock-opnames.index') }}" class="nav-link {{ request()->routeIs('stock-opnames.*') ? 'active' : '' }}">
+                                <i class="bi bi-clipboard-check"></i>
+                                <span>{{ __('navigation.stock_opnames') }}</span>
+                            </a>
+                        </li>
+                        @endcan
                         
                         <!-- Stock Movement Log -->
                         @can('view stock movement')
