@@ -15,6 +15,7 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\Consignment;
 use App\Models\ConsignmentItem;
+use App\Models\CustomerType;
 use App\Models\StockMovement;
 use App\Models\StockOpname;
 use App\Models\Supplier;
@@ -304,6 +305,40 @@ class InventoryQaRegressionTest extends TestCase
         $this->assertDatabaseHas('suppliers', [
             'name' => 'Supplier Frozen Test',
             'category' => 'frozen-food',
+        ]);
+    }
+
+    public function test_customer_store_uses_master_customer_type(): void
+    {
+        $user = $this->superAdmin('customer-type-admin@example.test');
+        CustomerType::create([
+            'code' => 'corporate',
+            'name' => 'Corporate',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->from('/customers/create')
+            ->withSession(['_token' => 'test-token'])
+            ->post('/customers', [
+                '_token' => 'test-token',
+                'name' => 'PT Customer Test',
+                'phone' => '081288877766',
+                'email' => 'pt-customer@example.test',
+                'customer_type' => 'corporate',
+                'payment_term' => 'cash',
+                'is_active' => '1',
+            ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertSessionMissing('error');
+        $response->assertRedirect('/customers');
+
+        $this->assertDatabaseHas('customers', [
+            'name' => 'PT Customer Test',
+            'customer_type' => 'corporate',
+            'payment_term' => 'cash',
         ]);
     }
 

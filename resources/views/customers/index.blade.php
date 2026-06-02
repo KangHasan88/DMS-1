@@ -10,13 +10,43 @@
             <h3 class="dms-section-title">Data Pelanggan</h3>
             <p class="dms-section-subtitle">Kelola data pelanggan, status akun, wallet, dan riwayat pesanan.</p>
         </div>
-        @can('create customers')
-        <a href="{{ route('customers.create') }}" class="dms-btn dms-btn-primary">
-            <i class="bi bi-plus-circle"></i>
-            Tambah Pelanggan
-        </a>
-        @endcan
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            @can('create customers')
+            <button type="button" class="dms-btn dms-btn-outline" onclick="toggleInlineCategoryForm('customer-type-panel')">
+                <i class="bi bi-tags"></i>
+                Tambah Tipe
+            </button>
+            <a href="{{ route('customers.create') }}" class="dms-btn dms-btn-primary">
+                <i class="bi bi-plus-circle"></i>
+                Tambah Pelanggan
+            </a>
+            @endcan
+        </div>
     </div>
+
+    @can('create customers')
+    <div id="customer-type-panel" style="display: none; margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--k-gray-200); border-radius: 8px; background: var(--k-gray-50);">
+        <form action="{{ route('customer-types.store') }}" method="POST" style="display: flex; gap: 0.75rem; align-items: end; flex-wrap: wrap;">
+            @csrf
+            <input type="hidden" name="redirect_to" value="{{ route('customers.index') }}">
+            <div class="form-group" style="margin: 0; flex: 1 1 260px;">
+                <label class="form-label">Nama Tipe</label>
+                <input type="text" name="name" class="form-control" required placeholder="Contoh: Reseller, Corporate, VIP">
+            </div>
+            <div class="form-group" style="margin: 0; flex: 0 1 160px;">
+                <label class="form-label">Urutan</label>
+                <input type="number" name="sort_order" class="form-control" min="0" value="0">
+            </div>
+            <input type="hidden" name="is_active" value="1">
+            <button type="submit" class="dms-btn dms-btn-primary">
+                <i class="bi bi-save"></i> Simpan
+            </button>
+            <a href="{{ route('customer-types.index') }}" class="dms-btn dms-btn-outline">
+                <i class="bi bi-list-ul"></i> Lihat Daftar
+            </a>
+        </form>
+    </div>
+    @endcan
 
     <!-- Search & Filter -->
     <div class="dms-toolbar">
@@ -33,9 +63,11 @@
             <!-- Filter Type -->
             <select name="customer_type" onchange="window.location.href = this.value" class="form-control">
                 <option value="{{ route('customers.index', array_merge(request()->except('customer_type'), ['customer_type' => null])) }}">Semua Tipe</option>
-                <option value="{{ route('customers.index', array_merge(request()->except('customer_type'), ['customer_type' => 'regular'])) }}" {{ request('customer_type') == 'regular' ? 'selected' : '' }}>Regular</option>
-                <option value="{{ route('customers.index', array_merge(request()->except('customer_type'), ['customer_type' => 'premium'])) }}" {{ request('customer_type') == 'premium' ? 'selected' : '' }}>Premium</option>
-                <option value="{{ route('customers.index', array_merge(request()->except('customer_type'), ['customer_type' => 'wholesale'])) }}" {{ request('customer_type') == 'wholesale' ? 'selected' : '' }}>Wholesale</option>
+                @foreach($customerTypes as $type)
+                <option value="{{ route('customers.index', array_merge(request()->except('customer_type'), ['customer_type' => $type->code])) }}" {{ request('customer_type') == $type->code ? 'selected' : '' }}>
+                    {{ $type->name }}
+                </option>
+                @endforeach
             </select>
             
             <!-- Filter Status -->
@@ -110,8 +142,8 @@
                         </div>
                     </td>
                     <td>
-                        <span class="dms-badge dms-badge-{{ $customer->customer_type == 'premium' ? 'success' : ($customer->customer_type == 'wholesale' ? 'warning' : 'info') }}">
-                            {{ ucfirst($customer->customer_type) }}
+                        <span class="dms-badge {{ $customer->customer_type_badge }}">
+                            {{ $customer->customer_type_label }}
                         </span>
                     </td>
                     <td>
@@ -192,6 +224,20 @@
 @endcan
 
 <script>
+function toggleInlineCategoryForm(panelId) {
+    const panel = document.getElementById(panelId);
+    if (!panel) {
+        return;
+    }
+
+    const willOpen = panel.style.display === 'none' || panel.style.display === '';
+    panel.style.display = willOpen ? 'block' : 'none';
+
+    if (willOpen) {
+        panel.querySelector('input[name="name"]')?.focus();
+    }
+}
+
 function toggleStatus(customerId) {
     if (!confirm('Apakah Anda yakin ingin mengubah status pelanggan ini?')) {
         return;

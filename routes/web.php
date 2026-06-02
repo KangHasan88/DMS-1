@@ -9,6 +9,7 @@ use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UnitCategoryController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerTypeController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierCategoryController;
 use App\Http\Controllers\OrderController;
@@ -115,6 +116,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('products/{product}/toggle-status', [ProductController::class, 'toggleStatus'])->middleware('permission:edit products')->name('products.toggle-status');
     Route::get('products/{product}/price-history', [ProductController::class, 'priceHistory'])->middleware('permission:view products')->name('products.price-history');
     
+    // ============= CUSTOMER TYPE MANAGEMENT =============
+    Route::get('customer-types', [CustomerTypeController::class, 'index'])->middleware('permission:view customers')->name('customer-types.index');
+    Route::get('customer-types/create', [CustomerTypeController::class, 'create'])->middleware('permission:create customers')->name('customer-types.create');
+    Route::post('customer-types', [CustomerTypeController::class, 'store'])->middleware('permission:create customers')->name('customer-types.store');
+    Route::get('customer-types/{customerType}/edit', [CustomerTypeController::class, 'edit'])->middleware('permission:edit customers')->name('customer-types.edit');
+    Route::put('customer-types/{customerType}', [CustomerTypeController::class, 'update'])->middleware('permission:edit customers')->name('customer-types.update');
+    Route::delete('customer-types/{customerType}', [CustomerTypeController::class, 'destroy'])->middleware('permission:delete customers')->name('customer-types.destroy');
+    Route::post('customer-types/{customerType}/toggle-status', [CustomerTypeController::class, 'toggleStatus'])->middleware('permission:edit customers')->name('customer-types.toggle-status');
+
     // ============= CUSTOMER MANAGEMENT =============
     Route::resource('customers', CustomerController::class)->only(['create', 'store'])->middleware('permission:create customers');
     Route::resource('customers', CustomerController::class)->only(['index', 'show'])->middleware('permission:view customers');

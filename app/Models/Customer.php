@@ -79,6 +79,11 @@ class Customer extends Model
         return $this->belongsTo(Wallet::class, 'user_id', 'user_id');
     }
 
+    public function type(): BelongsTo
+    {
+        return $this->belongsTo(CustomerType::class, 'customer_type', 'code');
+    }
+
     // ===================== ACCESSORS =====================
     
     public function getPhotoUrlAttribute(): string
@@ -125,6 +130,20 @@ class Customer extends Model
     public function getPaymentTermBadgeAttribute(): string
     {
         return $this->payment_term === self::PAYMENT_CREDIT ? 'dms-badge-info' : 'dms-badge-secondary';
+    }
+
+    public function getCustomerTypeLabelAttribute(): string
+    {
+        return $this->type?->name ?? str($this->customer_type)->replace(['-', '_'], ' ')->headline()->toString();
+    }
+
+    public function getCustomerTypeBadgeAttribute(): string
+    {
+        return match ($this->customer_type) {
+            'premium' => 'dms-badge-success',
+            'wholesale' => 'dms-badge-warning',
+            default => 'dms-badge-info',
+        };
     }
 
     // ===================== HELPER METHODS =====================

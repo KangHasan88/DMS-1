@@ -45,8 +45,8 @@
                 <!-- Name & Type -->
                 <h3 style="font-size: 1.3rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.5rem;">{{ $customer->name }}</h3>
                 <div style="margin-bottom: 1rem;">
-                    <span class="dms-badge dms-badge-{{ $customer->customer_type == 'premium' ? 'success' : ($customer->customer_type == 'wholesale' ? 'warning' : 'info') }}">
-                        {{ ucfirst($customer->customer_type) }}
+                    <span class="dms-badge {{ $customer->customer_type_badge }}">
+                        {{ $customer->customer_type_label }}
                     </span>
                     <span class="dms-badge {{ $customer->payment_term_badge }}" style="margin-left: 0.35rem;">
                         {{ $customer->payment_term_label }}

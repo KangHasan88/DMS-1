@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\CustomerType;
 use App\Models\Wallet;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ class CustomerController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Customer::with('user');
+        $query = Customer::with('user', 'type');
         
         // Search
         if ($request->filled('search')) {
@@ -47,8 +48,7 @@ class CustomerController extends Controller
         $perPage = $request->get('per_page', 10);
         $customers = $query->orderBy('created_at', 'desc')->paginate($perPage);
         
-        // Get customer types for filter
-        $customerTypes = ['regular', 'premium', 'wholesale'];
+        $customerTypes = CustomerType::active()->orderBy('sort_order')->orderBy('name')->get();
         
         return view('customers.index', compact('customers', 'customerTypes'));
     }
@@ -58,7 +58,9 @@ class CustomerController extends Controller
      */
     public function create()
     {
-        return view('customers.create');
+        $customerTypes = CustomerType::active()->orderBy('sort_order')->orderBy('name')->get();
+
+        return view('customers.create', compact('customerTypes'));
     }
 
     /**
@@ -73,7 +75,12 @@ class CustomerController extends Controller
             'address' => 'nullable|string',
             'latitude' => 'nullable|string',
             'longitude' => 'nullable|string',
-            'customer_type' => 'required|in:regular,premium,wholesale',
+            'customer_type' => [
+                'required',
+                'string',
+                'max:100',
+                Rule::exists('customer_types', 'code')->where('is_active', true),
+            ],
             'payment_term' => 'nullable|in:cash,credit',
             'credit_limit' => 'nullable|integer|min:0',
             'max_outstanding_orders' => 'nullable|integer|min:0|max:999',
@@ -120,7 +127,7 @@ class CustomerController extends Controller
      */
     public function show(Customer $customer)
     {
-        $customer->load('user', 'orders');
+        $customer->load('user', 'orders', 'type');
         $totalOrders = $customer->orders()->count();
         $totalSpent = $customer->orders()->where('status', 'delivered')->sum('total');
         $lastOrder = $customer->orders()->latest()->first();
@@ -133,7 +140,9 @@ class CustomerController extends Controller
      */
     public function edit(Customer $customer)
     {
-        return view('customers.edit', compact('customer'));
+        $customerTypes = CustomerType::active()->orderBy('sort_order')->orderBy('name')->get();
+
+        return view('customers.edit', compact('customer', 'customerTypes'));
     }
 
     /**
@@ -160,7 +169,12 @@ class CustomerController extends Controller
             'address' => 'nullable|string',
             'latitude' => 'nullable|string',
             'longitude' => 'nullable|string',
-            'customer_type' => 'required|in:regular,premium,wholesale',
+            'customer_type' => [
+                'required',
+                'string',
+                'max:100',
+                Rule::exists('customer_types', 'code')->where('is_active', true),
+            ],
             'payment_term' => 'nullable|in:cash,credit',
             'credit_limit' => 'nullable|integer|min:0',
             'max_outstanding_orders' => 'nullable|integer|min:0|max:999',

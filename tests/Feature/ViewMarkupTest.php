@@ -72,6 +72,41 @@ class ViewMarkupTest extends TestCase
         }
     }
 
+    public function test_customer_type_options_are_loaded_from_master_data(): void
+    {
+        $controller = file_get_contents(app_path('Http/Controllers/CustomerController.php'));
+        $create = file_get_contents(resource_path('views/customers/create.blade.php'));
+        $edit = file_get_contents(resource_path('views/customers/edit.blade.php'));
+        $index = file_get_contents(resource_path('views/customers/index.blade.php'));
+        $show = file_get_contents(resource_path('views/customers/show.blade.php'));
+        $sidebar = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));
+
+        $this->assertStringContainsString('CustomerType::active()', $controller);
+        $this->assertStringNotContainsString('regular,premium,wholesale', $controller);
+
+        foreach ([$create, $edit, $index] as $content) {
+            $this->assertStringContainsString('$customerTypes', $content);
+            $this->assertStringNotContainsString('<option value="regular"', $content);
+            $this->assertStringNotContainsString('<option value="premium"', $content);
+            $this->assertStringNotContainsString('<option value="wholesale"', $content);
+        }
+
+        foreach ([$create, $edit] as $content) {
+            $this->assertStringContainsString('customer-types.index', $content);
+        }
+
+        $this->assertStringContainsString('Tambah Tipe', $index);
+        $this->assertStringContainsString('customer-type-panel', $index);
+        $this->assertStringContainsString('toggleInlineCategoryForm', $index);
+        $this->assertStringContainsString('customer-types.store', $index);
+        $this->assertStringContainsString('customer-types.index', $index);
+        $this->assertStringContainsString('Lihat Daftar', $index);
+        $this->assertStringContainsString('customer_type_label', $index);
+        $this->assertStringContainsString('customer_type_label', $show);
+        $this->assertStringNotContainsString('customer-types.index', $sidebar);
+        $this->assertStringNotContainsString('Tipe Pelanggan', $sidebar);
+    }
+
     public function test_sidebar_brand_palette_keeps_orange_accent_and_semantic_success(): void
     {
         $content = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));
@@ -283,6 +318,7 @@ class ViewMarkupTest extends TestCase
         $productCategories = file_get_contents(resource_path('views/product-categories/index.blade.php'));
         $unitCategories = file_get_contents(resource_path('views/unit-categories/index.blade.php'));
         $supplierCategories = file_get_contents(resource_path('views/supplier-categories/index.blade.php'));
+        $customerTypes = file_get_contents(resource_path('views/customer-types/index.blade.php'));
 
         $catalogStart = strpos($sidebar, '<!-- SECTION: CATALOG -->');
         $units = strpos($sidebar, 'units.index', $catalogStart);
@@ -304,13 +340,16 @@ class ViewMarkupTest extends TestCase
         $this->assertNotFalse($suppliers);
         $this->assertLessThan($suppliers, $customers);
         $this->assertStringNotContainsString('supplier-categories.index', $sidebar);
+        $this->assertStringNotContainsString('customer-types.index', $sidebar);
 
         $this->assertStringContainsString('products.index', $productCategories);
         $this->assertStringContainsString('units.index', $unitCategories);
         $this->assertStringContainsString('suppliers.index', $supplierCategories);
+        $this->assertStringContainsString('customers.index', $customerTypes);
         $this->assertStringContainsString('Kembali', $productCategories);
         $this->assertStringContainsString('Kembali', $unitCategories);
         $this->assertStringContainsString('Kembali', $supplierCategories);
+        $this->assertStringContainsString('Kembali', $customerTypes);
     }
 
     public function test_global_typography_uses_professional_scale(): void

@@ -40,11 +40,13 @@
             <div class="form-group">
                 <label class="form-label">Tipe Pelanggan <span class="dms-required">*</span></label>
                 <select name="customer_type" class="form-control" required>
-                    <option value="regular" {{ old('customer_type') == 'regular' ? 'selected' : '' }}>Regular</option>
-                    <option value="premium" {{ old('customer_type') == 'premium' ? 'selected' : '' }}>Premium</option>
-                    <option value="wholesale" {{ old('customer_type') == 'wholesale' ? 'selected' : '' }}>Wholesale</option>
+                    @foreach($customerTypes as $type)
+                    <option value="{{ $type->code }}" {{ old('customer_type', 'regular') == $type->code ? 'selected' : '' }}>{{ $type->name }}</option>
+                    @endforeach
                 </select>
-                <small class="dms-form-help">Premium: diskon khusus, Wholesale: harga grosir</small>
+                <small class="dms-form-help">
+                    <a href="{{ route('customer-types.index') }}">Kelola tipe pelanggan</a>
+                </small>
                 @error('customer_type') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
 
