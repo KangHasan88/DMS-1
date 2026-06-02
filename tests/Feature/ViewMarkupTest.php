@@ -212,4 +212,15 @@ class ViewMarkupTest extends TestCase
         $this->assertStringNotContainsString('font-size: 0.45rem;', $layout);
         $this->assertStringNotContainsString('font-size: 0.55rem;', $layout);
     }
+
+    public function test_sidebar_scroll_position_is_preserved_between_pages(): void
+    {
+        $layout = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));
+
+        $this->assertStringContainsString("const sidebarScrollKey = 'dms.sidebar.scrollTop';", $layout);
+        $this->assertStringContainsString('localStorage.setItem(sidebarScrollKey, String(sidebar.scrollTop));', $layout);
+        $this->assertStringContainsString('sidebar.scrollTop = Number(savedScrollTop);', $layout);
+        $this->assertStringContainsString("sidebar.querySelectorAll('.nav-link')", $layout);
+        $this->assertStringContainsString("activeNavLink.scrollIntoView({ block: 'center' });", $layout);
+    }
 }

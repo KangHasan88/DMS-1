@@ -1545,9 +1545,40 @@
     </div>
 
     <script>
+        const sidebarScrollKey = 'dms.sidebar.scrollTop';
+
         function toggleSidebar() {
             document.querySelector('.sidebar').classList.toggle('open');
         }
+
+        function rememberSidebarScroll() {
+            const sidebar = document.querySelector('.sidebar');
+            if (sidebar) {
+                localStorage.setItem(sidebarScrollKey, String(sidebar.scrollTop));
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.querySelector('.sidebar');
+            if (!sidebar) {
+                return;
+            }
+
+            const savedScrollTop = localStorage.getItem(sidebarScrollKey);
+            const activeNavLink = sidebar.querySelector('.nav-link.active');
+
+            if (savedScrollTop !== null) {
+                sidebar.scrollTop = Number(savedScrollTop);
+            } else if (activeNavLink) {
+                activeNavLink.scrollIntoView({ block: 'center' });
+            }
+
+            sidebar.addEventListener('scroll', rememberSidebarScroll, { passive: true });
+
+            sidebar.querySelectorAll('.nav-link').forEach(function(link) {
+                link.addEventListener('click', rememberSidebarScroll);
+            });
+        });
 
         document.addEventListener('click', function(event) {
             const sidebar = document.querySelector('.sidebar');
