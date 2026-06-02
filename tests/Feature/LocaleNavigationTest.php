@@ -46,9 +46,10 @@ class LocaleNavigationTest extends TestCase
     {
         $user = $this->superAdmin(['locale' => 'id']);
 
-        $this->actingAs($user)
+        $this->withSession(['_token' => 'test-token'])
+            ->actingAs($user)
             ->from('/dashboard')
-            ->post(route('locale.update'), ['locale' => 'en'])
+            ->post(route('locale.update'), ['locale' => 'en', '_token' => 'test-token'])
             ->assertRedirect('/dashboard');
 
         $this->assertSame('en', $user->fresh()->locale);
@@ -181,9 +182,10 @@ class LocaleNavigationTest extends TestCase
     {
         $user = $this->superAdmin(['locale' => 'id']);
 
-        $this->actingAs($user)
+        $this->withSession(['_token' => 'test-token'])
+            ->actingAs($user)
             ->from('/dashboard')
-            ->post(route('locale.update'), ['locale' => 'jp'])
+            ->post(route('locale.update'), ['locale' => 'jp', '_token' => 'test-token'])
             ->assertRedirect('/dashboard')
             ->assertSessionHasErrors('locale');
 

@@ -76,10 +76,11 @@ class ViewMarkupTest extends TestCase
     {
         $content = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));
 
-        $this->assertStringContainsString('--k-blue: #061a3f;', $content);
-        $this->assertStringContainsString('--k-orange: #ff7a00;', $content);
+        $this->assertStringContainsString('--k-blue: #123b7a;', $content);
+        $this->assertStringContainsString('--k-blue-darker: #071a3d;', $content);
+        $this->assertStringContainsString('--k-orange: #f97316;', $content);
         $this->assertStringContainsString('--k-success: #16a34a;', $content);
-        $this->assertStringContainsString('background: var(--k-orange);', $content);
+        $this->assertStringContainsString('background: var(--k-orange-light);', $content);
         $this->assertStringContainsString('background: var(--k-success-light);', $content);
         $this->assertStringContainsString('color: var(--k-success);', $content);
     }
@@ -173,7 +174,7 @@ class ViewMarkupTest extends TestCase
         }
 
         $this->assertStringContainsString('font-size: 0.78rem;', $layout);
-        $this->assertStringContainsString('background: rgba(233, 238, 248, 0.72);', $layout);
+        $this->assertStringContainsString('background: #f1f5f9;', $layout);
         $this->assertStringContainsString('font-weight: 600;', $layout);
     }
 }
