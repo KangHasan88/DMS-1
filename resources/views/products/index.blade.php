@@ -12,10 +12,10 @@
         </div>
         <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
             @can('create categories')
-            <a href="{{ route('product-categories.create') }}" class="dms-btn dms-btn-outline">
+            <button type="button" class="dms-btn dms-btn-outline" onclick="toggleInlineCategoryForm('product-category-panel')">
                 <i class="bi bi-tags"></i>
                 Tambah Kategori
-            </a>
+            </button>
             @endcan
             @can('create products')
             <a href="{{ route('products.create') }}" class="dms-btn dms-btn-primary">
@@ -25,6 +25,30 @@
             @endcan
         </div>
     </div>
+
+    @can('create categories')
+    <div id="product-category-panel" style="display: none; margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--k-gray-200); border-radius: 8px; background: var(--k-gray-50);">
+        <form action="{{ route('product-categories.store') }}" method="POST" style="display: flex; gap: 0.75rem; align-items: end; flex-wrap: wrap;">
+            @csrf
+            <input type="hidden" name="redirect_to" value="{{ route('products.index') }}">
+            <div class="form-group" style="margin: 0; flex: 1 1 260px;">
+                <label class="form-label">Nama Kategori</label>
+                <input type="text" name="name" class="form-control" required placeholder="Contoh: Sayur Organik">
+            </div>
+            <div class="form-group" style="margin: 0; flex: 0 1 160px;">
+                <label class="form-label">Urutan</label>
+                <input type="number" name="sort_order" class="form-control" min="0" value="0">
+            </div>
+            <input type="hidden" name="is_active" value="1">
+            <button type="submit" class="dms-btn dms-btn-primary">
+                <i class="bi bi-save"></i> Simpan
+            </button>
+            <a href="{{ route('product-categories.index') }}" class="dms-btn dms-btn-outline">
+                <i class="bi bi-list-ul"></i> Lihat Daftar
+            </a>
+        </form>
+    </div>
+    @endcan
 
     <!-- Search & Filter -->
     <div class="dms-toolbar">
@@ -183,6 +207,20 @@
 @endcan
 
 <script>
+function toggleInlineCategoryForm(panelId) {
+    const panel = document.getElementById(panelId);
+    if (!panel) {
+        return;
+    }
+
+    const willOpen = panel.style.display === 'none' || panel.style.display === '';
+    panel.style.display = willOpen ? 'block' : 'none';
+
+    if (willOpen) {
+        panel.querySelector('input[name="name"]')?.focus();
+    }
+}
+
 function toggleStatus(productId) {
     if (!confirm('Apakah Anda yakin ingin mengubah status produk ini?')) {
         return;

@@ -44,7 +44,7 @@ class SupplierCategoryController extends Controller
 
         SupplierCategory::create($validated);
 
-        return redirect()->route('supplier-categories.index')
+        return redirect()->to($request->input('redirect_to', route('supplier-categories.index')))
             ->with('success', 'Kategori pemasok berhasil ditambahkan');
     }
 

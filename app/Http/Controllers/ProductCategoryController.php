@@ -44,7 +44,7 @@ class ProductCategoryController extends Controller
 
         ProductCategory::create($validated);
 
-        return redirect()->route('product-categories.index')
+        return redirect()->to($request->input('redirect_to', route('product-categories.index')))
             ->with('success', 'Kategori produk berhasil ditambahkan');
     }
 

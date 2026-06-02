@@ -204,8 +204,12 @@ class ViewMarkupTest extends TestCase
             $this->assertStringNotContainsString('<option value="Bumbu"', $content);
         }
 
-        $this->assertStringContainsString('product-categories.create', $index);
         $this->assertStringContainsString('Tambah Kategori', $index);
+        $this->assertStringContainsString('product-category-panel', $index);
+        $this->assertStringContainsString('toggleInlineCategoryForm', $index);
+        $this->assertStringContainsString('product-categories.store', $index);
+        $this->assertStringContainsString('product-categories.index', $index);
+        $this->assertStringContainsString('Lihat Daftar', $index);
         $this->assertStringNotContainsString('product-categories.index', $sidebar);
         $this->assertStringNotContainsString('Kategori Produk', $sidebar);
     }
@@ -226,8 +230,12 @@ class ViewMarkupTest extends TestCase
             $this->assertStringContainsString('supplier-categories.index', $content);
         }
 
-        $this->assertStringContainsString('supplier-categories.create', $index);
         $this->assertStringContainsString('Tambah Kategori', $index);
+        $this->assertStringContainsString('supplier-category-panel', $index);
+        $this->assertStringContainsString('toggleInlineCategoryForm', $index);
+        $this->assertStringContainsString('supplier-categories.store', $index);
+        $this->assertStringContainsString('supplier-categories.index', $index);
+        $this->assertStringContainsString('Lihat Daftar', $index);
         $this->assertStringNotContainsString('supplier-categories.index', $sidebar);
         $this->assertStringNotContainsString('Kategori Pemasok', $sidebar);
     }
