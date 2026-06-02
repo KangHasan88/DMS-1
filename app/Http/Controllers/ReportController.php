@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Delivery;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
@@ -36,16 +37,67 @@ class ReportController extends Controller
     {
         [$startDate, $endDate] = $this->dateRange($request);
 
+        $salesWindowStart = now()->subDays(30)->startOfDay();
+
         $products = Product::with('unit', 'stock')
             ->orderBy('name')
             ->paginate(20)
             ->withQueryString();
+
+        $productIds = $products->getCollection()->pluck('id');
+
+        $salesVelocity = OrderItem::query()
+            ->select('product_id', DB::raw('SUM(quantity) as sold_last_30_days'))
+            ->whereIn('product_id', $productIds)
+            ->whereHas('order', function ($query) use ($salesWindowStart) {
+                $query->whereIn('status', [Order::STATUS_SHIPPED, Order::STATUS_DELIVERED])
+                    ->where('created_at', '>=', $salesWindowStart);
+            })
+            ->groupBy('product_id')
+            ->pluck('sold_last_30_days', 'product_id');
+
+        $products->getCollection()->transform(function (Product $product) use ($salesVelocity) {
+            $quantity = $product->stock?->quantity ?? 0;
+            $soldLast30Days = (int) ($salesVelocity[$product->id] ?? 0);
+            $weeklySalesAverage = $soldLast30Days > 0 ? $soldLast30Days / (30 / 7) : 0;
+            $weekCover = $weeklySalesAverage > 0 ? round($quantity / $weeklySalesAverage, 1) : null;
+
+            $product->sold_last_30_days = $soldLast30Days;
+            $product->weekly_sales_average = round($weeklySalesAverage, 1);
+            $product->week_cover = $weekCover;
+            $product->inventory_signal = $this->inventorySignal($quantity, $soldLast30Days, $weekCover);
+
+            return $product;
+        });
+
+        $allProductIds = Product::pluck('id');
+        $allSalesVelocity = OrderItem::query()
+            ->select('product_id', DB::raw('SUM(quantity) as sold_last_30_days'))
+            ->whereIn('product_id', $allProductIds)
+            ->whereHas('order', function ($query) use ($salesWindowStart) {
+                $query->whereIn('status', [Order::STATUS_SHIPPED, Order::STATUS_DELIVERED])
+                    ->where('created_at', '>=', $salesWindowStart);
+            })
+            ->groupBy('product_id')
+            ->pluck('sold_last_30_days', 'product_id');
+
+        $inventorySignals = Product::with('stock')->get()
+            ->map(function (Product $product) use ($allSalesVelocity) {
+                $quantity = $product->stock?->quantity ?? 0;
+                $soldLast30Days = (int) ($allSalesVelocity[$product->id] ?? 0);
+                $weeklySalesAverage = $soldLast30Days > 0 ? $soldLast30Days / (30 / 7) : 0;
+                $weekCover = $weeklySalesAverage > 0 ? round($quantity / $weeklySalesAverage, 1) : null;
+
+                return $this->inventorySignal($quantity, $soldLast30Days, $weekCover)['type'];
+            });
 
         $summary = [
             'total_products' => Product::count(),
             'active_products' => Product::where('is_active', true)->count(),
             'stock_in' => StockMovement::whereBetween('created_at', [$startDate, $endDate])->where('type', StockMovement::TYPE_IN)->sum('quantity'),
             'stock_out' => StockMovement::whereBetween('created_at', [$startDate, $endDate])->where('type', StockMovement::TYPE_OUT)->sum('quantity'),
+            'slow_moving' => $inventorySignals->filter(fn (string $type) => $type === 'slow')->count(),
+            'overstock' => $inventorySignals->filter(fn (string $type) => $type === 'overstock')->count(),
         ];
 
         return view('reports.inventory', compact('products', 'summary', 'startDate', 'endDate'));
@@ -130,5 +182,26 @@ class ReportController extends Controller
             : now()->endOfDay();
 
         return [$startDate, $endDate];
+    }
+
+    private function inventorySignal(int $quantity, int $soldLast30Days, ?float $weekCover): array
+    {
+        if ($quantity <= 0) {
+            return ['type' => 'out', 'label' => 'Stok Habis', 'class' => 'danger'];
+        }
+
+        if ($soldLast30Days === 0) {
+            return ['type' => 'slow', 'label' => 'Belum Bergerak 30 Hari', 'class' => 'warning'];
+        }
+
+        if ($weekCover !== null && $weekCover <= 1) {
+            return ['type' => 'reorder', 'label' => 'Perlu Reorder', 'class' => 'danger'];
+        }
+
+        if ($weekCover !== null && $weekCover > 8) {
+            return ['type' => 'overstock', 'label' => 'Stok Berlebih', 'class' => 'warning'];
+        }
+
+        return ['type' => 'healthy', 'label' => 'Sehat', 'class' => 'success'];
     }
 }
