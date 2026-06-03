@@ -54,6 +54,7 @@
                                 data-longitude="{{ e($customer->customer?->longitude ?? '') }}"
                                 data-invoice-addresses="{{ e(json_encode($invoiceAddresses->map($formatAddress)->values())) }}"
                                 data-shipping-addresses="{{ e(json_encode($shippingAddresses->map($formatAddress)->values())) }}"
+                                data-address-url="{{ route('customers.show', $customer->customer?->id ?? 0) }}#customer-addresses"
                                 {{ old('user_id') == $customer->id ? 'selected' : '' }}
                             >
                                 {{ $customer->name }} ({{ $customer->phone }})
@@ -320,6 +321,15 @@
                         <span>Sama dengan alamat invoice/dokumen</span>
                     </label>
                 </div>
+
+                <div class="dms-form-span-2">
+                    <div style="padding: 0.65rem 0.75rem; border: 1px solid var(--k-gray-200); border-radius: 8px; background: var(--k-gray-50); font-size: 0.78rem; color: var(--k-gray-600); display: flex; justify-content: space-between; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                        <span>Alamat invoice dan alamat kirim dikelola di master pelanggan.</span>
+                        <a href="#" id="manage-customer-address-link" target="_blank" style="color: var(--k-green); font-weight: 600; pointer-events: none; opacity: 0.5;">
+                            Kelola alamat pelanggan
+                        </a>
+                    </div>
+                </div>
                 
                 <div class="dms-form-span-2">
                     <label class="form-label">Alamat Pengiriman <span class="dms-required">*</span></label>
@@ -478,6 +488,7 @@ function fillDeliveryAddressFromCustomer(force = false) {
     const invoiceSelect = document.getElementById('invoice-address-select');
     const shippingSelect = document.getElementById('shipping-address-select');
     const sameAsInvoice = document.getElementById('shipping_same_as_invoice');
+    const manageAddressLink = document.getElementById('manage-customer-address-link');
     const addressInput = document.getElementById('delivery-address');
     const latitudeInput = document.getElementById('delivery-latitude');
     const longitudeInput = document.getElementById('delivery-longitude');
@@ -489,6 +500,13 @@ function fillDeliveryAddressFromCustomer(force = false) {
     const selectedOption = customerSelect.options[customerSelect.selectedIndex];
     const invoiceAddresses = parseAddressDataset(selectedOption?.dataset.invoiceAddresses);
     const shippingAddresses = parseAddressDataset(selectedOption?.dataset.shippingAddresses);
+
+    if (manageAddressLink) {
+        const addressUrl = selectedOption?.dataset.addressUrl || '';
+        manageAddressLink.href = addressUrl || '#';
+        manageAddressLink.style.pointerEvents = addressUrl ? 'auto' : 'none';
+        manageAddressLink.style.opacity = addressUrl ? '1' : '0.5';
+    }
 
     populateAddressSelect(invoiceSelect, invoiceAddresses, 'Pilih alamat invoice');
     populateAddressSelect(shippingSelect, shippingAddresses, 'Pilih alamat pengiriman');

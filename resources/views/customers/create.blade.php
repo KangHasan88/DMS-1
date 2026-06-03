@@ -93,8 +93,9 @@
 
             <!-- Address -->
             <div class="form-group dms-form-span-2">
-                <label class="form-label">Alamat</label>
+                <label class="form-label">Alamat Utama</label>
                 <textarea name="address" class="form-control" rows="3" placeholder="Jl. Contoh No. 123, RT/RW, Kelurahan, Kecamatan, Kota">{{ old('address') }}</textarea>
+                <small class="dms-form-help">Alamat ini menjadi default invoice & pengiriman. Alamat tambahan dapat ditambahkan di Detail Pelanggan &gt; Master Alamat Pelanggan setelah pelanggan disimpan.</small>
                 @error('address') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
 

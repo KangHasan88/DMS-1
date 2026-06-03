@@ -150,11 +150,14 @@
             </div>
 
             <!-- Customer Addresses -->
-            <div style="margin-bottom: 2rem;">
+            <div id="customer-addresses" style="margin-bottom: 2rem;">
                 <h4 style="font-size: 1rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--k-gray-200);">
                     <i class="bi bi-geo-alt" style="margin-right: 0.5rem; color: var(--k-green);"></i>
-                    Daftar Alamat
+                    Master Alamat Pelanggan
                 </h4>
+                <p style="font-size: 0.78rem; color: var(--k-gray-500); margin: -0.5rem 0 1rem;">
+                    Kelola alamat invoice/dokumen dan alamat pengiriman. Tambahkan alamat baru di sini sebelum dipakai saat membuat order.
+                </p>
 
                 @can('edit customers')
                 <form action="{{ route('customers.addresses.store', $customer) }}" method="POST" style="margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--k-gray-200); border-radius: 8px; background: var(--k-gray-50);">

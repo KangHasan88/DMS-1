@@ -292,6 +292,8 @@ class ViewMarkupTest extends TestCase
         $orderController = file_get_contents(app_path('Http/Controllers/OrderController.php'));
         $routes = file_get_contents(base_path('routes/web.php'));
         $customerShow = file_get_contents(resource_path('views/customers/show.blade.php'));
+        $customerCreate = file_get_contents(resource_path('views/customers/create.blade.php'));
+        $customerEdit = file_get_contents(resource_path('views/customers/edit.blade.php'));
         $orderCreate = file_get_contents(resource_path('views/orders/create.blade.php'));
         $orderShow = file_get_contents(resource_path('views/orders/show.blade.php'));
 
@@ -301,14 +303,21 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('CustomerAddressController::class', $routes);
         $this->assertStringContainsString('syncPrimaryAddress', $customerController);
         $this->assertStringContainsString('is_default_invoice', $customerAddressController);
-        $this->assertStringContainsString('Daftar Alamat', $customerShow);
+        $this->assertStringContainsString('id="customer-addresses"', $customerShow);
+        $this->assertStringContainsString('Master Alamat Pelanggan', $customerShow);
+        $this->assertStringContainsString('Tambahkan alamat baru di sini sebelum dipakai saat membuat order.', $customerShow);
         $this->assertStringContainsString('Invoice & Pengiriman', $customerShow);
+        $this->assertStringContainsString('Alamat tambahan dapat ditambahkan di Detail Pelanggan', $customerCreate);
+        $this->assertStringContainsString('Alamat invoice/pengiriman tambahan dikelola di Detail Pelanggan', $customerEdit);
 
         $this->assertStringContainsString('invoice_address_id', $order);
         $this->assertStringContainsString('shipping_address_snapshot', $order);
         $this->assertStringContainsString('resolveOrderAddresses', $orderController);
         $this->assertStringContainsString('data-invoice-addresses', $orderCreate);
+        $this->assertStringContainsString('data-address-url', $orderCreate);
         $this->assertStringContainsString('id="invoice-address-select"', $orderCreate);
+        $this->assertStringContainsString('id="manage-customer-address-link"', $orderCreate);
+        $this->assertStringContainsString('Kelola alamat pelanggan', $orderCreate);
         $this->assertStringContainsString('Sama dengan alamat invoice/dokumen', $orderCreate);
         $this->assertStringContainsString('updateDeliveryAddressSnapshot', $orderCreate);
         $this->assertStringContainsString('Alamat Invoice', $orderShow);
