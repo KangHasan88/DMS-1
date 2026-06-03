@@ -12,6 +12,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerTypeController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierCategoryController;
+use App\Http\Controllers\SupplierMarketController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\ReportController;
@@ -142,6 +143,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('supplier-categories/{supplierCategory}', [SupplierCategoryController::class, 'update'])->middleware('permission:edit suppliers')->name('supplier-categories.update');
     Route::delete('supplier-categories/{supplierCategory}', [SupplierCategoryController::class, 'destroy'])->middleware('permission:delete suppliers')->name('supplier-categories.destroy');
     Route::post('supplier-categories/{supplierCategory}/toggle-status', [SupplierCategoryController::class, 'toggleStatus'])->middleware('permission:edit suppliers')->name('supplier-categories.toggle-status');
+
+    // ============= SUPPLIER MARKET MANAGEMENT =============
+    Route::get('supplier-markets', [SupplierMarketController::class, 'index'])->middleware('permission:view suppliers')->name('supplier-markets.index');
+    Route::get('supplier-markets/create', [SupplierMarketController::class, 'create'])->middleware('permission:create suppliers')->name('supplier-markets.create');
+    Route::post('supplier-markets', [SupplierMarketController::class, 'store'])->middleware('permission:create suppliers')->name('supplier-markets.store');
+    Route::get('supplier-markets/{supplierMarket}/edit', [SupplierMarketController::class, 'edit'])->middleware('permission:edit suppliers')->name('supplier-markets.edit');
+    Route::put('supplier-markets/{supplierMarket}', [SupplierMarketController::class, 'update'])->middleware('permission:edit suppliers')->name('supplier-markets.update');
+    Route::delete('supplier-markets/{supplierMarket}', [SupplierMarketController::class, 'destroy'])->middleware('permission:delete suppliers')->name('supplier-markets.destroy');
+    Route::post('supplier-markets/{supplierMarket}/toggle-status', [SupplierMarketController::class, 'toggleStatus'])->middleware('permission:edit suppliers')->name('supplier-markets.toggle-status');
     
     // ============= SUPPLIER MANAGEMENT =============
     Route::resource('suppliers', SupplierController::class)->only(['create', 'store'])->middleware('permission:create suppliers');

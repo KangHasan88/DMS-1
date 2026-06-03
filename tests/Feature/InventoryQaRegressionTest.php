@@ -20,6 +20,7 @@ use App\Models\StockMovement;
 use App\Models\StockOpname;
 use App\Models\Supplier;
 use App\Models\SupplierCategory;
+use App\Models\SupplierMarket;
 use App\Models\Unit;
 use App\Models\UnitCategory;
 use App\Models\User;
@@ -305,6 +306,42 @@ class InventoryQaRegressionTest extends TestCase
         $this->assertDatabaseHas('suppliers', [
             'name' => 'Supplier Frozen Test',
             'category' => 'frozen-food',
+        ]);
+    }
+
+    public function test_supplier_store_uses_master_supplier_market(): void
+    {
+        $user = $this->superAdmin('supplier-market-admin@example.test');
+        SupplierCategory::firstOrCreate(
+            ['code' => 'sayur'],
+            [
+                'name' => 'Sayur',
+                'is_active' => true,
+                'sort_order' => 1,
+            ]
+        );
+        SupplierMarket::create([
+            'name' => 'Pasar Induk Test',
+            'slug' => 'pasar-induk-test',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['_token' => 'test-token'])
+            ->post('/suppliers', [
+                '_token' => 'test-token',
+                'name' => 'Supplier Pasar Test',
+                'phone' => '081288899900',
+                'category' => 'sayur',
+                'market_name' => 'Pasar Induk Test',
+                'is_active' => '1',
+            ])
+            ->assertRedirect('/suppliers');
+
+        $this->assertDatabaseHas('suppliers', [
+            'name' => 'Supplier Pasar Test',
+            'market_name' => 'Pasar Induk Test',
         ]);
     }
 

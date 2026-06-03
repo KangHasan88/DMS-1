@@ -45,7 +45,15 @@
             <!-- Market Name -->
             <div class="form-group">
                 <label class="form-label">Nama Pasar</label>
-                <input type="text" name="market_name" value="{{ old('market_name') }}" class="form-control" placeholder="Pasar Baru, Pasar Lama">
+                <select name="market_name" class="form-control">
+                    <option value="">-- Pilih Pasar --</option>
+                    @foreach($markets as $market)
+                    <option value="{{ $market }}" {{ old('market_name') == $market ? 'selected' : '' }}>{{ $market }}</option>
+                    @endforeach
+                </select>
+                <small class="dms-form-help">
+                    <a href="{{ route('supplier-markets.index') }}">Kelola pasar pemasok</a>
+                </small>
                 @error('market_name') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
 
