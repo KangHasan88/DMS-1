@@ -15,7 +15,7 @@
                 {{ $order->order_source == 'app' ? 'Dari Aplikasi' : 'Dari Admin' }}
             </span>
             <span class="dms-badge dms-badge-{{ $order->fulfillment_type == 'stock' ? 'warning' : 'info' }}">
-                {{ $order->fulfillment_type == 'stock' ? 'Mode Stock' : 'Mode JIT' }}
+                {{ $order->fulfillment_type == 'stock' ? 'Mode Stock' : 'Mode BLJ' }}
             </span>
         </div>
     </div>
@@ -32,7 +32,7 @@
             </div>
             <div class="form-group">
                 <label class="form-label">Mode Pemenuhan</label>
-                <input type="text" class="form-control" value="{{ $order->fulfillment_type == 'stock' ? 'Stock (Ambil dari Gudang)' : 'JIT (Beli ke Pasar)' }}" readonly disabled>
+                <input type="text" class="form-control" value="{{ $order->fulfillment_type == 'stock' ? 'Stock (Ambil dari Gudang)' : 'BLJ (Beli langsung jual)' }}" readonly disabled>
             </div>
         </div>
         

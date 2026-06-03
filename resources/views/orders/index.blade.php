@@ -147,7 +147,7 @@
                     </td>
                     <td>
                         <span class="dms-badge dms-badge-{{ $order->fulfillment_type == 'stock' ? 'warning' : 'info' }}" style="font-size: 0.6rem;">
-                            {{ $order->fulfillment_type == 'stock' ? 'Stock' : 'JIT' }}
+                            {{ $order->fulfillment_type == 'stock' ? 'Stock' : 'BLJ' }}
                         </span>
                     </td>
                     <td>

@@ -67,7 +67,7 @@ class OrderController extends Controller
             Order::ORDER_SOURCE_ADMIN => 'Admin',
         ];
         $fulfillmentTypes = [
-            Order::FULFILLMENT_JIT => 'Just In Time (Beli ke Pasar)',
+            Order::FULFILLMENT_JIT => 'BLJ (Beli langsung jual)',
             Order::FULFILLMENT_STOCK => 'Stock (Ambil dari Gudang)',
         ];
         
@@ -515,7 +515,7 @@ class OrderController extends Controller
                 return back()->with('error', 'Order harus dalam status Cek Stock terlebih dahulu');
             }
             
-            // Untuk mode JIT, pastikan sudah procuring
+            // Untuk mode BLJ, pastikan sudah procuring
             if ($order->useJitMode() && $order->status !== Order::STATUS_PROCURING) {
                 return back()->with('error', 'Order harus dalam status Belanja terlebih dahulu');
             }
@@ -543,7 +543,7 @@ class OrderController extends Controller
         }
         
         if (!$order->useJitMode()) {
-            return back()->with('error', 'Order ini menggunakan mode stock, bukan JIT');
+            return back()->with('error', 'Order ini menggunakan mode stock, bukan BLJ');
         }
         
         $validated = $request->validate([

@@ -227,6 +227,35 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('<th style="width: 220px;">Aksi</th>', $products);
     }
 
+    public function test_order_create_form_uses_clear_copy_and_searchable_selects(): void
+    {
+        $create = file_get_contents(resource_path('views/orders/create.blade.php'));
+        $index = file_get_contents(resource_path('views/orders/index.blade.php'));
+        $show = file_get_contents(resource_path('views/orders/show.blade.php'));
+        $edit = file_get_contents(resource_path('views/orders/edit.blade.php'));
+        $controller = file_get_contents(app_path('Http/Controllers/OrderController.php'));
+
+        $this->assertStringContainsString("@section('page-title', 'Buat Order Baru')", $create);
+        $this->assertStringContainsString('<h3 class="dms-form-title">Detail Order Penjualan</h3>', $create);
+        $this->assertStringNotContainsString('<h3 class="dms-form-title">Buat Order Baru</h3>', $create);
+        $this->assertStringContainsString('id="customer-search"', $create);
+        $this->assertStringContainsString('data-target="customer-select"', $create);
+        $this->assertStringContainsString('class="form-control js-select-search product-search"', $create);
+        $this->assertStringContainsString('initializeSelectSearches(newRow);', $create);
+        $this->assertStringContainsString('BLJ (Beli langsung jual)', $create);
+        $this->assertStringContainsString('Mode BLJ: Barang dibeli dari pabrik/supplier', $create);
+        $this->assertStringNotContainsString('JIT (', $create);
+        $this->assertStringNotContainsString('Mode JIT:', $create);
+        $this->assertStringNotContainsString('</thead>' . PHP_EOL . '                    </thead>', $create);
+
+        foreach ([$index, $show, $edit, $controller] as $content) {
+            $this->assertStringContainsString('BLJ', $content);
+            $this->assertStringNotContainsString('Just In Time', $content);
+            $this->assertStringNotContainsString('Beli ke Pasar', $content);
+            $this->assertStringNotContainsString('Mode JIT', $content);
+        }
+    }
+
     public function test_product_category_options_are_loaded_from_master_data(): void
     {
         $create = file_get_contents(resource_path('views/products/create.blade.php'));

@@ -6,8 +6,8 @@
 @section('content')
 <div class="dms-card">
     <div class="dms-form-header">
-        <h3 class="dms-form-title">Buat Order Baru</h3>
-        <p class="dms-form-subtitle">Isi form berikut untuk membuat order baru. Order akan diproses sesuai mode pemenuhan yang dipilih.</p>
+        <h3 class="dms-form-title">Detail Order Penjualan</h3>
+        <p class="dms-form-subtitle">Pilih pelanggan, mode pemenuhan, produk, dan biaya sebelum order diproses.</p>
     </div>
 
     <form id="order-form" action="{{ route('orders.store') }}" method="POST">
@@ -26,7 +26,8 @@
                 <!-- Pelanggan -->
                 <div>
                     <label class="form-label">Pelanggan <span class="dms-required">*</span></label>
-                    <select name="user_id" class="form-control" required>
+                    <input type="search" id="customer-search" class="form-control js-select-search" data-target="customer-select" placeholder="Cari nama atau telepon pelanggan..." autocomplete="off" style="margin-bottom: 0.5rem;">
+                    <select name="user_id" id="customer-select" class="form-control" required>
                         <option value="">-- Pilih Pelanggan --</option>
                         @foreach($customers as $customer)
                             <option value="{{ $customer->id }}" {{ old('user_id') == $customer->id ? 'selected' : '' }}>
@@ -52,14 +53,14 @@
                         </label>
                         <label class="dms-check">
                             <input type="radio" name="fulfillment_type" value="jit" {{ old('fulfillment_type') == 'jit' ? 'checked' : '' }} onchange="toggleFulfillmentMode()">
-                            <span><i class="bi bi-truck"></i> JIT (Beli langsung Jual)</span>
+                            <span><i class="bi bi-truck"></i> BLJ (Beli langsung jual)</span>
                         </label>
                     </div>
                     <div id="stock-info" style="margin-top: 0.5rem; padding: 0.5rem; background: var(--k-green-light); border-radius: 6px; font-size: 0.7rem; color: var(--k-green);">
                         <i class="bi bi-info-circle"></i> Mode Stock: Barang akan diambil dari stok gudang. Pastikan stok mencukupi.
                     </div>
                     <div id="jit-info" style="display: none; margin-top: 0.5rem; padding: 0.5rem; background: var(--k-orange-light); border-radius: 6px; font-size: 0.7rem; color: var(--k-orange);">
-                        <i class="bi bi-info-circle"></i> Mode JIT: Barang akan dibeli langsung ke pedagang pasar setelah order dibayar.
+                        <i class="bi bi-info-circle"></i> Mode BLJ: Barang dibeli dari pabrik/supplier dan dikirim langsung ke pelanggan tanpa masuk gudang.
                     </div>
                     @error('fulfillment_type') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
@@ -88,12 +89,13 @@
                             <th style="padding: 0.6rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600); width: 12%;">Diskon %</th>
                             <th style="padding: 0.6rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600); width: 15%;">Subtotal</th>
                             <th style="padding: 0.6rem; text-align: center; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600); width: 5%;"></th>
-                         </thead>
+                        </tr>
                     </thead>
                     <tbody id="products-tbody">
                         <tr class="product-row" style="border-bottom: 1px solid var(--k-gray-200);">
                             <td style="padding: 0.5rem;">
-                                <select name="items[0][product_id]" class="product-select" required onchange="updateProductPrice(this, 0)" style="width: 100%; padding: 0.5rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.75rem;">
+                                <input type="search" class="form-control js-select-search product-search" data-target="product-select-0" placeholder="Cari produk..." autocomplete="off" style="margin-bottom: 0.4rem; padding: 0.45rem 0.5rem; font-size: 0.75rem;">
+                                <select name="items[0][product_id]" id="product-select-0" class="product-select" required onchange="updateProductPrice(this, 0)" style="width: 100%; padding: 0.5rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.75rem;">
                                     <option value="">-- Pilih Produk --</option>
                                     @foreach($products as $product)
                                         <option value="{{ $product->id }}" data-price="{{ $product->price }}" data-stock="{{ $productsWithStock[$product->id]['stock'] ?? 0 }}" data-has-stock="{{ $productsWithStock[$product->id]['has_stock'] ? 'true' : 'false' }}">
@@ -102,27 +104,27 @@
                                     @endforeach
                                 </select>
                                 <div class="stock-warning" style="display: none; font-size: 0.6rem; color: var(--k-red); margin-top: 0.25rem;"></div>
-                             </thead>
+                            </td>
                             <td style="padding: 0.5rem;">
                                 <input type="number" name="items[0][quantity]" class="quantity-input" value="1" min="1" onchange="calculateSubtotal(this, 0)" style="width: 100%; padding: 0.5rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.75rem;">
-                             </thead>
+                            </td>
                             <td style="padding: 0.5rem;">
                                 <span class="product-price-display" style="font-size: 0.75rem;">Rp 0</span>
                                 <input type="hidden" name="items[0][price]" class="price-input" value="0">
-                             </thead>
+                            </td>
                             <td style="padding: 0.5rem;">
                                 <input type="number" name="items[0][discount_percent]" class="discount-percent-input" value="0" min="0" max="100" step="1" onchange="calculateSubtotal(this, 0)" style="width: 100%; padding: 0.4rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.7rem;">
-                             </thead>
+                            </td>
                             <td style="padding: 0.5rem;">
                                 <span class="subtotal-display" style="font-weight: 500; color: var(--k-green); font-size: 0.75rem;">Rp 0</span>
                                 <input type="hidden" name="items[0][subtotal]" class="subtotal-input" value="0">
-                             </thead>
+                            </td>
                             <td style="padding: 0.5rem; text-align: center;">
                                 <button type="button" class="remove-btn" onclick="removeProductRow(this)" style="background: none; border: none; color: var(--k-red); cursor: pointer; font-size: 1rem;">
                                     <i class="bi bi-trash"></i>
                                 </button>
-                             </thead>
-                         </thead>
+                            </td>
+                        </tr>
                     </tbody>
                  </table>
             </div>
@@ -309,6 +311,32 @@
 <script>
 let productIndex = 1;
 
+function setupSelectSearch(input) {
+    const select = document.getElementById(input.dataset.target);
+    if (!select || input.dataset.searchReady === 'true') {
+        return;
+    }
+
+    input.dataset.searchReady = 'true';
+    input.addEventListener('input', function () {
+        const query = this.value.trim().toLowerCase();
+
+        Array.from(select.options).forEach(option => {
+            if (!option.value) {
+                option.hidden = false;
+                return;
+            }
+
+            const matches = option.textContent.toLowerCase().includes(query);
+            option.hidden = Boolean(query) && !matches;
+        });
+    });
+}
+
+function initializeSelectSearches(scope = document) {
+    scope.querySelectorAll('.js-select-search').forEach(setupSelectSearch);
+}
+
 function toggleFulfillmentMode() {
     const stockSelected = document.querySelector('input[name="fulfillment_type"]:checked').value === 'stock';
     const stockInfo = document.getElementById('stock-info');
@@ -397,7 +425,8 @@ function addProductRow() {
     newRow.style.borderBottom = '1px solid var(--k-gray-200)';
     newRow.innerHTML = `
         <td style="padding: 0.5rem;">
-            <select name="items[${productIndex}][product_id]" class="product-select" required onchange="updateProductPrice(this, ${productIndex})" style="width: 100%; padding: 0.5rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.75rem;">
+            <input type="search" class="form-control js-select-search product-search" data-target="product-select-${productIndex}" placeholder="Cari produk..." autocomplete="off" style="margin-bottom: 0.4rem; padding: 0.45rem 0.5rem; font-size: 0.75rem;">
+            <select name="items[${productIndex}][product_id]" id="product-select-${productIndex}" class="product-select" required onchange="updateProductPrice(this, ${productIndex})" style="width: 100%; padding: 0.5rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.75rem;">
                 <option value="">-- Pilih Produk --</option>
                 @foreach($products as $product)
                     <option value="{{ $product->id }}" data-price="{{ $product->price }}" data-stock="{{ $productsWithStock[$product->id]['stock'] ?? 0 }}" data-has-stock="{{ $productsWithStock[$product->id]['has_stock'] ? 'true' : 'false' }}">
@@ -406,28 +435,29 @@ function addProductRow() {
                 @endforeach
             </select>
             <div class="stock-warning" style="display: none; font-size: 0.6rem; color: var(--k-red); margin-top: 0.25rem;"></div>
-        </thead>
+        </td>
         <td style="padding: 0.5rem;">
             <input type="number" name="items[${productIndex}][quantity]" class="quantity-input" value="1" min="1" onchange="calculateSubtotal(this, ${productIndex})" style="width: 100%; padding: 0.5rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.75rem;">
-        </thead>
+        </td>
         <td style="padding: 0.5rem;">
             <span class="product-price-display" style="font-size: 0.75rem;">Rp 0</span>
             <input type="hidden" name="items[${productIndex}][price]" class="price-input" value="0">
-        </thead>
+        </td>
         <td style="padding: 0.5rem;">
             <input type="number" name="items[${productIndex}][discount_percent]" class="discount-percent-input" value="0" min="0" max="100" step="1" onchange="calculateSubtotal(this, ${productIndex})" style="width: 100%; padding: 0.4rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.7rem;">
-        </thead>
+        </td>
         <td style="padding: 0.5rem;">
             <span class="subtotal-display" style="font-weight: 500; color: var(--k-green); font-size: 0.75rem;">Rp 0</span>
             <input type="hidden" name="items[${productIndex}][subtotal]" class="subtotal-input" value="0">
-        </thead>
+        </td>
         <td style="padding: 0.5rem; text-align: center;">
             <button type="button" class="remove-btn" onclick="removeProductRow(this)" style="background: none; border: none; color: var(--k-red); cursor: pointer; font-size: 1rem;">
                 <i class="bi bi-trash"></i>
             </button>
-        </thead>
+        </td>
     `;
     tbody.appendChild(newRow);
+    initializeSelectSearches(newRow);
     productIndex++;
 }
 
@@ -562,6 +592,7 @@ function calculateGrandTotal() {
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
+    initializeSelectSearches();
     calculateGrandTotal();
     toggleFulfillmentMode();
     toggleDiscountType();

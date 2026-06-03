@@ -44,7 +44,7 @@
                 </span>
                 <span class="dms-badge dms-badge-{{ $order->fulfillment_type == 'stock' ? 'warning' : 'info' }}">
                     <i class="bi bi-{{ $order->fulfillment_type == 'stock' ? 'archive' : 'truck' }}"></i>
-                    {{ $order->fulfillment_type == 'stock' ? 'Mode Stock' : 'Mode JIT (Beli ke Pasar)' }}
+                    {{ $order->fulfillment_type == 'stock' ? 'Mode Stock' : 'Mode BLJ (Beli langsung jual)' }}
                 </span>
             </div>
         </div>
@@ -332,7 +332,7 @@
     @endif
     @endcan
     
-    {{-- HANYA untuk mode JIT: Input Data Belanja --}}
+    {{-- HANYA untuk mode BLJ: Input Data Belanja --}}
     @can('process orders')
     @if($order->status == 'procuring' && $order->useJitMode())
     <button onclick="openProcurementModal()" class="dms-btn dms-btn-primary">
@@ -353,7 +353,7 @@
     @endif
     @endcan
     
-    {{-- Proses Repack (untuk mode JIT setelah procurement selesai) --}}
+    {{-- Proses Repack (untuk mode BLJ setelah procurement selesai) --}}
     @can('process orders')
     @if($order->status == 'procuring' && $order->useJitMode() && $order->items()->where('fulfillment_status', 'pending')->count() == 0)
     <form action="{{ route('orders.process-repack', $order) }}" method="POST">
@@ -400,7 +400,7 @@
 </div>
 @endif
 
-<!-- Procurement Modal (untuk JIT) -->
+<!-- Procurement Modal (untuk BLJ) -->
 @can('process orders')
 <div id="procurementModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
     <div style="background: white; border-radius: 12px; padding: 1.5rem; width: 600px; max-width: 90%;">
