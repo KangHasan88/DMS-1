@@ -323,15 +323,10 @@
                         <input type="checkbox" name="shipping_same_as_invoice" id="shipping_same_as_invoice" value="1" checked>
                         <span>Sama dengan alamat invoice/dokumen</span>
                     </label>
-                </div>
-
-                <div class="dms-form-span-2">
-                    <div style="display: flex; justify-content: flex-end;">
-                        <a href="#" id="manage-customer-address-link" target="_blank" class="dms-btn dms-btn-outline dms-btn-sm" style="pointer-events: none; opacity: 0.5;">
-                            <i class="bi bi-geo-alt"></i>
-                            Kelola alamat pelanggan
-                        </a>
-                    </div>
+                    <a href="#" id="manage-customer-address-link" target="_blank" class="dms-btn dms-btn-outline dms-btn-sm" style="display: none; width: fit-content; margin-top: 0.65rem;">
+                        <i class="bi bi-geo-alt"></i>
+                        Kelola alamat pelanggan
+                    </a>
                 </div>
                 
                 <div class="dms-form-span-2">
@@ -498,6 +493,7 @@ function fillDeliveryAddressFromCustomer(force = false) {
             manageAddressLink.href = '#';
             manageAddressLink.style.pointerEvents = 'none';
             manageAddressLink.style.opacity = '0.5';
+            manageAddressLink.style.display = 'none';
         }
         return;
     }
@@ -510,6 +506,7 @@ function fillDeliveryAddressFromCustomer(force = false) {
         manageAddressLink.href = addressUrl || '#';
         manageAddressLink.style.pointerEvents = addressUrl ? 'auto' : 'none';
         manageAddressLink.style.opacity = addressUrl ? '1' : '0.5';
+        manageAddressLink.style.display = addressUrl ? 'inline-flex' : 'none';
     }
 
     populateAddressSelect(invoiceSelect, invoiceAddresses, 'Pilih alamat invoice');

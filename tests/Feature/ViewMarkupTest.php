@@ -329,6 +329,8 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('id="manage-customer-address-link"', $orderCreate);
         $this->assertStringContainsString('class="dms-btn dms-btn-outline dms-btn-sm"', $orderCreate);
         $this->assertStringContainsString('bi bi-geo-alt', $orderCreate);
+        $this->assertStringContainsString('style="display: none; width: fit-content; margin-top: 0.65rem;"', $orderCreate);
+        $this->assertStringContainsString("manageAddressLink.style.display = addressUrl ? 'inline-flex' : 'none';", $orderCreate);
         $this->assertStringContainsString('Pilih pelanggan terlebih dahulu', $orderCreate);
         $this->assertStringContainsString('Kelola alamat pelanggan', $orderCreate);
         $this->assertStringNotContainsString('Alamat invoice dan alamat kirim dikelola di master pelanggan.', $orderCreate);
