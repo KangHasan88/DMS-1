@@ -316,6 +316,8 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('resolveOrderAddresses', $orderController);
         $this->assertStringContainsString('data-invoice-addresses', $orderCreate);
         $this->assertStringContainsString('data-shipping-addresses', $orderCreate);
+        $this->assertStringContainsString('JSON_HEX_QUOT', $orderCreate);
+        $this->assertStringNotContainsString('e(json_encode($invoiceAddresses', $orderCreate);
         $this->assertStringContainsString('$profile->activeAddresses()->get()', $orderCreate);
         $this->assertStringContainsString('data-address-url', $orderCreate);
         $this->assertStringContainsString('id="invoice-address-select"', $orderCreate);
