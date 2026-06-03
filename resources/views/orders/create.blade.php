@@ -184,7 +184,7 @@
                 </div>
             </div>
 
-            <div class="dms-fee-panel dms-fee-panel-full">
+            <div class="dms-fee-panel dms-fee-panel-packing">
                 <h4 class="dms-fee-title">
                     <i class="bi bi-box2"></i>
                     Packing / Repack
@@ -739,14 +739,24 @@ textarea.form-control {
 .dms-fee-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+        "discount shipping"
+        "packing shipping";
+    align-items: start;
     gap: 1rem;
     margin-bottom: 1.5rem;
 }
 .dms-fee-panel {
     min-width: 0;
 }
-.dms-fee-panel-full {
-    grid-column: 1 / -1;
+.dms-fee-panel:nth-child(1) {
+    grid-area: discount;
+}
+.dms-fee-panel:nth-child(2) {
+    grid-area: shipping;
+}
+.dms-fee-panel-packing {
+    grid-area: packing;
     padding-top: 0.85rem;
     border-top: 1px dashed var(--k-gray-200);
 }
@@ -900,9 +910,10 @@ textarea.form-control {
 @media (max-width: 900px) {
     .dms-fee-grid {
         grid-template-columns: 1fr;
-    }
-    .dms-fee-panel-full {
-        grid-column: auto;
+        grid-template-areas:
+            "discount"
+            "shipping"
+            "packing";
     }
 }
 </style>
