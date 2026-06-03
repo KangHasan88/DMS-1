@@ -157,7 +157,7 @@
         <div style="margin-bottom: 1.5rem;">
             <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--k-gray-200);">
                 <i class="bi bi-truck" style="margin-right: 0.4rem; color: var(--k-green);"></i>
-                Ongkos Kirim & Packing
+                Ongkos Kirim
             </h4>
             
             <div class="dms-form-grid">
@@ -185,15 +185,21 @@
                     <label class="form-label">Jarak (km)</label>
                     <input type="number" name="shipping_distance" id="shipping_distance" class="form-control" value="0" step="1" onchange="calculateGrandTotal()">
                 </div>
-                
-                <!-- Packing Fee -->
-                <div>
+            </div>
+
+            <div class="dms-subsection" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--k-gray-200);">
+                <h5 style="font-size: 0.82rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.35rem;">
+                    <i class="bi bi-box2" style="margin-right: 0.35rem; color: var(--k-green);"></i>
+                    Packing / Repack
+                </h5>
+                <p style="font-size: 0.72rem; color: var(--k-gray-500); margin: 0 0 0.65rem;">Biaya packing dihitung terpisah dari ongkos kirim.</p>
+                <div style="max-width: 520px;">
                     <label class="form-label">Biaya Packing / Repack <span style="color: var(--k-gray-500); font-weight: 400;">(opsional)</span></label>
                     <div style="position: relative;">
                         <span style="position: absolute; left: 0.5rem; top: 50%; transform: translateY(-50%); font-size: 0.7rem;">Rp</span>
                         <input type="number" name="packing_fee" id="packing_fee" class="form-control" value="0" step="500" onchange="calculateGrandTotal()" style="padding-left: 1.8rem;">
                     </div>
-                    <small class="dms-form-help">Isi jika order memakai biaya packing/repack. Kosong atau 0 berarti tanpa biaya.</small>
+                    <small class="dms-form-help">Kosong atau 0 berarti tanpa biaya packing/repack.</small>
                 </div>
             </div>
         </div>
