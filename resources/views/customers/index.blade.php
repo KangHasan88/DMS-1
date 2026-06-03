@@ -113,7 +113,7 @@
                     <th>Total Order</th>
                     <th>Total Belanja</th>
                     <th>Status</th>
-                    <th style="width: 150px;">Aksi</th>
+                    <th style="width: 220px;">Aksi</th>
                   </tr>
             </thead>
             <tbody>
@@ -170,6 +170,10 @@
                         <div class="dms-actions">
                             <a href="{{ route('customers.show', $customer) }}" class="dms-btn dms-btn-outline dms-btn-sm" title="Detail">
                                 <i class="bi bi-eye"></i>
+                            </a>
+                            <a href="{{ route('customers.show', $customer) }}#customer-addresses" class="dms-btn dms-btn-outline dms-btn-sm" title="Alamat pelanggan">
+                                <i class="bi bi-geo-alt"></i>
+                                Alamat
                             </a>
                             @can('edit customers')
                             <a href="{{ route('customers.edit', $customer) }}" class="dms-btn dms-btn-outline dms-btn-sm" title="Edit">

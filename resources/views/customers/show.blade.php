@@ -162,6 +162,10 @@
                 @can('edit customers')
                 <form action="{{ route('customers.addresses.store', $customer) }}" method="POST" style="margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--k-gray-200); border-radius: 8px; background: var(--k-gray-50);">
                     @csrf
+                    <div style="font-size: 0.9rem; font-weight: 700; color: var(--k-gray-900); margin-bottom: 0.75rem;">
+                        <i class="bi bi-plus-circle" style="color: var(--k-green); margin-right: 0.35rem;"></i>
+                        Tambah Alamat Pengiriman / Invoice
+                    </div>
                     <div class="dms-form-grid">
                         <div>
                             <label class="form-label">Label Alamat <span class="dms-required">*</span></label>
@@ -170,9 +174,9 @@
                         <div>
                             <label class="form-label">Tipe Alamat <span class="dms-required">*</span></label>
                             <select name="type" class="form-control" required>
-                                <option value="both">Invoice & Pengiriman</option>
-                                <option value="invoice">Invoice / Dokumen</option>
                                 <option value="shipping">Pengiriman</option>
+                                <option value="invoice">Invoice / Dokumen</option>
+                                <option value="both">Invoice & Pengiriman</option>
                             </select>
                         </div>
                         <div class="dms-form-span-2">

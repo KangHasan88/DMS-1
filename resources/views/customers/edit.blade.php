@@ -95,7 +95,10 @@
             <div class="form-group dms-form-span-2">
                 <label class="form-label">Alamat Utama</label>
                 <textarea name="address" class="form-control" rows="3">{{ old('address', $customer->address) }}</textarea>
-                <small class="dms-form-help">Alamat ini disinkronkan sebagai Alamat Utama. Alamat invoice/pengiriman tambahan dikelola di Detail Pelanggan &gt; Master Alamat Pelanggan.</small>
+                <small class="dms-form-help">
+                    Alamat ini disinkronkan sebagai Alamat Utama.
+                    <a href="{{ route('customers.show', $customer) }}#customer-addresses" style="color: var(--k-green); font-weight: 600;">Tambah alamat pengiriman/invoice lain</a>
+                </small>
                 @error('address') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
 
