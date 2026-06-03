@@ -338,11 +338,7 @@
                     <input type="hidden" name="address" id="delivery-address" value="{{ old('address') }}" required>
                     <input type="hidden" name="latitude" id="delivery-latitude" value="{{ old('latitude') }}">
                     <input type="hidden" name="longitude" id="delivery-longitude" value="{{ old('longitude') }}">
-                    <div style="padding: 0.7rem 0.85rem; border: 1px solid var(--k-gray-200); border-radius: 8px; background: #fff; font-size: 0.8rem; color: var(--k-gray-700);">
-                        <span style="display: block; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.25rem;">Alamat yang dipakai</span>
-                        <span id="delivery-address-preview">Pilih pelanggan dan alamat pengiriman.</span>
-                    </div>
-                    <small class="dms-form-help">Alamat disimpan otomatis sebagai snapshot order dari master alamat pelanggan.</small>
+                    <small class="dms-form-help">Alamat akan disimpan otomatis sebagai snapshot order.</small>
                     @error('address') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
             </div>
@@ -490,7 +486,6 @@ function fillDeliveryAddressFromCustomer(force = false) {
     const addressInput = document.getElementById('delivery-address');
     const latitudeInput = document.getElementById('delivery-latitude');
     const longitudeInput = document.getElementById('delivery-longitude');
-    const addressPreview = document.getElementById('delivery-address-preview');
 
     if (!customerSelect || !addressInput || !invoiceSelect || !shippingSelect) {
         return;
@@ -580,10 +575,6 @@ function updateDeliveryAddressSnapshot(force = true) {
 
     if (force || !addressInput.value.trim()) {
         addressInput.value = address;
-    }
-
-    if (addressPreview) {
-        addressPreview.textContent = address || 'Pilih pelanggan dan alamat pengiriman.';
     }
 
     if (latitudeInput && (force || !latitudeInput.value.trim())) {
