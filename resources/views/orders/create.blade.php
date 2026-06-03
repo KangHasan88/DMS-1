@@ -736,10 +736,6 @@ textarea.form-control {
     overflow: visible;
     position: relative;
 }
-.product-row.dms-combobox-row-open > td {
-    padding-bottom: 14rem !important;
-    vertical-align: top;
-}
 .dms-native-select {
     position: absolute;
     width: 1px;
