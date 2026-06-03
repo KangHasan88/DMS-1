@@ -250,6 +250,9 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('BLJ (Beli langsung jual)', $create);
         $this->assertStringContainsString('Mode BLJ: Barang dibeli dari pabrik/supplier', $create);
         $this->assertStringContainsString('<option value="none">Tanpa Ongkir</option>', $create);
+        $this->assertStringContainsString('class="dms-fee-grid"', $create);
+        $this->assertStringContainsString('grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);', $create);
+        $this->assertStringContainsString('class="dms-shipping-extra"', $create);
         $this->assertStringContainsString('Packing / Repack', $create);
         $this->assertStringContainsString('Biaya packing dihitung terpisah dari ongkos kirim.', $create);
         $this->assertStringContainsString('Biaya Packing / Repack <span style="color: var(--k-gray-500); font-weight: 400;">(opsional)</span>', $create);

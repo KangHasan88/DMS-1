@@ -130,14 +130,13 @@
             </div>
         </div>
         
-        <!-- Order Discount Section -->
-        <div style="margin-bottom: 1.5rem;">
-            <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--k-gray-200);">
-                <i class="bi bi-tag" style="margin-right: 0.4rem; color: var(--k-green);"></i>
-                Diskon Order
-            </h4>
-            
-            <div class="dms-form-grid">
+        <!-- Discount, Shipping & Packing Section -->
+        <div class="dms-fee-grid">
+            <div class="dms-fee-panel">
+                <h4 class="dms-fee-title">
+                    <i class="bi bi-tag"></i>
+                    Diskon Order
+                </h4>
                 <div>
                     <label class="form-label">Tipe Diskon</label>
                     <select name="discount_type" id="discount_type" class="form-control" onchange="toggleDiscountType()">
@@ -146,21 +145,17 @@
                         <option value="nominal">Nominal (Rp)</option>
                     </select>
                 </div>
-                <div id="discount_value_container" style="display: none;">
+                <div id="discount_value_container" style="display: none; margin-top: 0.75rem;">
                     <label class="form-label" id="discount_label">Nilai Diskon</label>
                     <input type="number" name="discount_value" id="discount_value" class="form-control" value="0" step="1" onchange="calculateGrandTotal()">
                 </div>
             </div>
-        </div>
-        
-        <!-- Shipping & Packing Section -->
-        <div style="margin-bottom: 1.5rem;">
-            <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--k-gray-200);">
-                <i class="bi bi-truck" style="margin-right: 0.4rem; color: var(--k-green);"></i>
-                Ongkos Kirim
-            </h4>
-            
-            <div class="dms-form-grid">
+
+            <div class="dms-fee-panel">
+                <h4 class="dms-fee-title">
+                    <i class="bi bi-truck"></i>
+                    Ongkos Kirim
+                </h4>
                 <div>
                     <label class="form-label">Tipe Ongkir <span style="color: var(--k-gray-500); font-weight: 400;">(opsional)</span></label>
                     <select name="shipping_type" id="shipping_type" class="form-control" onchange="toggleShippingType()">
@@ -170,29 +165,31 @@
                         <option value="distance">Berdasarkan Jarak</option>
                     </select>
                 </div>
-                <div id="shipping_rate_container">
-                    <label class="form-label">Tarif Dasar <span style="color: var(--k-gray-500); font-weight: 400;">(opsional)</span></label>
-                    <div style="position: relative;">
-                        <span style="position: absolute; left: 0.5rem; top: 50%; transform: translateY(-50%); font-size: 0.7rem;">Rp</span>
-                        <input type="number" name="shipping_rate" id="shipping_rate" class="form-control" value="0" step="1000" onchange="calculateGrandTotal()" style="padding-left: 1.8rem;">
+                <div class="dms-shipping-extra">
+                    <div id="shipping_rate_container">
+                        <label class="form-label">Tarif Dasar <span style="color: var(--k-gray-500); font-weight: 400;">(opsional)</span></label>
+                        <div style="position: relative;">
+                            <span style="position: absolute; left: 0.5rem; top: 50%; transform: translateY(-50%); font-size: 0.7rem;">Rp</span>
+                            <input type="number" name="shipping_rate" id="shipping_rate" class="form-control" value="0" step="1000" onchange="calculateGrandTotal()" style="padding-left: 1.8rem;">
+                        </div>
                     </div>
-                </div>
-                <div id="shipping_weight_container" style="display: none;">
-                    <label class="form-label">Berat (kg)</label>
-                    <input type="number" name="shipping_weight" id="shipping_weight" class="form-control" value="0" step="0.1" onchange="calculateGrandTotal()">
-                </div>
-                <div id="shipping_distance_container" style="display: none;">
-                    <label class="form-label">Jarak (km)</label>
-                    <input type="number" name="shipping_distance" id="shipping_distance" class="form-control" value="0" step="1" onchange="calculateGrandTotal()">
+                    <div id="shipping_weight_container" style="display: none;">
+                        <label class="form-label">Berat (kg)</label>
+                        <input type="number" name="shipping_weight" id="shipping_weight" class="form-control" value="0" step="0.1" onchange="calculateGrandTotal()">
+                    </div>
+                    <div id="shipping_distance_container" style="display: none;">
+                        <label class="form-label">Jarak (km)</label>
+                        <input type="number" name="shipping_distance" id="shipping_distance" class="form-control" value="0" step="1" onchange="calculateGrandTotal()">
+                    </div>
                 </div>
             </div>
 
-            <div class="dms-subsection" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--k-gray-200);">
-                <h5 style="font-size: 0.82rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.35rem;">
-                    <i class="bi bi-box2" style="margin-right: 0.35rem; color: var(--k-green);"></i>
+            <div class="dms-fee-panel dms-fee-panel-full">
+                <h4 class="dms-fee-title">
+                    <i class="bi bi-box2"></i>
                     Packing / Repack
-                </h5>
-                <p style="font-size: 0.72rem; color: var(--k-gray-500); margin: 0 0 0.65rem;">Biaya packing dihitung terpisah dari ongkos kirim.</p>
+                </h4>
+                <p class="dms-fee-note">Biaya packing dihitung terpisah dari ongkos kirim.</p>
                 <div style="max-width: 520px;">
                     <label class="form-label">Biaya Packing / Repack <span style="color: var(--k-gray-500); font-weight: 400;">(opsional)</span></label>
                     <div style="position: relative;">
@@ -739,6 +736,45 @@ document.addEventListener('click', function(event) {
 textarea.form-control {
     resize: vertical;
 }
+.dms-fee-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+.dms-fee-panel {
+    min-width: 0;
+}
+.dms-fee-panel-full {
+    grid-column: 1 / -1;
+    padding-top: 0.85rem;
+    border-top: 1px dashed var(--k-gray-200);
+}
+.dms-fee-title {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--k-gray-800);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--k-gray-200);
+}
+.dms-fee-title i {
+    color: var(--k-green);
+}
+.dms-shipping-extra {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+.dms-fee-note {
+    font-size: 0.72rem;
+    color: var(--k-gray-500);
+    margin: 0 0 0.65rem;
+}
 .dms-products-table-wrap {
     overflow: visible;
     position: relative;
@@ -860,6 +896,14 @@ textarea.form-control {
 }
 .remove-btn:hover {
     opacity: 0.7;
+}
+@media (max-width: 900px) {
+    .dms-fee-grid {
+        grid-template-columns: 1fr;
+    }
+    .dms-fee-panel-full {
+        grid-column: auto;
+    }
 }
 </style>
 @endsection
