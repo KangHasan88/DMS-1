@@ -335,20 +335,15 @@
                 </div>
                 
                 <div class="dms-form-span-2">
-                    <label class="form-label">Alamat Pengiriman <span class="dms-required">*</span></label>
-                    <textarea name="address" id="delivery-address" class="form-control" rows="2" required placeholder="Pilih pelanggan untuk mengisi alamat pengiriman otomatis">{{ old('address') }}</textarea>
-                    <small class="dms-form-help">Alamat diambil dari master alamat pelanggan sebagai snapshot order. Jika alamat kirim berbeda, tambahkan alamat tersebut di master pelanggan.</small>
+                    <input type="hidden" name="address" id="delivery-address" value="{{ old('address') }}" required>
+                    <input type="hidden" name="latitude" id="delivery-latitude" value="{{ old('latitude') }}">
+                    <input type="hidden" name="longitude" id="delivery-longitude" value="{{ old('longitude') }}">
+                    <div style="padding: 0.7rem 0.85rem; border: 1px solid var(--k-gray-200); border-radius: 8px; background: #fff; font-size: 0.8rem; color: var(--k-gray-700);">
+                        <span style="display: block; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.25rem;">Alamat yang dipakai</span>
+                        <span id="delivery-address-preview">Pilih pelanggan dan alamat pengiriman.</span>
+                    </div>
+                    <small class="dms-form-help">Alamat disimpan otomatis sebagai snapshot order dari master alamat pelanggan.</small>
                     @error('address') <span class="dms-error">{{ $message }}</span> @enderror
-                </div>
-                
-                <div>
-                    <label class="form-label">Latitude (opsional)</label>
-                    <input type="text" name="latitude" id="delivery-latitude" class="form-control" value="{{ old('latitude') }}" placeholder="-6.200000">
-                </div>
-                
-                <div>
-                    <label class="form-label">Longitude (opsional)</label>
-                    <input type="text" name="longitude" id="delivery-longitude" class="form-control" value="{{ old('longitude') }}" placeholder="106.816666">
                 </div>
             </div>
         </div>
@@ -495,6 +490,7 @@ function fillDeliveryAddressFromCustomer(force = false) {
     const addressInput = document.getElementById('delivery-address');
     const latitudeInput = document.getElementById('delivery-latitude');
     const longitudeInput = document.getElementById('delivery-longitude');
+    const addressPreview = document.getElementById('delivery-address-preview');
 
     if (!customerSelect || !addressInput || !invoiceSelect || !shippingSelect) {
         return;
@@ -584,6 +580,10 @@ function updateDeliveryAddressSnapshot(force = true) {
 
     if (force || !addressInput.value.trim()) {
         addressInput.value = address;
+    }
+
+    if (addressPreview) {
+        addressPreview.textContent = address || 'Pilih pelanggan dan alamat pengiriman.';
     }
 
     if (latitudeInput && (force || !latitudeInput.value.trim())) {

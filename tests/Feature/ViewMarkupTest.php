@@ -258,7 +258,8 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('id="delivery-address"', $create);
         $this->assertStringContainsString('fillDeliveryAddressFromCustomer(true)', $create);
         $this->assertStringContainsString('fillDeliveryAddressFromCustomer(false)', $create);
-        $this->assertStringContainsString('Alamat diambil dari master alamat pelanggan sebagai snapshot order.', $create);
+        $this->assertStringContainsString('Alamat yang dipakai', $create);
+        $this->assertStringContainsString('Alamat disimpan otomatis sebagai snapshot order dari master alamat pelanggan.', $create);
         $this->assertStringContainsString('<option value="none">Tanpa Ongkir</option>', $create);
         $this->assertStringContainsString('class="dms-fee-grid"', $create);
         $this->assertStringContainsString('grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);', $create);
@@ -330,6 +331,10 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('Pilih pelanggan terlebih dahulu', $orderCreate);
         $this->assertStringContainsString('Kelola alamat pelanggan', $orderCreate);
         $this->assertStringContainsString('Sama dengan alamat invoice/dokumen', $orderCreate);
+        $this->assertStringContainsString('type="hidden" name="address"', $orderCreate);
+        $this->assertStringContainsString('id="delivery-address-preview"', $orderCreate);
+        $this->assertStringContainsString('Alamat yang dipakai', $orderCreate);
+        $this->assertStringNotContainsString('<textarea name="address"', $orderCreate);
         $this->assertStringContainsString('updateDeliveryAddressSnapshot', $orderCreate);
         $this->assertStringContainsString('Alamat Invoice', $orderShow);
         $this->assertStringContainsString('Alamat Kirim', $orderShow);
