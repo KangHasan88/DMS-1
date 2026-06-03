@@ -243,6 +243,9 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('class="dms-combobox js-searchable-dropdown product-search"', $create);
         $this->assertStringContainsString('class="dms-combobox-search"', $create);
         $this->assertStringContainsString('initializeSearchableDropdowns(newRow);', $create);
+        $this->assertStringContainsString('class="dms-products-table-wrap"', $create);
+        $this->assertStringContainsString('.product-row.dms-combobox-row-open > td', $create);
+        $this->assertStringContainsString("classList.toggle('dms-combobox-row-open', shouldOpen)", $create);
         $this->assertStringContainsString('button.textContent = option.textContent.trim();', $create);
         $this->assertStringContainsString('BLJ (Beli langsung jual)', $create);
         $this->assertStringContainsString('Mode BLJ: Barang dibeli dari pabrik/supplier', $create);

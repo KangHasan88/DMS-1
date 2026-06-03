@@ -79,7 +79,7 @@
                 </button>
             </div>
             
-            <div style="overflow-x: auto;">
+            <div class="dms-products-table-wrap">
                 <table style="width: 100%; border-collapse: collapse; background: white;">
                     <thead>
                         <tr style="background: var(--k-gray-100); border-bottom: 1px solid var(--k-gray-200);">
@@ -346,6 +346,8 @@ function buildSearchableDropdown(dropdown) {
     const closeMenu = () => {
         menu.hidden = true;
         trigger.setAttribute('aria-expanded', 'false');
+        dropdown.classList.remove('is-open');
+        dropdown.closest('.product-row')?.classList.remove('dms-combobox-row-open');
     };
 
     const renderOptions = () => {
@@ -378,11 +380,16 @@ function buildSearchableDropdown(dropdown) {
         const shouldOpen = menu.hidden;
         document.querySelectorAll('.dms-combobox-menu').forEach(openMenu => {
             openMenu.hidden = true;
-            openMenu.closest('.dms-combobox')?.querySelector('.dms-combobox-trigger')?.setAttribute('aria-expanded', 'false');
+            const openDropdown = openMenu.closest('.dms-combobox');
+            openDropdown?.classList.remove('is-open');
+            openDropdown?.closest('.product-row')?.classList.remove('dms-combobox-row-open');
+            openDropdown?.querySelector('.dms-combobox-trigger')?.setAttribute('aria-expanded', 'false');
         });
 
         menu.hidden = !shouldOpen;
         trigger.setAttribute('aria-expanded', String(shouldOpen));
+        dropdown.classList.toggle('is-open', shouldOpen);
+        dropdown.closest('.product-row')?.classList.toggle('dms-combobox-row-open', shouldOpen);
 
         if (shouldOpen) {
             search.value = '';
@@ -693,7 +700,10 @@ document.addEventListener('click', function(event) {
 
     document.querySelectorAll('.dms-combobox-menu').forEach(menu => {
         menu.hidden = true;
-        menu.closest('.dms-combobox')?.querySelector('.dms-combobox-trigger')?.setAttribute('aria-expanded', 'false');
+        const dropdown = menu.closest('.dms-combobox');
+        dropdown?.classList.remove('is-open');
+        dropdown?.closest('.product-row')?.classList.remove('dms-combobox-row-open');
+        dropdown?.querySelector('.dms-combobox-trigger')?.setAttribute('aria-expanded', 'false');
     });
 });
 </script>
@@ -721,6 +731,14 @@ document.addEventListener('click', function(event) {
 }
 textarea.form-control {
     resize: vertical;
+}
+.dms-products-table-wrap {
+    overflow: visible;
+    position: relative;
+}
+.product-row.dms-combobox-row-open > td {
+    padding-bottom: 14rem !important;
+    vertical-align: top;
 }
 .dms-native-select {
     position: absolute;
@@ -764,7 +782,7 @@ textarea.form-control {
     top: calc(100% + 0.25rem);
     left: 0;
     right: 0;
-    z-index: 30;
+    z-index: 80;
     padding: 0.45rem;
     border: 1px solid var(--k-gray-300);
     border-radius: 8px;
