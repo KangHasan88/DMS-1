@@ -315,9 +315,12 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('shipping_address_snapshot', $order);
         $this->assertStringContainsString('resolveOrderAddresses', $orderController);
         $this->assertStringContainsString('data-invoice-addresses', $orderCreate);
+        $this->assertStringContainsString('data-shipping-addresses', $orderCreate);
+        $this->assertStringContainsString('$profile->activeAddresses()->get()', $orderCreate);
         $this->assertStringContainsString('data-address-url', $orderCreate);
         $this->assertStringContainsString('id="invoice-address-select"', $orderCreate);
         $this->assertStringContainsString('id="manage-customer-address-link"', $orderCreate);
+        $this->assertStringContainsString('Pilih pelanggan terlebih dahulu', $orderCreate);
         $this->assertStringContainsString('Kelola alamat pelanggan', $orderCreate);
         $this->assertStringContainsString('Sama dengan alamat invoice/dokumen', $orderCreate);
         $this->assertStringContainsString('updateDeliveryAddressSnapshot', $orderCreate);

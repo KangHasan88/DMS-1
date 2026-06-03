@@ -32,6 +32,9 @@
                             @php
                                 $profile = $customer->customer;
                                 $addresses = $profile?->activeAddresses ?? collect();
+                                if ($profile && $addresses->isEmpty()) {
+                                    $addresses = $profile->activeAddresses()->get();
+                                }
                                 $invoiceAddresses = $addresses->filter(fn ($address) => in_array($address->type, ['invoice', 'both'], true))->values();
                                 $shippingAddresses = $addresses->filter(fn ($address) => in_array($address->type, ['shipping', 'both'], true))->values();
                                 $formatAddress = fn ($address) => [
@@ -498,6 +501,17 @@ function fillDeliveryAddressFromCustomer(force = false) {
     }
 
     const selectedOption = customerSelect.options[customerSelect.selectedIndex];
+    if (!selectedOption?.value) {
+        populateAddressSelect(invoiceSelect, [], 'Pilih pelanggan terlebih dahulu');
+        populateAddressSelect(shippingSelect, [], 'Pilih pelanggan terlebih dahulu');
+        if (manageAddressLink) {
+            manageAddressLink.href = '#';
+            manageAddressLink.style.pointerEvents = 'none';
+            manageAddressLink.style.opacity = '0.5';
+        }
+        return;
+    }
+
     const invoiceAddresses = parseAddressDataset(selectedOption?.dataset.invoiceAddresses);
     const shippingAddresses = parseAddressDataset(selectedOption?.dataset.shippingAddresses);
 
