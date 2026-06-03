@@ -111,7 +111,9 @@ class OrderController extends Controller
                 'order_source' => Order::ORDER_SOURCE_APP,
                 'discount_type' => Order::DISCOUNT_NONE,
                 'discount_value' => 0,
-                'packing_fee' => 1000,
+                'packing_fee' => 0,
+                'shipping_type' => Order::SHIPPING_NONE,
+                'shipping_rate' => 0,
                 'include_ppn' => false,
             ]);
         }
@@ -135,10 +137,10 @@ class OrderController extends Controller
             'items.*.discount_percent' => 'nullable|numeric|min:0|max:100',
             'discount_type' => 'required|in:none,percent,nominal',
             'discount_value' => 'required_if:discount_type,percent,nominal|numeric|min:0',
-            'shipping_type' => 'required|in:flat,weight,distance',
+            'shipping_type' => 'nullable|in:none,flat,weight,distance',
             'shipping_weight' => 'required_if:shipping_type,weight|nullable|numeric|min:0',
             'shipping_distance' => 'required_if:shipping_type,distance|nullable|numeric|min:0',
-            'shipping_rate' => 'required|numeric|min:0',
+            'shipping_rate' => 'nullable|numeric|min:0',
             'include_ppn' => 'boolean',
             'ppn_rate' => 'nullable|numeric|min:0|max:100',
         ]);
@@ -186,15 +188,17 @@ class OrderController extends Controller
             }
             
             // Hitung diskon order
-            $packingFee = $request->packing_fee ?? 1000;
+            $shippingType = $request->shipping_type ?: Order::SHIPPING_NONE;
+            $shippingRate = $request->shipping_rate ?? 0;
+            $packingFee = $request->packing_fee ?? 0;
             $totals = Order::calculateTotals(
                 $subtotal,
                 $request->discount_type,
                 $request->discount_value ?? 0,
-                $request->shipping_type,
+                $shippingType,
                 $request->shipping_weight,
                 $request->shipping_distance,
-                $request->shipping_rate,
+                $shippingRate,
                 $packingFee,
                 $request->boolean('include_ppn'),
                 $request->ppn_rate ?? 11
@@ -232,10 +236,10 @@ class OrderController extends Controller
                 'discount_type' => $request->discount_type,
                 'discount_value' => $request->discount_value ?? 0,
                 'discount_amount' => $totals['discount_amount'],
-                'shipping_type' => $request->shipping_type,
+                'shipping_type' => $shippingType,
                 'shipping_weight' => $request->shipping_weight,
                 'shipping_distance' => $request->shipping_distance,
-                'shipping_rate' => $request->shipping_rate,
+                'shipping_rate' => $shippingRate,
                 'include_ppn' => $request->boolean('include_ppn'),
                 'ppn_rate' => $totals['ppn_rate'],
                 'ppn_amount' => $totals['ppn_amount'],
@@ -328,6 +332,7 @@ class OrderController extends Controller
             'delivery_date' => 'required|date',
             'delivery_time_slot' => 'required|string',
             'address' => 'required|string',
+            'delivery_fee' => 'nullable|numeric|min:0',
             'packing_fee' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
@@ -338,10 +343,10 @@ class OrderController extends Controller
             'items.*.discount_percent' => 'nullable|numeric|min:0|max:100',
             'discount_type' => 'required|in:none,percent,nominal',
             'discount_value' => 'required_if:discount_type,percent,nominal|numeric|min:0',
-            'shipping_type' => 'required|in:flat,weight,distance',
+            'shipping_type' => 'nullable|in:none,flat,weight,distance',
             'shipping_weight' => 'required_if:shipping_type,weight|nullable|numeric|min:0',
             'shipping_distance' => 'required_if:shipping_type,distance|nullable|numeric|min:0',
-            'shipping_rate' => 'required|numeric|min:0',
+            'shipping_rate' => 'nullable|numeric|min:0',
             'include_ppn' => 'boolean',
             'ppn_rate' => 'nullable|numeric|min:0|max:100',
         ]);
@@ -391,15 +396,18 @@ class OrderController extends Controller
             $itemsToDelete = array_diff($existingItemIds, $newItemIds);
             OrderItem::whereIn('id', $itemsToDelete)->delete();
             
-            $packingFee = $request->packing_fee ?? $order->packing_fee ?? 1000;
+            $editDeliveryFee = $request->delivery_fee;
+            $shippingType = $request->shipping_type ?: ($editDeliveryFee !== null ? ((float) $editDeliveryFee > 0 ? Order::SHIPPING_FLAT : Order::SHIPPING_NONE) : ($order->shipping_type ?: Order::SHIPPING_NONE));
+            $shippingRate = $request->shipping_rate ?? $editDeliveryFee ?? $order->shipping_rate ?? 0;
+            $packingFee = $request->packing_fee ?? $order->packing_fee ?? 0;
             $totals = Order::calculateTotals(
                 $subtotal,
                 $request->discount_type,
                 $request->discount_value ?? 0,
-                $request->shipping_type,
+                $shippingType,
                 $request->shipping_weight,
                 $request->shipping_distance,
-                $request->shipping_rate,
+                $shippingRate,
                 $packingFee,
                 $request->boolean('include_ppn'),
                 $request->ppn_rate ?? 11
@@ -417,10 +425,10 @@ class OrderController extends Controller
                 'discount_type' => $request->discount_type,
                 'discount_value' => $request->discount_value ?? 0,
                 'discount_amount' => $totals['discount_amount'],
-                'shipping_type' => $request->shipping_type,
+                'shipping_type' => $shippingType,
                 'shipping_weight' => $request->shipping_weight,
                 'shipping_distance' => $request->shipping_distance,
-                'shipping_rate' => $request->shipping_rate,
+                'shipping_rate' => $shippingRate,
                 'include_ppn' => $request->boolean('include_ppn'),
                 'ppn_rate' => $totals['ppn_rate'],
                 'ppn_amount' => $totals['ppn_amount'],

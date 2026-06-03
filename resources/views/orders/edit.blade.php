@@ -96,20 +96,20 @@
                             <td colspan="2"><span id="subtotal-total">Rp {{ number_format($order->subtotal, 0, ',', '.') }}</span><input type="hidden" name="subtotal" id="subtotal-input" value="{{ $order->subtotal }}"></td>
                         </tr>
                         <tr>
-                            <td colspan="3" style="text-align: right; font-weight: 600;">Biaya Pengiriman:</td>
+                            <td colspan="3" style="text-align: right; font-weight: 600;">Biaya Pengiriman (opsional):</td>
                             <td colspan="2">
                                 <div style="position: relative; display: inline-block;">
                                     <span style="position: absolute; left: 0.5rem; top: 50%; transform: translateY(-50%);">Rp</span>
-                                    <input type="number" name="delivery_fee" id="delivery-fee" class="form-control" style="width: 150px; padding-left: 2rem;" value="{{ $order->delivery_fee }}" onchange="calculateGrandTotal()">
+                                    <input type="number" name="delivery_fee" id="delivery-fee" class="form-control" style="width: 150px; padding-left: 2rem;" value="{{ $order->delivery_fee ?? 0 }}" min="0" onchange="calculateGrandTotal()">
                                 </div>
                             </td>
                         </tr>
                         <tr>
-                            <td colspan="3" style="text-align: right; font-weight: 600;">Biaya Packing:</td>
+                            <td colspan="3" style="text-align: right; font-weight: 600;">Biaya Packing (opsional):</td>
                             <td colspan="2">
                                 <div style="position: relative; display: inline-block;">
                                     <span style="position: absolute; left: 0.5rem; top: 50%; transform: translateY(-50%);">Rp</span>
-                                    <input type="number" name="packing_fee" id="packing-fee" class="form-control" style="width: 150px; padding-left: 2rem;" value="{{ $order->packing_fee }}" onchange="calculateGrandTotal()">
+                                    <input type="number" name="packing_fee" id="packing-fee" class="form-control" style="width: 150px; padding-left: 2rem;" value="{{ $order->packing_fee ?? 0 }}" min="0" onchange="calculateGrandTotal()">
                                 </div>
                             </td>
                         </tr>

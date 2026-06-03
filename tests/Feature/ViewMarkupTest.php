@@ -249,6 +249,13 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('button.textContent = option.textContent.trim();', $create);
         $this->assertStringContainsString('BLJ (Beli langsung jual)', $create);
         $this->assertStringContainsString('Mode BLJ: Barang dibeli dari pabrik/supplier', $create);
+        $this->assertStringContainsString('<option value="none">Tanpa Ongkir</option>', $create);
+        $this->assertStringContainsString('Biaya Packing / Repack <span style="color: var(--k-gray-500); font-weight: 400;">(opsional)</span>', $create);
+        $this->assertStringContainsString('id="packing_fee" class="form-control" value="0"', $create);
+        $this->assertStringContainsString("'shipping_type' => 'nullable|in:none,flat,weight,distance'", $controller);
+        $this->assertStringContainsString("'shipping_rate' => 'nullable|numeric|min:0'", $controller);
+        $this->assertStringContainsString('$packingFee = $request->packing_fee ?? 0;', $controller);
+        $this->assertStringNotContainsString("'packing_fee' => 1000", $controller);
         $this->assertStringNotContainsString('JIT (', $create);
         $this->assertStringNotContainsString('Mode JIT:', $create);
         $this->assertStringNotContainsString('</thead>' . PHP_EOL . '                    </thead>', $create);

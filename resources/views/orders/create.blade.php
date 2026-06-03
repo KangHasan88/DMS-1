@@ -162,15 +162,16 @@
             
             <div class="dms-form-grid">
                 <div>
-                    <label class="form-label">Tipe Ongkir</label>
+                    <label class="form-label">Tipe Ongkir <span style="color: var(--k-gray-500); font-weight: 400;">(opsional)</span></label>
                     <select name="shipping_type" id="shipping_type" class="form-control" onchange="toggleShippingType()">
+                        <option value="none">Tanpa Ongkir</option>
                         <option value="flat">Flat Rate (Tetap)</option>
                         <option value="weight">Berdasarkan Berat</option>
                         <option value="distance">Berdasarkan Jarak</option>
                     </select>
                 </div>
                 <div id="shipping_rate_container">
-                    <label class="form-label">Tarif Dasar</label>
+                    <label class="form-label">Tarif Dasar <span style="color: var(--k-gray-500); font-weight: 400;">(opsional)</span></label>
                     <div style="position: relative;">
                         <span style="position: absolute; left: 0.5rem; top: 50%; transform: translateY(-50%); font-size: 0.7rem;">Rp</span>
                         <input type="number" name="shipping_rate" id="shipping_rate" class="form-control" value="0" step="1000" onchange="calculateGrandTotal()" style="padding-left: 1.8rem;">
@@ -187,12 +188,12 @@
                 
                 <!-- Packing Fee -->
                 <div>
-                    <label class="form-label">Biaya Packing / Repack</label>
+                    <label class="form-label">Biaya Packing / Repack <span style="color: var(--k-gray-500); font-weight: 400;">(opsional)</span></label>
                     <div style="position: relative;">
                         <span style="position: absolute; left: 0.5rem; top: 50%; transform: translateY(-50%); font-size: 0.7rem;">Rp</span>
-                        <input type="number" name="packing_fee" id="packing_fee" class="form-control" value="1000" step="500" onchange="calculateGrandTotal()" style="padding-left: 1.8rem;">
+                        <input type="number" name="packing_fee" id="packing_fee" class="form-control" value="0" step="500" onchange="calculateGrandTotal()" style="padding-left: 1.8rem;">
                     </div>
-                    <small class="dms-form-help">Biaya repack per order (default: Rp 1.000)</small>
+                    <small class="dms-form-help">Isi jika order memakai biaya packing/repack. Kosong atau 0 berarti tanpa biaya.</small>
                 </div>
             </div>
         </div>
@@ -461,7 +462,7 @@ function toggleShippingType() {
     
     weightContainer.style.display = shippingType === 'weight' ? 'block' : 'none';
     distanceContainer.style.display = shippingType === 'distance' ? 'block' : 'none';
-    rateContainer.style.display = 'block';
+    rateContainer.style.display = shippingType === 'none' ? 'none' : 'block';
     calculateGrandTotal();
 }
 
@@ -622,7 +623,7 @@ function calculateGrandTotal() {
     // Shipping cost
     const shippingType = document.getElementById('shipping_type').value;
     const shippingRate = parseInt(document.getElementById('shipping_rate').value) || 0;
-    let shippingCost = shippingRate;
+    let shippingCost = shippingType === 'none' ? 0 : shippingRate;
     
     if (shippingType === 'weight') {
         const weight = parseFloat(document.getElementById('shipping_weight').value) || 0;

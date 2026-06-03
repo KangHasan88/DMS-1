@@ -137,6 +137,7 @@ class Order extends Model
 
     // ===================== SHIPPING TYPE CONSTANTS =====================
     
+    const SHIPPING_NONE = 'none';
     const SHIPPING_FLAT = 'flat';
     const SHIPPING_WEIGHT = 'weight';
     const SHIPPING_DISTANCE = 'distance';
@@ -275,8 +276,8 @@ class Order extends Model
         string $shippingType,
         int|float|null $shippingWeight,
         int|float|null $shippingDistance,
-        int|float $shippingRate,
-        int|float $packingFee,
+        int|float|null $shippingRate,
+        int|float|null $packingFee,
         bool $includePpn,
         int|float|null $ppnRate
     ): array {
