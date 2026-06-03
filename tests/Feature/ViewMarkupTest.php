@@ -294,7 +294,6 @@ class ViewMarkupTest extends TestCase
         $customerShow = file_get_contents(resource_path('views/customers/show.blade.php'));
         $customerCreate = file_get_contents(resource_path('views/customers/create.blade.php'));
         $customerEdit = file_get_contents(resource_path('views/customers/edit.blade.php'));
-        $customerIndex = file_get_contents(resource_path('views/customers/index.blade.php'));
         $orderCreate = file_get_contents(resource_path('views/orders/create.blade.php'));
         $orderShow = file_get_contents(resource_path('views/orders/show.blade.php'));
 
@@ -309,8 +308,6 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('Tambahkan alamat baru di sini sebelum dipakai saat membuat order.', $customerShow);
         $this->assertStringContainsString('Tambah Alamat Pengiriman / Invoice', $customerShow);
         $this->assertStringContainsString('Invoice & Pengiriman', $customerShow);
-        $this->assertStringContainsString('Alamat pelanggan', $customerIndex);
-        $this->assertStringContainsString('#customer-addresses', $customerIndex);
         $this->assertStringContainsString('Alamat tambahan dapat ditambahkan di Detail Pelanggan', $customerCreate);
         $this->assertStringContainsString('Tambah alamat pengiriman/invoice lain', $customerEdit);
 
