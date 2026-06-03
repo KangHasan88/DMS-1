@@ -326,9 +326,9 @@
                 </div>
 
                 <div class="dms-form-span-2">
-                    <div style="padding: 0.65rem 0.75rem; border: 1px solid var(--k-gray-200); border-radius: 8px; background: var(--k-gray-50); font-size: 0.78rem; color: var(--k-gray-600); display: flex; justify-content: space-between; gap: 1rem; align-items: center; flex-wrap: wrap;">
-                        <span>Alamat invoice dan alamat kirim dikelola di master pelanggan.</span>
-                        <a href="#" id="manage-customer-address-link" target="_blank" style="color: var(--k-green); font-weight: 600; pointer-events: none; opacity: 0.5;">
+                    <div style="display: flex; justify-content: flex-end;">
+                        <a href="#" id="manage-customer-address-link" target="_blank" class="dms-btn dms-btn-outline dms-btn-sm" style="pointer-events: none; opacity: 0.5;">
+                            <i class="bi bi-geo-alt"></i>
                             Kelola alamat pelanggan
                         </a>
                     </div>
@@ -338,7 +338,6 @@
                     <input type="hidden" name="address" id="delivery-address" value="{{ old('address') }}" required>
                     <input type="hidden" name="latitude" id="delivery-latitude" value="{{ old('latitude') }}">
                     <input type="hidden" name="longitude" id="delivery-longitude" value="{{ old('longitude') }}">
-                    <small class="dms-form-help">Alamat akan disimpan otomatis sebagai snapshot order.</small>
                     @error('address') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
             </div>
