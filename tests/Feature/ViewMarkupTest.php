@@ -249,6 +249,12 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('button.textContent = option.textContent.trim();', $create);
         $this->assertStringContainsString('BLJ (Beli langsung jual)', $create);
         $this->assertStringContainsString('Mode BLJ: Barang dibeli dari pabrik/supplier', $create);
+        $this->assertStringContainsString('User::with(\'customer\')', $controller);
+        $this->assertStringContainsString('data-address="{{ e($customer->customer?->address ?? $customer->address ?? \'\') }}"', $create);
+        $this->assertStringContainsString('id="delivery-address"', $create);
+        $this->assertStringContainsString('fillDeliveryAddressFromCustomer(true)', $create);
+        $this->assertStringContainsString('fillDeliveryAddressFromCustomer(false)', $create);
+        $this->assertStringContainsString('Alamat diambil dari master pelanggan.', $create);
         $this->assertStringContainsString('<option value="none">Tanpa Ongkir</option>', $create);
         $this->assertStringContainsString('class="dms-fee-grid"', $create);
         $this->assertStringContainsString('grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);', $create);

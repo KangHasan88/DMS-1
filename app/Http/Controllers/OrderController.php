@@ -78,8 +78,8 @@ class OrderController extends Controller
     {
         $products = Product::active()->orderBy('name')->get();
         $customers = $this->isCustomerOnly()
-            ? User::whereKey(Auth::id())->get()
-            : User::role('customer')->active()->orderBy('name')->get();
+            ? User::with('customer')->whereKey(Auth::id())->get()
+            : User::with('customer')->role('customer')->active()->orderBy('name')->get();
         
         $productsWithStock = [];
         foreach ($products as $product) {

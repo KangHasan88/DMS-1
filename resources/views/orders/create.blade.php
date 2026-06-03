@@ -29,7 +29,13 @@
                     <select name="user_id" id="customer-select" class="form-control dms-native-select" required>
                         <option value="">-- Pilih Pelanggan --</option>
                         @foreach($customers as $customer)
-                            <option value="{{ $customer->id }}" {{ old('user_id') == $customer->id ? 'selected' : '' }}>
+                            <option
+                                value="{{ $customer->id }}"
+                                data-address="{{ e($customer->customer?->address ?? $customer->address ?? '') }}"
+                                data-latitude="{{ e($customer->customer?->latitude ?? '') }}"
+                                data-longitude="{{ e($customer->customer?->longitude ?? '') }}"
+                                {{ old('user_id') == $customer->id ? 'selected' : '' }}
+                            >
                                 {{ $customer->name }} ({{ $customer->phone }})
                             </option>
                         @endforeach
@@ -278,18 +284,19 @@
                 
                 <div class="dms-form-span-2">
                     <label class="form-label">Alamat Pengiriman <span class="dms-required">*</span></label>
-                    <textarea name="address" class="form-control" rows="2" required placeholder="Jl. Contoh No. 123, RT/RW, Kelurahan, Kecamatan, Kota">{{ old('address') }}</textarea>
+                    <textarea name="address" id="delivery-address" class="form-control" rows="2" required placeholder="Pilih pelanggan untuk mengisi alamat pengiriman otomatis">{{ old('address') }}</textarea>
+                    <small class="dms-form-help">Alamat diambil dari master pelanggan. Jika alamat kirim berbeda, tambahkan alamat tersebut di data pelanggan.</small>
                     @error('address') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
                 
                 <div>
                     <label class="form-label">Latitude (opsional)</label>
-                    <input type="text" name="latitude" class="form-control" placeholder="-6.200000">
+                    <input type="text" name="latitude" id="delivery-latitude" class="form-control" value="{{ old('latitude') }}" placeholder="-6.200000">
                 </div>
                 
                 <div>
                     <label class="form-label">Longitude (opsional)</label>
-                    <input type="text" name="longitude" class="form-control" placeholder="106.816666">
+                    <input type="text" name="longitude" id="delivery-longitude" class="form-control" value="{{ old('longitude') }}" placeholder="106.816666">
                 </div>
             </div>
         </div>
@@ -416,12 +423,43 @@ function buildSearchableDropdown(dropdown) {
     });
 
     select.addEventListener('change', updateLabel);
+    if (select.id === 'customer-select') {
+        select.addEventListener('change', () => fillDeliveryAddressFromCustomer(true));
+    }
     updateLabel();
     renderOptions();
 }
 
 function initializeSearchableDropdowns(scope = document) {
     scope.querySelectorAll('.js-searchable-dropdown').forEach(buildSearchableDropdown);
+}
+
+function fillDeliveryAddressFromCustomer(force = false) {
+    const customerSelect = document.getElementById('customer-select');
+    const addressInput = document.getElementById('delivery-address');
+    const latitudeInput = document.getElementById('delivery-latitude');
+    const longitudeInput = document.getElementById('delivery-longitude');
+
+    if (!customerSelect || !addressInput) {
+        return;
+    }
+
+    const selectedOption = customerSelect.options[customerSelect.selectedIndex];
+    const address = selectedOption?.dataset.address || '';
+    const latitude = selectedOption?.dataset.latitude || '';
+    const longitude = selectedOption?.dataset.longitude || '';
+
+    if (force || !addressInput.value.trim()) {
+        addressInput.value = address;
+    }
+
+    if (latitudeInput && (force || !latitudeInput.value.trim())) {
+        latitudeInput.value = latitude;
+    }
+
+    if (longitudeInput && (force || !longitudeInput.value.trim())) {
+        longitudeInput.value = longitude;
+    }
 }
 
 function toggleFulfillmentMode() {
@@ -680,6 +718,7 @@ function calculateGrandTotal() {
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
     initializeSearchableDropdowns();
+    fillDeliveryAddressFromCustomer(false);
     calculateGrandTotal();
     toggleFulfillmentMode();
     toggleDiscountType();
