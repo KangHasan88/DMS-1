@@ -149,6 +149,122 @@
                 </div>
             </div>
 
+            <!-- Customer Addresses -->
+            <div style="margin-bottom: 2rem;">
+                <h4 style="font-size: 1rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--k-gray-200);">
+                    <i class="bi bi-geo-alt" style="margin-right: 0.5rem; color: var(--k-green);"></i>
+                    Daftar Alamat
+                </h4>
+
+                @can('edit customers')
+                <form action="{{ route('customers.addresses.store', $customer) }}" method="POST" style="margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--k-gray-200); border-radius: 8px; background: var(--k-gray-50);">
+                    @csrf
+                    <div class="dms-form-grid">
+                        <div>
+                            <label class="form-label">Label Alamat <span class="dms-required">*</span></label>
+                            <input type="text" name="label" class="form-control" required placeholder="Contoh: Kantor Pusat, Gudang Cakung">
+                        </div>
+                        <div>
+                            <label class="form-label">Tipe Alamat <span class="dms-required">*</span></label>
+                            <select name="type" class="form-control" required>
+                                <option value="both">Invoice & Pengiriman</option>
+                                <option value="invoice">Invoice / Dokumen</option>
+                                <option value="shipping">Pengiriman</option>
+                            </select>
+                        </div>
+                        <div class="dms-form-span-2">
+                            <label class="form-label">Alamat Lengkap <span class="dms-required">*</span></label>
+                            <textarea name="address" class="form-control" rows="2" required placeholder="Alamat lengkap customer"></textarea>
+                        </div>
+                        <div>
+                            <label class="form-label">PIC Penerima</label>
+                            <input type="text" name="recipient_name" class="form-control" placeholder="{{ $customer->name }}">
+                        </div>
+                        <div>
+                            <label class="form-label">Telepon Penerima</label>
+                            <input type="text" name="recipient_phone" class="form-control" placeholder="{{ $customer->phone }}">
+                        </div>
+                        <div>
+                            <label class="form-label">Latitude</label>
+                            <input type="text" name="latitude" class="form-control" placeholder="-6.200000">
+                        </div>
+                        <div>
+                            <label class="form-label">Longitude</label>
+                            <input type="text" name="longitude" class="form-control" placeholder="106.816666">
+                        </div>
+                        <div class="dms-form-span-2" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                            <label class="dms-check">
+                                <input type="checkbox" name="is_default_invoice" value="1">
+                                <span>Default invoice</span>
+                            </label>
+                            <label class="dms-check">
+                                <input type="checkbox" name="is_default_shipping" value="1">
+                                <span>Default pengiriman</span>
+                            </label>
+                            <input type="hidden" name="is_active" value="1">
+                            <button type="submit" class="dms-btn dms-btn-primary">
+                                <i class="bi bi-plus-circle"></i> Tambah Alamat
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                @endcan
+
+                <div class="dms-table-wrap">
+                    <table class="dms-table">
+                        <thead>
+                            <tr>
+                                <th>Label</th>
+                                <th>Tipe</th>
+                                <th>Alamat</th>
+                                <th>Default</th>
+                                <th style="width: 96px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($customer->addresses as $address)
+                            <tr>
+                                <td>
+                                    <strong>{{ $address->label }}</strong>
+                                    @if($address->recipient_name || $address->recipient_phone)
+                                        <div style="font-size: 0.72rem; color: var(--k-gray-500);">{{ $address->recipient_name }} {{ $address->recipient_phone ? '- ' . $address->recipient_phone : '' }}</div>
+                                    @endif
+                                </td>
+                                <td>{{ $address->type_label }}</td>
+                                <td>{{ $address->address }}</td>
+                                <td>
+                                    @if($address->is_default_invoice)
+                                        <span class="dms-badge dms-badge-info">Invoice</span>
+                                    @endif
+                                    @if($address->is_default_shipping)
+                                        <span class="dms-badge dms-badge-success">Pengiriman</span>
+                                    @endif
+                                    @unless($address->is_active)
+                                        <span class="dms-badge dms-badge-danger">Nonaktif</span>
+                                    @endunless
+                                </td>
+                                <td>
+                                    @can('edit customers')
+                                    <form action="{{ route('customers.addresses.destroy', [$customer, $address]) }}" method="POST" onsubmit="return confirm('Hapus alamat ini?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="dms-btn dms-btn-outline" style="padding: 0.25rem 0.55rem; color: var(--k-red);">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                    @endcan
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: var(--k-gray-500);">Belum ada alamat customer.</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- Last Order Info -->
             @if($lastOrder)
             <div style="margin-bottom: 2rem;">

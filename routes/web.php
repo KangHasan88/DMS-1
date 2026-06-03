@@ -9,6 +9,7 @@ use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UnitCategoryController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerAddressController;
 use App\Http\Controllers\CustomerTypeController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierCategoryController;
@@ -133,6 +134,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('customers/{customer}/toggle-status', [CustomerController::class, 'toggleStatus'])->middleware('permission:edit customers')->name('customers.toggle-status');
     Route::post('customers/{customer}/topup-wallet', [CustomerController::class, 'topupWallet'])->middleware('permission:process payment')->name('customers.topup-wallet');
     Route::get('customers/{customer}/order-history', [CustomerController::class, 'orderHistory'])->middleware('permission:view order history')->name('customers.order-history');
+    Route::post('customers/{customer}/addresses', [CustomerAddressController::class, 'store'])->middleware('permission:edit customers')->name('customers.addresses.store');
+    Route::put('customers/{customer}/addresses/{address}', [CustomerAddressController::class, 'update'])->middleware('permission:edit customers')->name('customers.addresses.update');
+    Route::delete('customers/{customer}/addresses/{address}', [CustomerAddressController::class, 'destroy'])->middleware('permission:edit customers')->name('customers.addresses.destroy');
 
     // ============= SUPPLIER CATEGORY MANAGEMENT =============
     Route::get('supplier-categories', [SupplierCategoryController::class, 'index'])->middleware('permission:view suppliers')->name('supplier-categories.index');

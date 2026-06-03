@@ -69,6 +69,26 @@ class Customer extends Model
         return $this->hasMany(Customer::class, 'referred_by');
     }
 
+    public function addresses(): HasMany
+    {
+        return $this->hasMany(CustomerAddress::class)->orderByDesc('is_default_invoice')->orderByDesc('is_default_shipping')->orderBy('label');
+    }
+
+    public function activeAddresses(): HasMany
+    {
+        return $this->hasMany(CustomerAddress::class)->where('is_active', true)->orderByDesc('is_default_invoice')->orderByDesc('is_default_shipping')->orderBy('label');
+    }
+
+    public function invoiceAddresses(): HasMany
+    {
+        return $this->activeAddresses()->whereIn('type', [CustomerAddress::TYPE_INVOICE, CustomerAddress::TYPE_BOTH]);
+    }
+
+    public function shippingAddresses(): HasMany
+    {
+        return $this->activeAddresses()->whereIn('type', [CustomerAddress::TYPE_SHIPPING, CustomerAddress::TYPE_BOTH]);
+    }
+
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class, 'user_id', 'user_id');

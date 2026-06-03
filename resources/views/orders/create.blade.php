@@ -29,11 +29,31 @@
                     <select name="user_id" id="customer-select" class="form-control dms-native-select" required>
                         <option value="">-- Pilih Pelanggan --</option>
                         @foreach($customers as $customer)
+                            @php
+                                $profile = $customer->customer;
+                                $addresses = $profile?->activeAddresses ?? collect();
+                                $invoiceAddresses = $addresses->filter(fn ($address) => in_array($address->type, ['invoice', 'both'], true))->values();
+                                $shippingAddresses = $addresses->filter(fn ($address) => in_array($address->type, ['shipping', 'both'], true))->values();
+                                $formatAddress = fn ($address) => [
+                                    'id' => $address->id,
+                                    'label' => $address->label,
+                                    'type_label' => $address->type_label,
+                                    'address' => $address->address,
+                                    'recipient_name' => $address->recipient_name,
+                                    'recipient_phone' => $address->recipient_phone,
+                                    'latitude' => $address->latitude,
+                                    'longitude' => $address->longitude,
+                                    'is_default_invoice' => $address->is_default_invoice,
+                                    'is_default_shipping' => $address->is_default_shipping,
+                                ];
+                            @endphp
                             <option
                                 value="{{ $customer->id }}"
                                 data-address="{{ e($customer->customer?->address ?? $customer->address ?? '') }}"
                                 data-latitude="{{ e($customer->customer?->latitude ?? '') }}"
                                 data-longitude="{{ e($customer->customer?->longitude ?? '') }}"
+                                data-invoice-addresses="{{ e(json_encode($invoiceAddresses->map($formatAddress)->values())) }}"
+                                data-shipping-addresses="{{ e(json_encode($shippingAddresses->map($formatAddress)->values())) }}"
                                 {{ old('user_id') == $customer->id ? 'selected' : '' }}
                             >
                                 {{ $customer->name }} ({{ $customer->phone }})
@@ -281,11 +301,30 @@
                     </select>
                     @error('delivery_time_slot') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
+
+                <div>
+                    <label class="form-label">Alamat Invoice / Dokumen</label>
+                    <select name="invoice_address_id" id="invoice-address-select" class="form-control">
+                        <option value="">Pilih pelanggan terlebih dahulu</option>
+                    </select>
+                    <small class="dms-form-help">Alamat untuk dokumen invoice/tagihan.</small>
+                </div>
+
+                <div>
+                    <label class="form-label">Alamat Pengiriman</label>
+                    <select name="shipping_address_id" id="shipping-address-select" class="form-control">
+                        <option value="">Pilih pelanggan terlebih dahulu</option>
+                    </select>
+                    <label class="dms-check" style="margin-top: 0.45rem;">
+                        <input type="checkbox" name="shipping_same_as_invoice" id="shipping_same_as_invoice" value="1" checked>
+                        <span>Sama dengan alamat invoice/dokumen</span>
+                    </label>
+                </div>
                 
                 <div class="dms-form-span-2">
                     <label class="form-label">Alamat Pengiriman <span class="dms-required">*</span></label>
                     <textarea name="address" id="delivery-address" class="form-control" rows="2" required placeholder="Pilih pelanggan untuk mengisi alamat pengiriman otomatis">{{ old('address') }}</textarea>
-                    <small class="dms-form-help">Alamat diambil dari master pelanggan. Jika alamat kirim berbeda, tambahkan alamat tersebut di data pelanggan.</small>
+                    <small class="dms-form-help">Alamat diambil dari master alamat pelanggan sebagai snapshot order. Jika alamat kirim berbeda, tambahkan alamat tersebut di master pelanggan.</small>
                     @error('address') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
                 
@@ -436,15 +475,77 @@ function initializeSearchableDropdowns(scope = document) {
 
 function fillDeliveryAddressFromCustomer(force = false) {
     const customerSelect = document.getElementById('customer-select');
+    const invoiceSelect = document.getElementById('invoice-address-select');
+    const shippingSelect = document.getElementById('shipping-address-select');
+    const sameAsInvoice = document.getElementById('shipping_same_as_invoice');
     const addressInput = document.getElementById('delivery-address');
     const latitudeInput = document.getElementById('delivery-latitude');
     const longitudeInput = document.getElementById('delivery-longitude');
 
-    if (!customerSelect || !addressInput) {
+    if (!customerSelect || !addressInput || !invoiceSelect || !shippingSelect) {
         return;
     }
 
     const selectedOption = customerSelect.options[customerSelect.selectedIndex];
+    const invoiceAddresses = parseAddressDataset(selectedOption?.dataset.invoiceAddresses);
+    const shippingAddresses = parseAddressDataset(selectedOption?.dataset.shippingAddresses);
+
+    populateAddressSelect(invoiceSelect, invoiceAddresses, 'Pilih alamat invoice');
+    populateAddressSelect(shippingSelect, shippingAddresses, 'Pilih alamat pengiriman');
+
+    const defaultInvoice = invoiceAddresses.find(address => address.is_default_invoice) || invoiceAddresses[0] || null;
+    const defaultShipping = shippingAddresses.find(address => address.is_default_shipping) || shippingAddresses[0] || null;
+
+    invoiceSelect.value = defaultInvoice?.id || '';
+    shippingSelect.value = defaultShipping?.id || '';
+    shippingSelect.disabled = Boolean(sameAsInvoice?.checked);
+
+    updateDeliveryAddressSnapshot(force);
+}
+
+function parseAddressDataset(rawValue) {
+    if (!rawValue) {
+        return [];
+    }
+
+    try {
+        return JSON.parse(rawValue);
+    } catch (error) {
+        return [];
+    }
+}
+
+function populateAddressSelect(select, addresses, emptyLabel) {
+    select.innerHTML = `<option value="">${emptyLabel}</option>`;
+
+    addresses.forEach(address => {
+        const option = document.createElement('option');
+        option.value = address.id;
+        option.dataset.address = address.address || '';
+        option.dataset.latitude = address.latitude || '';
+        option.dataset.longitude = address.longitude || '';
+        option.dataset.recipientName = address.recipient_name || '';
+        option.dataset.recipientPhone = address.recipient_phone || '';
+        option.textContent = `${address.label} - ${address.address}`;
+        select.appendChild(option);
+    });
+}
+
+function updateDeliveryAddressSnapshot(force = true) {
+    const invoiceSelect = document.getElementById('invoice-address-select');
+    const shippingSelect = document.getElementById('shipping-address-select');
+    const sameAsInvoice = document.getElementById('shipping_same_as_invoice');
+    const addressInput = document.getElementById('delivery-address');
+    const latitudeInput = document.getElementById('delivery-latitude');
+    const longitudeInput = document.getElementById('delivery-longitude');
+
+    if (!invoiceSelect || !shippingSelect || !addressInput) {
+        return;
+    }
+
+    shippingSelect.disabled = Boolean(sameAsInvoice?.checked);
+    const sourceSelect = sameAsInvoice?.checked ? invoiceSelect : shippingSelect;
+    const selectedOption = sourceSelect.options[sourceSelect.selectedIndex];
     const address = selectedOption?.dataset.address || '';
     const latitude = selectedOption?.dataset.latitude || '';
     const longitude = selectedOption?.dataset.longitude || '';
@@ -732,6 +833,9 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('shipping_weight').addEventListener('input', calculateGrandTotal);
     document.getElementById('shipping_distance').addEventListener('input', calculateGrandTotal);
     document.getElementById('packing_fee').addEventListener('input', calculateGrandTotal);
+    document.getElementById('invoice-address-select').addEventListener('change', () => updateDeliveryAddressSnapshot(true));
+    document.getElementById('shipping-address-select').addEventListener('change', () => updateDeliveryAddressSnapshot(true));
+    document.getElementById('shipping_same_as_invoice').addEventListener('change', () => updateDeliveryAddressSnapshot(true));
     document.getElementById('include_ppn').addEventListener('change', calculateGrandTotal);
     document.getElementById('ppn_rate').addEventListener('input', calculateGrandTotal);
 });

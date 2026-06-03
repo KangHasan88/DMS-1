@@ -9,6 +9,7 @@ use App\Models\ProductStock;
 use App\Models\StockMovement;
 use App\Models\User;
 use App\Models\Customer;
+use App\Models\CustomerAddress;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -78,8 +79,8 @@ class OrderController extends Controller
     {
         $products = Product::active()->orderBy('name')->get();
         $customers = $this->isCustomerOnly()
-            ? User::with('customer')->whereKey(Auth::id())->get()
-            : User::with('customer')->role('customer')->active()->orderBy('name')->get();
+            ? User::with('customer.activeAddresses')->whereKey(Auth::id())->get()
+            : User::with('customer.activeAddresses')->role('customer')->active()->orderBy('name')->get();
         
         $productsWithStock = [];
         foreach ($products as $product) {
@@ -125,6 +126,9 @@ class OrderController extends Controller
             'address' => 'required|string',
             'latitude' => 'nullable|string',
             'longitude' => 'nullable|string',
+            'invoice_address_id' => 'nullable|exists:customer_addresses,id',
+            'shipping_address_id' => 'nullable|exists:customer_addresses,id',
+            'shipping_same_as_invoice' => 'boolean',
             'packing_fee' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
             'order_source' => 'required|in:' . Order::ORDER_SOURCE_APP . ',' . Order::ORDER_SOURCE_ADMIN,
@@ -211,6 +215,9 @@ class OrderController extends Controller
 
             $customerUser = User::with('customer')->findOrFail($request->user_id);
             $customer = $customerUser->customer;
+            [$invoiceAddress, $shippingAddress] = $this->resolveOrderAddresses($customer, $request);
+            $shippingSameAsInvoice = $request->boolean('shipping_same_as_invoice');
+            $shippingSnapshot = $shippingAddress?->address ?? $request->address;
             $creditWarning = null;
 
             if ($customer) {
@@ -226,9 +233,16 @@ class OrderController extends Controller
                 'order_number' => Order::generateOrderNumber(),
                 'delivery_date' => $request->delivery_date,
                 'delivery_time_slot' => $request->delivery_time_slot,
-                'address' => $request->address,
-                'latitude' => $request->latitude,
-                'longitude' => $request->longitude,
+                'address' => $shippingSnapshot,
+                'invoice_address_id' => $invoiceAddress?->id,
+                'shipping_address_id' => $shippingAddress?->id,
+                'invoice_address_snapshot' => $invoiceAddress?->address,
+                'shipping_address_snapshot' => $shippingSnapshot,
+                'shipping_recipient_name' => $shippingAddress?->recipient_name,
+                'shipping_recipient_phone' => $shippingAddress?->recipient_phone,
+                'shipping_same_as_invoice' => $shippingSameAsInvoice,
+                'latitude' => $shippingAddress?->latitude ?? $request->latitude,
+                'longitude' => $shippingAddress?->longitude ?? $request->longitude,
                 'delivery_fee' => $totals['shipping_cost'],
                 'packing_fee' => $packingFee,
                 'subtotal' => $subtotal,
@@ -715,6 +729,37 @@ class OrderController extends Controller
         $user = Auth::user();
 
         return $user?->hasRole('customer') && !$user->hasAnyRole(['super-admin', 'admin', 'manager', 'sales']);
+    }
+
+    private function resolveOrderAddresses(?Customer $customer, Request $request): array
+    {
+        if (!$customer) {
+            return [null, null];
+        }
+
+        $invoiceAddress = $request->filled('invoice_address_id')
+            ? CustomerAddress::where('customer_id', $customer->id)
+                ->whereIn('type', [CustomerAddress::TYPE_INVOICE, CustomerAddress::TYPE_BOTH])
+                ->find($request->invoice_address_id)
+            : null;
+
+        $invoiceAddress ??= $customer->invoiceAddresses()->where('is_default_invoice', true)->first()
+            ?? $customer->invoiceAddresses()->first();
+
+        if ($request->boolean('shipping_same_as_invoice')) {
+            $shippingAddress = $invoiceAddress;
+        } else {
+            $shippingAddress = $request->filled('shipping_address_id')
+                ? CustomerAddress::where('customer_id', $customer->id)
+                    ->whereIn('type', [CustomerAddress::TYPE_SHIPPING, CustomerAddress::TYPE_BOTH])
+                    ->find($request->shipping_address_id)
+                : null;
+
+            $shippingAddress ??= $customer->shippingAddresses()->where('is_default_shipping', true)->first()
+                ?? $customer->shippingAddresses()->first();
+        }
+
+        return [$invoiceAddress, $shippingAddress];
     }
 
     private function ensureCustomerCreditAllowsOrder(Customer $customer, int $grandTotal): void

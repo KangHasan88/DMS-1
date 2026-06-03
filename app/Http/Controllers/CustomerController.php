@@ -109,7 +109,8 @@ class CustomerController extends Controller
             $validated['payment_term'] = $validated['payment_term'] ?? Customer::PAYMENT_CASH;
             $validated = $this->normalizeCreditControls($validated);
             
-            Customer::create($validated);
+            $customer = Customer::create($validated);
+            $this->syncPrimaryAddress($customer, $validated);
             
             DB::commit();
             
@@ -127,7 +128,7 @@ class CustomerController extends Controller
      */
     public function show(Customer $customer)
     {
-        $customer->load('user', 'orders', 'type');
+        $customer->load('user', 'orders', 'type', 'addresses');
         $totalOrders = $customer->orders()->count();
         $totalSpent = $customer->orders()->where('status', 'delivered')->sum('total');
         $lastOrder = $customer->orders()->latest()->first();
@@ -202,6 +203,7 @@ class CustomerController extends Controller
             $validated['payment_term'] = $validated['payment_term'] ?? Customer::PAYMENT_CASH;
             $validated = $this->normalizeCreditControls($validated);
             $customer->update($validated);
+            $this->syncPrimaryAddress($customer, $validated);
             
             DB::commit();
             
@@ -316,5 +318,27 @@ class CustomerController extends Controller
         $validated['credit_status'] = $validated['credit_status'] ?? Customer::CREDIT_NORMAL;
 
         return $validated;
+    }
+
+    private function syncPrimaryAddress(Customer $customer, array $data): void
+    {
+        if (empty($data['address'])) {
+            return;
+        }
+
+        $customer->addresses()->updateOrCreate(
+            ['label' => 'Alamat Utama'],
+            [
+                'type' => 'both',
+                'address' => $data['address'],
+                'recipient_name' => $customer->name,
+                'recipient_phone' => $customer->phone,
+                'latitude' => $data['latitude'] ?? null,
+                'longitude' => $data['longitude'] ?? null,
+                'is_default_invoice' => !$customer->addresses()->where('is_default_invoice', true)->where('label', '<>', 'Alamat Utama')->exists(),
+                'is_default_shipping' => !$customer->addresses()->where('is_default_shipping', true)->where('label', '<>', 'Alamat Utama')->exists(),
+                'is_active' => true,
+            ]
+        );
     }
 }

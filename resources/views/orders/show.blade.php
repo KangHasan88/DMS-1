@@ -118,8 +118,16 @@
                     <div style="font-weight: 600; color: var(--k-gray-600);">Email</div>
                     <div>{{ $order->user->email ?? '-' }}</div>
                     
-                    <div style="font-weight: 600; color: var(--k-gray-600);">Alamat</div>
-                    <div>{{ $order->address ?? '-' }}</div>
+                    <div style="font-weight: 600; color: var(--k-gray-600);">Alamat Invoice</div>
+                    <div>{{ $order->invoice_address_snapshot ?? $order->address ?? '-' }}</div>
+
+                    <div style="font-weight: 600; color: var(--k-gray-600);">Alamat Kirim</div>
+                    <div>
+                        {{ $order->shipping_address_snapshot ?? $order->address ?? '-' }}
+                        @if($order->shipping_same_as_invoice)
+                            <span class="dms-badge dms-badge-info" style="margin-left: 0.35rem;">Sama dengan invoice</span>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>

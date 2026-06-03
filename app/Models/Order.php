@@ -14,10 +14,17 @@ class Order extends Model
 
     protected $fillable = [
         'user_id',
+        'invoice_address_id',
+        'shipping_address_id',
         'order_number',
         'delivery_date',
         'delivery_time_slot',
         'address',
+        'invoice_address_snapshot',
+        'shipping_address_snapshot',
+        'shipping_recipient_name',
+        'shipping_recipient_phone',
+        'shipping_same_as_invoice',
         'latitude',
         'longitude',
         'delivery_fee',
@@ -72,6 +79,7 @@ class Order extends Model
         'shipping_distance' => 'integer',
         'shipping_rate' => 'integer',
         'include_ppn' => 'boolean',
+        'shipping_same_as_invoice' => 'boolean',
         'ppn_rate' => 'decimal:2',
         'ppn_amount' => 'integer',
         'grand_total' => 'integer',
@@ -147,6 +155,16 @@ class Order extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function invoiceAddress(): BelongsTo
+    {
+        return $this->belongsTo(CustomerAddress::class, 'invoice_address_id');
+    }
+
+    public function shippingAddress(): BelongsTo
+    {
+        return $this->belongsTo(CustomerAddress::class, 'shipping_address_id');
     }
 
     public function items(): HasMany

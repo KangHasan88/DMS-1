@@ -254,7 +254,7 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('id="delivery-address"', $create);
         $this->assertStringContainsString('fillDeliveryAddressFromCustomer(true)', $create);
         $this->assertStringContainsString('fillDeliveryAddressFromCustomer(false)', $create);
-        $this->assertStringContainsString('Alamat diambil dari master pelanggan.', $create);
+        $this->assertStringContainsString('Alamat diambil dari master alamat pelanggan sebagai snapshot order.', $create);
         $this->assertStringContainsString('<option value="none">Tanpa Ongkir</option>', $create);
         $this->assertStringContainsString('class="dms-fee-grid"', $create);
         $this->assertStringContainsString('grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);', $create);
@@ -280,6 +280,39 @@ class ViewMarkupTest extends TestCase
             $this->assertStringNotContainsString('Beli ke Pasar', $content);
             $this->assertStringNotContainsString('Mode JIT', $content);
         }
+    }
+
+    public function test_customer_addresses_are_mastered_and_used_by_orders(): void
+    {
+        $customer = file_get_contents(app_path('Models/Customer.php'));
+        $customerAddress = file_get_contents(app_path('Models/CustomerAddress.php'));
+        $order = file_get_contents(app_path('Models/Order.php'));
+        $customerController = file_get_contents(app_path('Http/Controllers/CustomerController.php'));
+        $customerAddressController = file_get_contents(app_path('Http/Controllers/CustomerAddressController.php'));
+        $orderController = file_get_contents(app_path('Http/Controllers/OrderController.php'));
+        $routes = file_get_contents(base_path('routes/web.php'));
+        $customerShow = file_get_contents(resource_path('views/customers/show.blade.php'));
+        $orderCreate = file_get_contents(resource_path('views/orders/create.blade.php'));
+        $orderShow = file_get_contents(resource_path('views/orders/show.blade.php'));
+
+        $this->assertStringContainsString('class CustomerAddress extends Model', $customerAddress);
+        $this->assertStringContainsString('public function addresses(): HasMany', $customer);
+        $this->assertStringContainsString('customers.addresses.store', $routes);
+        $this->assertStringContainsString('CustomerAddressController::class', $routes);
+        $this->assertStringContainsString('syncPrimaryAddress', $customerController);
+        $this->assertStringContainsString('is_default_invoice', $customerAddressController);
+        $this->assertStringContainsString('Daftar Alamat', $customerShow);
+        $this->assertStringContainsString('Invoice & Pengiriman', $customerShow);
+
+        $this->assertStringContainsString('invoice_address_id', $order);
+        $this->assertStringContainsString('shipping_address_snapshot', $order);
+        $this->assertStringContainsString('resolveOrderAddresses', $orderController);
+        $this->assertStringContainsString('data-invoice-addresses', $orderCreate);
+        $this->assertStringContainsString('id="invoice-address-select"', $orderCreate);
+        $this->assertStringContainsString('Sama dengan alamat invoice/dokumen', $orderCreate);
+        $this->assertStringContainsString('updateDeliveryAddressSnapshot', $orderCreate);
+        $this->assertStringContainsString('Alamat Invoice', $orderShow);
+        $this->assertStringContainsString('Alamat Kirim', $orderShow);
     }
 
     public function test_product_category_options_are_loaded_from_master_data(): void
