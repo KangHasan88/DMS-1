@@ -26,8 +26,7 @@
                 <!-- Pelanggan -->
                 <div>
                     <label class="form-label">Pelanggan <span class="dms-required">*</span></label>
-                    <input type="search" id="customer-search" class="form-control js-select-search" data-target="customer-select" placeholder="Cari nama atau telepon pelanggan..." autocomplete="off" style="margin-bottom: 0.5rem;">
-                    <select name="user_id" id="customer-select" class="form-control" required>
+                    <select name="user_id" id="customer-select" class="form-control dms-native-select" required>
                         <option value="">-- Pilih Pelanggan --</option>
                         @foreach($customers as $customer)
                             <option value="{{ $customer->id }}" {{ old('user_id') == $customer->id ? 'selected' : '' }}>
@@ -35,6 +34,7 @@
                             </option>
                         @endforeach
                     </select>
+                    <div class="dms-combobox js-searchable-dropdown" data-select-id="customer-select" data-search-placeholder="Cari nama atau telepon pelanggan..."></div>
                     @can('create customers')
                     <small class="dms-form-help">
                         <a href="{{ route('customers.create') }}" target="_blank" style="color: var(--k-green);">+ Tambah Pelanggan Baru</a>
@@ -94,8 +94,7 @@
                     <tbody id="products-tbody">
                         <tr class="product-row" style="border-bottom: 1px solid var(--k-gray-200);">
                             <td style="padding: 0.5rem;">
-                                <input type="search" class="form-control js-select-search product-search" data-target="product-select-0" placeholder="Cari produk..." autocomplete="off" style="margin-bottom: 0.4rem; padding: 0.45rem 0.5rem; font-size: 0.75rem;">
-                                <select name="items[0][product_id]" id="product-select-0" class="product-select" required onchange="updateProductPrice(this, 0)" style="width: 100%; padding: 0.5rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.75rem;">
+                                <select name="items[0][product_id]" id="product-select-0" class="product-select dms-native-select" required onchange="updateProductPrice(this, 0)">
                                     <option value="">-- Pilih Produk --</option>
                                     @foreach($products as $product)
                                         <option value="{{ $product->id }}" data-price="{{ $product->price }}" data-stock="{{ $productsWithStock[$product->id]['stock'] ?? 0 }}" data-has-stock="{{ $productsWithStock[$product->id]['has_stock'] ? 'true' : 'false' }}">
@@ -103,6 +102,7 @@
                                         </option>
                                     @endforeach
                                 </select>
+                                <div class="dms-combobox js-searchable-dropdown product-search" data-select-id="product-select-0" data-search-placeholder="Cari produk..."></div>
                                 <div class="stock-warning" style="display: none; font-size: 0.6rem; color: var(--k-red); margin-top: 0.25rem;"></div>
                             </td>
                             <td style="padding: 0.5rem;">
@@ -311,30 +311,106 @@
 <script>
 let productIndex = 1;
 
-function setupSelectSearch(input) {
-    const select = document.getElementById(input.dataset.target);
-    if (!select || input.dataset.searchReady === 'true') {
+function buildSearchableDropdown(dropdown) {
+    const select = document.getElementById(dropdown.dataset.selectId);
+    if (!select || dropdown.dataset.dropdownReady === 'true') {
         return;
     }
 
-    input.dataset.searchReady = 'true';
-    input.addEventListener('input', function () {
-        const query = this.value.trim().toLowerCase();
+    dropdown.dataset.dropdownReady = 'true';
+    const placeholder = select.options[0]?.textContent.trim() || 'Pilih data';
+    const searchPlaceholder = dropdown.dataset.searchPlaceholder || 'Cari...';
 
-        Array.from(select.options).forEach(option => {
-            if (!option.value) {
-                option.hidden = false;
-                return;
-            }
+    dropdown.innerHTML = `
+        <button type="button" class="dms-combobox-trigger" aria-haspopup="listbox" aria-expanded="false">
+            <span class="dms-combobox-value">${placeholder}</span>
+            <i class="bi bi-chevron-down"></i>
+        </button>
+        <div class="dms-combobox-menu" hidden>
+            <input type="search" class="dms-combobox-search" placeholder="${searchPlaceholder}" autocomplete="off">
+            <div class="dms-combobox-options" role="listbox"></div>
+        </div>
+    `;
 
-            const matches = option.textContent.toLowerCase().includes(query);
-            option.hidden = Boolean(query) && !matches;
+    const trigger = dropdown.querySelector('.dms-combobox-trigger');
+    const valueLabel = dropdown.querySelector('.dms-combobox-value');
+    const menu = dropdown.querySelector('.dms-combobox-menu');
+    const search = dropdown.querySelector('.dms-combobox-search');
+    const optionsWrap = dropdown.querySelector('.dms-combobox-options');
+
+    const updateLabel = () => {
+        const selectedOption = select.options[select.selectedIndex];
+        valueLabel.textContent = selectedOption?.value ? selectedOption.textContent.trim() : placeholder;
+    };
+
+    const closeMenu = () => {
+        menu.hidden = true;
+        trigger.setAttribute('aria-expanded', 'false');
+    };
+
+    const renderOptions = () => {
+        const query = search.value.trim().toLowerCase();
+        const options = Array.from(select.options).filter(option => option.value);
+        const matches = options.filter(option => option.textContent.toLowerCase().includes(query));
+
+        optionsWrap.innerHTML = '';
+
+        if (!matches.length) {
+            const empty = document.createElement('div');
+            empty.className = 'dms-combobox-empty';
+            empty.textContent = 'Tidak ada data cocok';
+            optionsWrap.appendChild(empty);
+            return;
+        }
+
+        matches.forEach(option => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'dms-combobox-option' + (option.value === select.value ? ' is-selected' : '');
+            button.dataset.value = option.value;
+            button.setAttribute('role', 'option');
+            button.textContent = option.textContent.trim();
+            optionsWrap.appendChild(button);
         });
+    };
+
+    trigger.addEventListener('click', () => {
+        const shouldOpen = menu.hidden;
+        document.querySelectorAll('.dms-combobox-menu').forEach(openMenu => {
+            openMenu.hidden = true;
+            openMenu.closest('.dms-combobox')?.querySelector('.dms-combobox-trigger')?.setAttribute('aria-expanded', 'false');
+        });
+
+        menu.hidden = !shouldOpen;
+        trigger.setAttribute('aria-expanded', String(shouldOpen));
+
+        if (shouldOpen) {
+            search.value = '';
+            renderOptions();
+            search.focus();
+        }
     });
+
+    search.addEventListener('input', renderOptions);
+    optionsWrap.addEventListener('click', event => {
+        const optionButton = event.target.closest('.dms-combobox-option');
+        if (!optionButton) {
+            return;
+        }
+
+        select.value = optionButton.dataset.value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        updateLabel();
+        closeMenu();
+    });
+
+    select.addEventListener('change', updateLabel);
+    updateLabel();
+    renderOptions();
 }
 
-function initializeSelectSearches(scope = document) {
-    scope.querySelectorAll('.js-select-search').forEach(setupSelectSearch);
+function initializeSearchableDropdowns(scope = document) {
+    scope.querySelectorAll('.js-searchable-dropdown').forEach(buildSearchableDropdown);
 }
 
 function toggleFulfillmentMode() {
@@ -425,8 +501,7 @@ function addProductRow() {
     newRow.style.borderBottom = '1px solid var(--k-gray-200)';
     newRow.innerHTML = `
         <td style="padding: 0.5rem;">
-            <input type="search" class="form-control js-select-search product-search" data-target="product-select-${productIndex}" placeholder="Cari produk..." autocomplete="off" style="margin-bottom: 0.4rem; padding: 0.45rem 0.5rem; font-size: 0.75rem;">
-            <select name="items[${productIndex}][product_id]" id="product-select-${productIndex}" class="product-select" required onchange="updateProductPrice(this, ${productIndex})" style="width: 100%; padding: 0.5rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.75rem;">
+            <select name="items[${productIndex}][product_id]" id="product-select-${productIndex}" class="product-select dms-native-select" required onchange="updateProductPrice(this, ${productIndex})">
                 <option value="">-- Pilih Produk --</option>
                 @foreach($products as $product)
                     <option value="{{ $product->id }}" data-price="{{ $product->price }}" data-stock="{{ $productsWithStock[$product->id]['stock'] ?? 0 }}" data-has-stock="{{ $productsWithStock[$product->id]['has_stock'] ? 'true' : 'false' }}">
@@ -434,6 +509,7 @@ function addProductRow() {
                     </option>
                 @endforeach
             </select>
+            <div class="dms-combobox js-searchable-dropdown product-search" data-select-id="product-select-${productIndex}" data-search-placeholder="Cari produk..."></div>
             <div class="stock-warning" style="display: none; font-size: 0.6rem; color: var(--k-red); margin-top: 0.25rem;"></div>
         </td>
         <td style="padding: 0.5rem;">
@@ -457,7 +533,7 @@ function addProductRow() {
         </td>
     `;
     tbody.appendChild(newRow);
-    initializeSelectSearches(newRow);
+    initializeSearchableDropdowns(newRow);
     productIndex++;
 }
 
@@ -592,7 +668,7 @@ function calculateGrandTotal() {
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    initializeSelectSearches();
+    initializeSearchableDropdowns();
     calculateGrandTotal();
     toggleFulfillmentMode();
     toggleDiscountType();
@@ -608,6 +684,17 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('packing_fee').addEventListener('input', calculateGrandTotal);
     document.getElementById('include_ppn').addEventListener('change', calculateGrandTotal);
     document.getElementById('ppn_rate').addEventListener('input', calculateGrandTotal);
+});
+
+document.addEventListener('click', function(event) {
+    if (event.target.closest('.dms-combobox')) {
+        return;
+    }
+
+    document.querySelectorAll('.dms-combobox-menu').forEach(menu => {
+        menu.hidden = true;
+        menu.closest('.dms-combobox')?.querySelector('.dms-combobox-trigger')?.setAttribute('aria-expanded', 'false');
+    });
 });
 </script>
 
@@ -634,6 +721,93 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 textarea.form-control {
     resize: vertical;
+}
+.dms-native-select {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+.dms-combobox {
+    position: relative;
+    width: 100%;
+}
+.dms-combobox-trigger {
+    width: 100%;
+    min-height: 42px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--k-gray-300);
+    border-radius: 6px;
+    background: white;
+    color: var(--k-gray-800);
+    font-size: 0.8rem;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+.dms-combobox-trigger:focus {
+    outline: none;
+    border-color: var(--k-green);
+    box-shadow: 0 0 0 2px var(--k-green-light);
+}
+.dms-combobox-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.dms-combobox-menu {
+    position: absolute;
+    top: calc(100% + 0.25rem);
+    left: 0;
+    right: 0;
+    z-index: 30;
+    padding: 0.45rem;
+    border: 1px solid var(--k-gray-300);
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.14);
+}
+.dms-combobox-search {
+    width: 100%;
+    padding: 0.45rem 0.55rem;
+    border: 1px solid var(--k-gray-300);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    margin-bottom: 0.4rem;
+}
+.dms-combobox-search:focus {
+    outline: none;
+    border-color: var(--k-green);
+    box-shadow: 0 0 0 2px var(--k-green-light);
+}
+.dms-combobox-options {
+    max-height: 190px;
+    overflow-y: auto;
+}
+.dms-combobox-option {
+    width: 100%;
+    padding: 0.45rem 0.55rem;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--k-gray-800);
+    font-size: 0.75rem;
+    text-align: left;
+    cursor: pointer;
+}
+.dms-combobox-option:hover,
+.dms-combobox-option.is-selected {
+    background: var(--k-green-light);
+    color: var(--k-green);
+}
+.dms-combobox-empty {
+    padding: 0.55rem;
+    color: var(--k-gray-500);
+    font-size: 0.72rem;
 }
 .dms-btn {
     padding: 0.4rem 1rem;
