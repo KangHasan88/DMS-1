@@ -2,6 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\Customer;
+use App\Models\CustomerAddress;
+use App\Models\User;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
@@ -316,7 +320,8 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('resolveOrderAddresses', $orderController);
         $this->assertStringContainsString('data-invoice-addresses', $orderCreate);
         $this->assertStringContainsString('data-shipping-addresses', $orderCreate);
-        $this->assertStringContainsString('JSON_HEX_QUOT', $orderCreate);
+        $this->assertStringContainsString('JSON_HEX_APOS', $orderCreate);
+        $this->assertStringNotContainsString('JSON_HEX_QUOT', $orderCreate);
         $this->assertStringNotContainsString('e(json_encode($invoiceAddresses', $orderCreate);
         $this->assertStringContainsString('$profile->activeAddresses()->get()', $orderCreate);
         $this->assertStringContainsString('data-address-url', $orderCreate);
@@ -328,6 +333,62 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('updateDeliveryAddressSnapshot', $orderCreate);
         $this->assertStringContainsString('Alamat Invoice', $orderShow);
         $this->assertStringContainsString('Alamat Kirim', $orderShow);
+    }
+
+    public function test_order_customer_address_dataset_is_parseable_json(): void
+    {
+        $profile = new Customer([
+            'id' => 3,
+            'name' => 'Ahmad Fauzi',
+            'phone' => '081234567803',
+            'address' => 'Jl. Gatot Subroto No. 5, Jakarta',
+        ]);
+
+        $address = new CustomerAddress([
+            'id' => 9,
+            'label' => 'Alamat Utama',
+            'type' => CustomerAddress::TYPE_BOTH,
+            'address' => "Jl. Gatot Subroto No. 5, Jakarta",
+            'is_default_invoice' => true,
+            'is_default_shipping' => true,
+            'is_active' => true,
+        ]);
+
+        $profile->setRelation('activeAddresses', collect([$address]));
+
+        $customer = new User([
+            'id' => 27,
+            'name' => 'Ahmad Fauzi',
+            'phone' => '081234567803',
+        ]);
+        $customer->setRelation('customer', $profile);
+
+        $html = Blade::render(<<<'BLADE'
+@php
+    $profile = $customer->customer;
+    $addresses = $profile?->activeAddresses ?? collect();
+    $invoiceAddresses = $addresses->filter(fn ($address) => in_array($address->type, ['invoice', 'both'], true))->values();
+    $formatAddress = fn ($address) => [
+        'id' => $address->id,
+        'label' => $address->label,
+        'address' => $address->address,
+        'is_default_invoice' => $address->is_default_invoice,
+        'is_default_shipping' => $address->is_default_shipping,
+    ];
+@endphp
+<option data-invoice-addresses='@json($invoiceAddresses->map($formatAddress)->values(), JSON_HEX_APOS | JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE)'>{{ $customer->name }}</option>
+BLADE, ['customer' => $customer]);
+
+        preg_match("/data-invoice-addresses='([^']+)'/", $html, $matches);
+
+        $this->assertNotEmpty($matches[1] ?? null);
+
+        $decoded = json_decode($matches[1], true, 512, JSON_THROW_ON_ERROR);
+
+        $this->assertSame('Alamat Utama', $decoded[0]['label']);
+        $this->assertSame('Jl. Gatot Subroto No. 5, Jakarta', $decoded[0]['address']);
+        $this->assertTrue($decoded[0]['is_default_invoice']);
+        $this->assertTrue($decoded[0]['is_default_shipping']);
     }
 
     public function test_product_category_options_are_loaded_from_master_data(): void

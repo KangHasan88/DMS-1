@@ -55,8 +55,8 @@
                                 data-address="{{ e($customer->customer?->address ?? $customer->address ?? '') }}"
                                 data-latitude="{{ e($customer->customer?->latitude ?? '') }}"
                                 data-longitude="{{ e($customer->customer?->longitude ?? '') }}"
-                                data-invoice-addresses="{!! $invoiceAddresses->map($formatAddress)->values()->toJson(JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) !!}"
-                                data-shipping-addresses="{!! $shippingAddresses->map($formatAddress)->values()->toJson(JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) !!}"
+                                data-invoice-addresses='@json($invoiceAddresses->map($formatAddress)->values(), JSON_HEX_APOS | JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE)'
+                                data-shipping-addresses='@json($shippingAddresses->map($formatAddress)->values(), JSON_HEX_APOS | JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE)'
                                 data-address-url="{{ route('customers.show', $customer->customer?->id ?? 0) }}#customer-addresses"
                                 {{ old('user_id') == $customer->id ? 'selected' : '' }}
                             >
