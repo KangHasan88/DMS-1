@@ -306,6 +306,24 @@ class ViewMarkupTest extends TestCase
         $this->assertStringNotContainsString('Pasar Pemasok', $sidebar);
     }
 
+    public function test_supplier_stall_number_is_not_exposed_on_supplier_pages(): void
+    {
+        $controller = file_get_contents(app_path('Http/Controllers/SupplierController.php'));
+        $create = file_get_contents(resource_path('views/suppliers/create.blade.php'));
+        $edit = file_get_contents(resource_path('views/suppliers/edit.blade.php'));
+        $index = file_get_contents(resource_path('views/suppliers/index.blade.php'));
+        $show = file_get_contents(resource_path('views/suppliers/show.blade.php'));
+
+        foreach ([$create, $edit, $index, $show] as $content) {
+            $this->assertStringNotContainsString('stall_number', $content);
+            $this->assertStringNotContainsString('Nomor Lapak/Kios', $content);
+            $this->assertStringNotContainsString('Lapak:', $content);
+        }
+
+        $this->assertStringNotContainsString('stall_number', $controller);
+        $this->assertStringNotContainsString('nomor lapak', strtolower($index));
+    }
+
     public function test_unit_category_options_are_loaded_from_master_data(): void
     {
         $controller = file_get_contents(app_path('Http/Controllers/UnitController.php'));

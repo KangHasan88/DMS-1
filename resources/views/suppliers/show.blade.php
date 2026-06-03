@@ -106,12 +106,6 @@
                         <div style="font-weight: 600; color: var(--k-gray-800);">{{ $supplier->market_name }}</div>
                     </div>
                     @endif
-                    @if($supplier->stall_number)
-                    <div style="padding: 0.75rem; background: var(--k-gray-50); border-radius: 8px;">
-                        <div style="font-size: 0.7rem; color: var(--k-gray-500); margin-bottom: 0.25rem;">Nomor Lapak/Kios</div>
-                        <div style="font-weight: 600; color: var(--k-gray-800);">{{ $supplier->stall_number }}</div>
-                    </div>
-                    @endif
                     @if($supplier->address)
                     <div style="grid-column: span 2; padding: 0.75rem; background: var(--k-gray-50); border-radius: 8px;">
                         <div style="font-size: 0.7rem; color: var(--k-gray-500); margin-bottom: 0.25rem;">Alamat</div>

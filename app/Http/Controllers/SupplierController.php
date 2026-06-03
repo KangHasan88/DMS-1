@@ -22,8 +22,7 @@ class SupplierController extends Controller
             $query->where(function ($query) use ($request) {
                 $query->where('name', 'like', "%{$request->search}%")
                     ->orWhere('phone', 'like', "%{$request->search}%")
-                    ->orWhere('market_name', 'like', "%{$request->search}%")
-                    ->orWhere('stall_number', 'like', "%{$request->search}%");
+                    ->orWhere('market_name', 'like', "%{$request->search}%");
             });
         }
         
@@ -74,7 +73,6 @@ class SupplierController extends Controller
             'alternate_phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255|unique:suppliers,email',
             'market_name' => 'nullable|string|max:255',
-            'stall_number' => 'nullable|string|max:50',
             'address' => 'nullable|string',
             'latitude' => 'nullable|string',
             'longitude' => 'nullable|string',
@@ -127,7 +125,6 @@ class SupplierController extends Controller
             'alternate_phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255|unique:suppliers,email,' . $supplier->id,
             'market_name' => 'nullable|string|max:255',
-            'stall_number' => 'nullable|string|max:50',
             'address' => 'nullable|string',
             'latitude' => 'nullable|string',
             'longitude' => 'nullable|string',

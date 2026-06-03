@@ -53,7 +53,7 @@
         <form action="{{ route('suppliers.index') }}" method="GET" class="dms-search-form">
                 <div class="dms-search-field">
                     <i class="bi bi-search"></i>
-                    <input type="text" name="search" placeholder="Cari nama, telepon, pasar, nomor lapak..." 
+                    <input type="text" name="search" placeholder="Cari nama, telepon, pasar..." 
                            value="{{ request('search') }}"
                            class="form-control">
                 </div>
@@ -131,9 +131,6 @@
                         <div style="display: flex; flex-direction: column;">
                             @if($supplier->market_name)
                                 <span style="font-size: 0.75rem;"><i class="bi bi-building"></i> {{ $supplier->market_name }}</span>
-                            @endif
-                            @if($supplier->stall_number)
-                                <span style="font-size: 0.65rem; color: var(--k-gray-500);">Lapak: {{ $supplier->stall_number }}</span>
                             @endif
                         </div>
                     </td>

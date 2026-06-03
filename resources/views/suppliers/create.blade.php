@@ -42,13 +42,6 @@
                 @error('email') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
 
-            <!-- Stall Number -->
-            <div class="form-group">
-                <label class="form-label">Nomor Lapak/Kios</label>
-                <input type="text" name="stall_number" value="{{ old('stall_number') }}" class="form-control" placeholder="A-01, Blok B No. 12">
-                @error('stall_number') <span class="dms-error">{{ $message }}</span> @enderror
-            </div>
-
             <!-- Address -->
             <div class="form-group dms-form-span-2">
                 <label class="form-label">Alamat Lengkap</label>
