@@ -42,21 +42,6 @@
                 @error('email') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
 
-            <!-- Market Name -->
-            <div class="form-group">
-                <label class="form-label">Nama Pasar</label>
-                <select name="market_name" class="form-control">
-                    <option value="">-- Pilih Pasar --</option>
-                    @foreach($markets as $market)
-                    <option value="{{ $market }}" {{ old('market_name') == $market ? 'selected' : '' }}>{{ $market }}</option>
-                    @endforeach
-                </select>
-                <small class="dms-form-help">
-                    <a href="{{ route('supplier-markets.index') }}">Kelola pasar pemasok</a>
-                </small>
-                @error('market_name') <span class="dms-error">{{ $message }}</span> @enderror
-            </div>
-
             <!-- Stall Number -->
             <div class="form-group">
                 <label class="form-label">Nomor Lapak/Kios</label>

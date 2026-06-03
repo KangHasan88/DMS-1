@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Supplier;
 use App\Models\SupplierCategory;
-use App\Models\SupplierMarket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -40,11 +39,6 @@ class SupplierController extends Controller
             }
         }
         
-        // Filter by market
-        if ($request->filled('market')) {
-            $query->where('market_name', $request->market);
-        }
-        
         // Filter by status
         if ($request->filled('status')) {
             $query->where('is_active', $request->status === 'active');
@@ -55,9 +49,8 @@ class SupplierController extends Controller
         
         // Get categories for filter
         $categories = SupplierCategory::active()->orderBy('sort_order')->orderBy('name')->pluck('name', 'code');
-        $markets = SupplierMarket::active()->orderBy('sort_order')->orderBy('name')->pluck('name');
         
-        return view('suppliers.index', compact('suppliers', 'categories', 'markets'));
+        return view('suppliers.index', compact('suppliers', 'categories'));
     }
 
     /**
@@ -66,9 +59,8 @@ class SupplierController extends Controller
     public function create()
     {
         $categories = SupplierCategory::active()->orderBy('sort_order')->orderBy('name')->pluck('name', 'code');
-        $markets = SupplierMarket::active()->orderBy('sort_order')->orderBy('name')->pluck('name');
 
-        return view('suppliers.create', compact('categories', 'markets'));
+        return view('suppliers.create', compact('categories'));
     }
 
     /**
@@ -81,12 +73,7 @@ class SupplierController extends Controller
             'phone' => 'required|string|max:20|unique:suppliers,phone',
             'alternate_phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255|unique:suppliers,email',
-            'market_name' => [
-                'nullable',
-                'string',
-                'max:100',
-                Rule::exists('supplier_markets', 'name')->where('is_active', true),
-            ],
+            'market_name' => 'nullable|string|max:255',
             'stall_number' => 'nullable|string|max:50',
             'address' => 'nullable|string',
             'latitude' => 'nullable|string',
@@ -125,9 +112,8 @@ class SupplierController extends Controller
     public function edit(Supplier $supplier)
     {
         $categories = SupplierCategory::active()->orderBy('sort_order')->orderBy('name')->pluck('name', 'code');
-        $markets = SupplierMarket::active()->orderBy('sort_order')->orderBy('name')->pluck('name');
 
-        return view('suppliers.edit', compact('supplier', 'categories', 'markets'));
+        return view('suppliers.edit', compact('supplier', 'categories'));
     }
 
     /**
@@ -140,12 +126,7 @@ class SupplierController extends Controller
             'phone' => 'required|string|max:20|unique:suppliers,phone,' . $supplier->id,
             'alternate_phone' => 'nullable|string|max:20',
             'email' => 'nullable|email|max:255|unique:suppliers,email,' . $supplier->id,
-            'market_name' => [
-                'nullable',
-                'string',
-                'max:100',
-                Rule::exists('supplier_markets', 'name')->where('is_active', true),
-            ],
+            'market_name' => 'nullable|string|max:255',
             'stall_number' => 'nullable|string|max:50',
             'address' => 'nullable|string',
             'latitude' => 'nullable|string',

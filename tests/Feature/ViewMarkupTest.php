@@ -278,28 +278,29 @@ class ViewMarkupTest extends TestCase
         $this->assertStringNotContainsString('Kategori Pemasok', $sidebar);
     }
 
-    public function test_supplier_market_options_are_loaded_from_master_data(): void
+    public function test_supplier_market_master_is_not_exposed_on_supplier_pages(): void
     {
         $controller = file_get_contents(app_path('Http/Controllers/SupplierController.php'));
         $create = file_get_contents(resource_path('views/suppliers/create.blade.php'));
         $edit = file_get_contents(resource_path('views/suppliers/edit.blade.php'));
         $index = file_get_contents(resource_path('views/suppliers/index.blade.php'));
+        $routes = file_get_contents(base_path('routes/web.php'));
         $sidebar = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));
 
-        $this->assertStringContainsString('SupplierMarket::active()', $controller);
-        $this->assertStringContainsString('$markets', $index);
+        $this->assertStringNotContainsString('SupplierMarket::active()', $controller);
+        $this->assertStringNotContainsString('supplier-markets', $routes);
 
         foreach ([$create, $edit] as $content) {
-            $this->assertStringContainsString('$markets', $content);
-            $this->assertStringContainsString('supplier-markets.index', $content);
-            $this->assertStringNotContainsString('type="text" name="market_name"', $content);
+            $this->assertStringNotContainsString('$markets', $content);
+            $this->assertStringNotContainsString('name="market_name"', $content);
+            $this->assertStringNotContainsString('supplier-markets.index', $content);
         }
 
-        $this->assertStringContainsString('Tambah Pasar', $index);
-        $this->assertStringContainsString('supplier-market-panel', $index);
-        $this->assertStringContainsString('supplier-markets.store', $index);
-        $this->assertStringContainsString('supplier-markets.index', $index);
-        $this->assertStringContainsString('Lihat Daftar', $index);
+        $this->assertStringNotContainsString('Tambah Pasar', $index);
+        $this->assertStringNotContainsString('supplier-market-panel', $index);
+        $this->assertStringNotContainsString('supplier-markets.store', $index);
+        $this->assertStringNotContainsString('supplier-markets.index', $index);
+        $this->assertStringNotContainsString('$markets', $index);
         $this->assertStringNotContainsString('name="market" placeholder="Filter Pasar', $index);
         $this->assertStringNotContainsString('supplier-markets.index', $sidebar);
         $this->assertStringNotContainsString('Pasar Pemasok', $sidebar);
@@ -345,7 +346,6 @@ class ViewMarkupTest extends TestCase
         $productCategories = file_get_contents(resource_path('views/product-categories/index.blade.php'));
         $unitCategories = file_get_contents(resource_path('views/unit-categories/index.blade.php'));
         $supplierCategories = file_get_contents(resource_path('views/supplier-categories/index.blade.php'));
-        $supplierMarkets = file_get_contents(resource_path('views/supplier-markets/index.blade.php'));
         $customerTypes = file_get_contents(resource_path('views/customer-types/index.blade.php'));
 
         $catalogStart = strpos($sidebar, '<!-- SECTION: CATALOG -->');
@@ -374,12 +374,10 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('products.index', $productCategories);
         $this->assertStringContainsString('units.index', $unitCategories);
         $this->assertStringContainsString('suppliers.index', $supplierCategories);
-        $this->assertStringContainsString('suppliers.index', $supplierMarkets);
         $this->assertStringContainsString('customers.index', $customerTypes);
         $this->assertStringContainsString('Kembali', $productCategories);
         $this->assertStringContainsString('Kembali', $unitCategories);
         $this->assertStringContainsString('Kembali', $supplierCategories);
-        $this->assertStringContainsString('Kembali', $supplierMarkets);
         $this->assertStringContainsString('Kembali', $customerTypes);
     }
 

@@ -16,10 +16,6 @@
                 <i class="bi bi-bookmark"></i>
                 Tambah Kategori
             </button>
-            <button type="button" class="dms-btn dms-btn-outline" onclick="toggleInlineCategoryForm('supplier-market-panel')">
-                <i class="bi bi-building"></i>
-                Tambah Pasar
-            </button>
             <a href="{{ route('suppliers.create') }}" class="dms-btn dms-btn-primary">
                 <i class="bi bi-plus-circle"></i>
                 Tambah Pemasok
@@ -52,30 +48,6 @@
     </div>
     @endcan
 
-    @can('create suppliers')
-    <div id="supplier-market-panel" style="display: none; margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--k-gray-200); border-radius: 8px; background: var(--k-gray-50);">
-        <form action="{{ route('supplier-markets.store') }}" method="POST" style="display: flex; gap: 0.75rem; align-items: end; flex-wrap: wrap;">
-            @csrf
-            <input type="hidden" name="redirect_to" value="{{ route('suppliers.index') }}">
-            <div class="form-group" style="margin: 0; flex: 1 1 260px;">
-                <label class="form-label">Nama Pasar</label>
-                <input type="text" name="name" class="form-control" required placeholder="Contoh: Pasar Induk, Pasar Minggu">
-            </div>
-            <div class="form-group" style="margin: 0; flex: 0 1 160px;">
-                <label class="form-label">Urutan</label>
-                <input type="number" name="sort_order" class="form-control" min="0" value="0">
-            </div>
-            <input type="hidden" name="is_active" value="1">
-            <button type="submit" class="dms-btn dms-btn-primary">
-                <i class="bi bi-save"></i> Simpan
-            </button>
-            <a href="{{ route('supplier-markets.index') }}" class="dms-btn dms-btn-outline">
-                <i class="bi bi-list-ul"></i> Lihat Daftar
-            </a>
-        </form>
-    </div>
-    @endcan
-
     <!-- Search & Filter -->
     <div class="dms-toolbar">
         <form action="{{ route('suppliers.index') }}" method="GET" class="dms-search-form">
@@ -94,16 +66,6 @@
                 @foreach($categories as $key => $label)
                     <option value="{{ route('suppliers.index', array_merge(request()->except('category'), ['category' => $key])) }}" {{ request('category') == $key ? 'selected' : '' }}>
                         {{ $label }}
-                    </option>
-                @endforeach
-            </select>
-            
-            <!-- Filter Market -->
-            <select name="market" onchange="window.location.href = this.value" class="form-control">
-                <option value="{{ route('suppliers.index', array_merge(request()->except('market'), ['market' => null])) }}">Semua Pasar</option>
-                @foreach($markets as $market)
-                    <option value="{{ route('suppliers.index', array_merge(request()->except('market'), ['market' => $market])) }}" {{ request('market') == $market ? 'selected' : '' }}>
-                        {{ $market }}
                     </option>
                 @endforeach
             </select>
