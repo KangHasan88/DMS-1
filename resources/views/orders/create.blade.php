@@ -94,6 +94,25 @@
                     </div>
                     @error('fulfillment_type') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
+
+                <!-- Payment Timing -->
+                <div>
+                    <label class="form-label">Skema Pembayaran <span class="dms-required">*</span></label>
+                    <div style="display: flex; gap: 1rem; margin-top: 0.3rem; flex-wrap: wrap;">
+                        <label class="dms-check">
+                            <input type="radio" name="payment_timing" value="pre_paid" {{ old('payment_timing', $defaultPaymentTiming) == 'pre_paid' ? 'checked' : '' }}>
+                            <span><i class="bi bi-shield-check"></i> Pre-paid</span>
+                        </label>
+                        <label class="dms-check">
+                            <input type="radio" name="payment_timing" value="post_paid" {{ old('payment_timing', $defaultPaymentTiming) == 'post_paid' ? 'checked' : '' }}>
+                            <span><i class="bi bi-hourglass-split"></i> Post-paid</span>
+                        </label>
+                    </div>
+                    <div style="margin-top: 0.5rem; padding: 0.5rem; background: var(--k-blue-light); border-radius: 6px; font-size: 0.7rem; color: var(--k-blue);">
+                        <i class="bi bi-info-circle"></i> Pre-paid: bayar dulu baru diproses. Post-paid: order diproses dulu, pembayaran menyusul setelah pengiriman.
+                    </div>
+                    @error('payment_timing') <span class="dms-error">{{ $message }}</span> @enderror
+                </div>
             </div>
         </div>
         

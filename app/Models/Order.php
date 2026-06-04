@@ -45,6 +45,7 @@ class Order extends Model
         'tracking_code',
         'order_source',
         'payment_method',
+        'payment_timing',
         'payment_reference',
         'fulfillment_type',
         'discount_type',
@@ -137,6 +138,16 @@ class Order extends Model
     const PAYMENT_MANUAL = 'manual';
     const PAYMENT_WALLET = 'wallet';
 
+    // ===================== PAYMENT TIMING CONSTANTS =====================
+
+    const PAYMENT_TIMING_PRE_PAID = 'pre_paid';
+    const PAYMENT_TIMING_POST_PAID = 'post_paid';
+
+    const PAYMENT_TIMING_LIST = [
+        self::PAYMENT_TIMING_PRE_PAID => 'Pre-paid',
+        self::PAYMENT_TIMING_POST_PAID => 'Post-paid',
+    ];
+
     // ===================== DISCOUNT TYPE CONSTANTS =====================
     
     const DISCOUNT_NONE = 'none';
@@ -213,6 +224,16 @@ class Order extends Model
         return $this->fulfillment_type === self::FULFILLMENT_JIT;
     }
 
+    public function isPrePaid(): bool
+    {
+        return $this->payment_timing === self::PAYMENT_TIMING_PRE_PAID;
+    }
+
+    public function isPostPaid(): bool
+    {
+        return $this->payment_timing === self::PAYMENT_TIMING_POST_PAID;
+    }
+
     public function updateStatus(string $newStatus, ?string $notes = null): bool
     {
         if (!$this->canUpdateStatus() && $newStatus !== self::STATUS_CANCELLED) {
@@ -272,16 +293,26 @@ class Order extends Model
             return !in_array($this->status, [self::STATUS_SHIPPED, self::STATUS_DELIVERED, self::STATUS_CANCELLED], true);
         }
 
+        if ($newStatus === self::STATUS_PAID) {
+            if ($this->isPostPaid()) {
+                return $this->status === self::STATUS_SHIPPED;
+            }
+
+            return $this->status === self::STATUS_PENDING_PAYMENT;
+        }
+
         $allowed = [
-            self::STATUS_PENDING_PAYMENT => [self::STATUS_PAID],
-            self::STATUS_PAID => [
+            self::STATUS_PENDING_PAYMENT => $this->isPrePaid() ? [self::STATUS_PAID] : [],
+            self::STATUS_PAID => $this->isPostPaid()
+                ? [self::STATUS_DELIVERED]
+                : [
                 $this->useStockMode() ? self::STATUS_CHECKING_STOCK : self::STATUS_PROCURING,
-            ],
+                ],
             self::STATUS_CHECKING_STOCK => [self::STATUS_REPACKING],
             self::STATUS_PROCURING => [self::STATUS_REPACKING],
             self::STATUS_REPACKING => [self::STATUS_READY],
             self::STATUS_READY => [self::STATUS_SHIPPED],
-            self::STATUS_SHIPPED => [self::STATUS_DELIVERED],
+            self::STATUS_SHIPPED => $this->isPostPaid() ? [self::STATUS_PAID] : [self::STATUS_DELIVERED],
         ];
 
         return in_array($newStatus, $allowed[$this->status] ?? [], true);

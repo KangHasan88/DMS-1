@@ -34,6 +34,10 @@
                 <label class="form-label">Mode Pemenuhan</label>
                 <input type="text" class="form-control" value="{{ $order->fulfillment_type == 'stock' ? 'Stock (Ambil dari Gudang)' : 'BLJ (Beli langsung jual)' }}" readonly disabled>
             </div>
+            <div class="form-group">
+                <label class="form-label">Skema Pembayaran</label>
+                <input type="text" class="form-control" value="{{ $order->payment_timing == 'pre_paid' ? 'Pre-paid' : 'Post-paid' }}" readonly disabled>
+            </div>
         </div>
         
         <!-- Products Section -->

@@ -46,34 +46,39 @@
                     <i class="bi bi-{{ $order->fulfillment_type == 'stock' ? 'archive' : 'truck' }}"></i>
                     {{ $order->fulfillment_type == 'stock' ? 'Mode Stock' : 'Mode BLJ (Beli langsung jual)' }}
                 </span>
+                <span class="dms-badge dms-badge-secondary">
+                    <i class="bi bi-credit-card"></i>
+                    {{ $order->payment_timing == 'pre_paid' ? 'Pre-paid' : 'Post-paid' }}
+                </span>
             </div>
         </div>
         
         <!-- Status Progress Timeline -->
         <div style="margin-top: 1.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
             @php
-                // Base status untuk semua mode
-                $allStatusSteps = [
-                    'pending_payment' => ['label' => 'Menunggu Bayar', 'icon' => 'bi-clock', 'color' => 'warning'],
-                    'paid' => ['label' => 'Sudah Bayar', 'icon' => 'bi-credit-card', 'color' => 'info'],
-                ];
-                
-                // Status pertengahan berdasarkan mode
-                if ($order->useStockMode()) {
-                    $allStatusSteps['checking_stock'] = ['label' => 'Cek Stock', 'icon' => 'bi-box-seam', 'color' => 'info'];
-                } else {
-                    $allStatusSteps['procuring'] = ['label' => 'Belanja', 'icon' => 'bi-cart', 'color' => 'info'];
+                $statusSteps = [];
+
+                if ($order->payment_timing == 'pre_paid') {
+                    $statusSteps['pending_payment'] = ['label' => 'Menunggu Bayar', 'icon' => 'bi-clock', 'color' => 'warning'];
+                    $statusSteps['paid'] = ['label' => 'Sudah Bayar', 'icon' => 'bi-credit-card', 'color' => 'info'];
                 }
-                
-                // Status akhir untuk semua mode
-                $finalStatusSteps = [
-                    'repacking' => ['label' => 'Repacking', 'icon' => 'bi-box', 'color' => 'info'],
-                    'ready' => ['label' => 'Siap Kirim', 'icon' => 'bi-check-circle', 'color' => 'success'],
-                    'shipped' => ['label' => 'Dikirim', 'icon' => 'bi-truck', 'color' => 'success'],
-                    'delivered' => ['label' => 'Selesai', 'icon' => 'bi-flag', 'color' => 'success'],
-                ];
-                
-                $statusSteps = array_merge($allStatusSteps, $finalStatusSteps);
+
+                if ($order->useStockMode()) {
+                    $statusSteps['checking_stock'] = ['label' => 'Cek Stock', 'icon' => 'bi-box-seam', 'color' => 'info'];
+                } else {
+                    $statusSteps['procuring'] = ['label' => 'Belanja', 'icon' => 'bi-cart', 'color' => 'info'];
+                }
+
+                $statusSteps['repacking'] = ['label' => 'Repacking', 'icon' => 'bi-box', 'color' => 'info'];
+                $statusSteps['ready'] = ['label' => 'Siap Kirim', 'icon' => 'bi-check-circle', 'color' => 'success'];
+                $statusSteps['shipped'] = ['label' => 'Dikirim', 'icon' => 'bi-truck', 'color' => 'success'];
+
+                if ($order->payment_timing == 'post_paid') {
+                    $statusSteps['paid'] = ['label' => 'Sudah Bayar', 'icon' => 'bi-credit-card', 'color' => 'info'];
+                }
+
+                $statusSteps['delivered'] = ['label' => 'Selesai', 'icon' => 'bi-flag', 'color' => 'success'];
+
                 $statusKeys = array_keys($statusSteps);
                 $currentStatusIndex = array_search($order->status, $statusKeys);
             @endphp
@@ -152,6 +157,9 @@
                     
                     <div style="font-weight: 600; color: var(--k-gray-600);">Tracking</div>
                     <div>{{ $order->tracking_code ?? '-' }}</div>
+
+                    <div style="font-weight: 600; color: var(--k-gray-600);">Skema Pembayaran</div>
+                    <div>{{ $order->payment_timing == 'pre_paid' ? 'Pre-paid' : 'Post-paid' }}</div>
                 </div>
             </div>
         </div>
@@ -328,7 +336,7 @@
     
     {{-- Konfirmasi Pembayaran --}}
     @can('process orders')
-    @if($order->status == 'pending_payment')
+    @if(($order->payment_timing == 'pre_paid' && $order->status == 'pending_payment') || ($order->payment_timing == 'post_paid' && $order->status == 'shipped'))
     <form action="{{ route('orders.update-status', $order) }}" method="POST">
         @csrf
         <input type="hidden" name="status" value="paid">
@@ -396,7 +404,7 @@
     
     {{-- Selesaikan Order --}}
     @can('process deliveries')
-    @if($order->status == 'shipped')
+    @if(($order->payment_timing == 'pre_paid' && $order->status == 'shipped') || ($order->payment_timing == 'post_paid' && $order->status == 'paid'))
     <form action="{{ route('orders.mark-delivered', $order) }}" method="POST">
         @csrf
         <button type="submit" class="dms-btn dms-btn-primary">

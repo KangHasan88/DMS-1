@@ -94,13 +94,15 @@ class OrderController extends Controller
         
         $defaultDeliveryDate = now()->addDay()->format('Y-m-d');
         $defaultFulfillmentType = $request->get('fulfillment_type', Order::FULFILLMENT_STOCK);
+        $defaultPaymentTiming = $request->get('payment_timing', Order::PAYMENT_TIMING_POST_PAID);
         
         return view('orders.create', compact(
             'products', 
             'customers', 
             'productsWithStock',
             'defaultDeliveryDate',
-            'defaultFulfillmentType'
+            'defaultFulfillmentType',
+            'defaultPaymentTiming'
         ));
     }
 
@@ -133,6 +135,7 @@ class OrderController extends Controller
             'notes' => 'nullable|string',
             'order_source' => 'required|in:' . Order::ORDER_SOURCE_APP . ',' . Order::ORDER_SOURCE_ADMIN,
             'fulfillment_type' => 'required|in:' . Order::FULFILLMENT_STOCK . ',' . Order::FULFILLMENT_JIT,
+            'payment_timing' => 'required|in:' . Order::PAYMENT_TIMING_PRE_PAID . ',' . Order::PAYMENT_TIMING_POST_PAID,
             'payment_method' => 'nullable|in:gateway,manual,wallet',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
@@ -209,6 +212,7 @@ class OrderController extends Controller
                 $request->ppn_rate ?? 11
             );
             
+            $paymentTiming = $request->payment_timing ?: Order::PAYMENT_TIMING_POST_PAID;
             $paymentMethod = $request->payment_method;
             if ($request->order_source === Order::ORDER_SOURCE_ADMIN && !$paymentMethod) {
                 $paymentMethod = Order::PAYMENT_MANUAL;
@@ -228,6 +232,10 @@ class OrderController extends Controller
                     $creditWarning = 'Customer masuk watchlist kredit. Order tetap dibuat, mohon cek pembayaran/outstanding.';
                 }
             }
+
+            $initialStatus = $paymentTiming === Order::PAYMENT_TIMING_PRE_PAID
+                ? Order::STATUS_PENDING_PAYMENT
+                : ($request->fulfillment_type === Order::FULFILLMENT_STOCK ? Order::STATUS_CHECKING_STOCK : Order::STATUS_PROCURING);
             
             $order = Order::create([
                 'user_id' => $request->user_id,
@@ -259,10 +267,11 @@ class OrderController extends Controller
                 'ppn_rate' => $totals['ppn_rate'],
                 'ppn_amount' => $totals['ppn_amount'],
                 'grand_total' => $totals['grand_total'],
-                'status' => Order::STATUS_PENDING_PAYMENT,
+                'status' => $initialStatus,
                 'notes' => $request->notes,
                 'order_source' => $request->order_source,
                 'fulfillment_type' => $request->fulfillment_type,
+                'payment_timing' => $paymentTiming,
                 'payment_method' => $paymentMethod,
                 'admin_notes' => trim('Order dibuat oleh ' . Auth::user()->name . "\n" . ($creditWarning ?? '')),
             ]);
@@ -677,8 +686,14 @@ class OrderController extends Controller
     {
         $this->authorizeCustomerOrder($order);
 
-        if ($order->status !== Order::STATUS_SHIPPED) {
-            return back()->with('error', 'Order harus dalam status shipped untuk diselesaikan');
+        $isValidStatus = $order->payment_timing === Order::PAYMENT_TIMING_POST_PAID
+            ? $order->status === Order::STATUS_PAID
+            : $order->status === Order::STATUS_SHIPPED;
+
+        if (!$isValidStatus) {
+            return back()->with('error', $order->payment_timing === Order::PAYMENT_TIMING_POST_PAID
+                ? 'Order harus dalam status Sudah Bayar untuk diselesaikan'
+                : 'Order harus dalam status shipped untuk diselesaikan');
         }
         
         $order->updateStatus(Order::STATUS_DELIVERED, 'Barang sampai ke customer');

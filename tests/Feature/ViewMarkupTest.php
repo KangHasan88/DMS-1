@@ -258,6 +258,9 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('User::with(\'customer\')', $controller);
         $this->assertStringContainsString('data-address="{{ e($customer->customer?->address ?? $customer->address ?? \'\') }}"', $create);
         $this->assertStringContainsString('id="delivery-address"', $create);
+        $this->assertStringContainsString('name="payment_timing"', $create);
+        $this->assertStringContainsString('value="pre_paid"', $create);
+        $this->assertStringContainsString('value="post_paid"', $create);
         $this->assertStringContainsString('fillDeliveryAddressFromCustomer(true)', $create);
         $this->assertStringContainsString('fillDeliveryAddressFromCustomer(false)', $create);
         $this->assertStringNotContainsString('Alamat akan disimpan otomatis sebagai snapshot order.', $create);
@@ -274,6 +277,8 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('Kosong atau 0 berarti tanpa biaya packing/repack.', $create);
         $this->assertStringContainsString("'shipping_type' => 'nullable|in:none,flat,weight,distance'", $controller);
         $this->assertStringContainsString("'shipping_rate' => 'nullable|numeric|min:0'", $controller);
+        $this->assertStringContainsString("'payment_timing' => 'required|in:' . Order::PAYMENT_TIMING_PRE_PAID . ',' . Order::PAYMENT_TIMING_POST_PAID", $controller);
+        $this->assertStringContainsString('$defaultPaymentTiming = $request->get(\'payment_timing\', Order::PAYMENT_TIMING_POST_PAID);', $controller);
         $this->assertStringContainsString('$packingFee = $request->packing_fee ?? 0;', $controller);
         $this->assertStringContainsString('$shippingTypeForStorage = $shippingType === Order::SHIPPING_NONE ? Order::SHIPPING_FLAT : $shippingType;', $controller);
         $this->assertStringContainsString("'shipping_type' => \$shippingTypeForStorage,", $controller);
@@ -303,6 +308,7 @@ class ViewMarkupTest extends TestCase
         $customerCreate = file_get_contents(resource_path('views/customers/create.blade.php'));
         $customerEdit = file_get_contents(resource_path('views/customers/edit.blade.php'));
         $orderCreate = file_get_contents(resource_path('views/orders/create.blade.php'));
+        $orderEdit = file_get_contents(resource_path('views/orders/edit.blade.php'));
         $orderShow = file_get_contents(resource_path('views/orders/show.blade.php'));
 
         $this->assertStringContainsString('class CustomerAddress extends Model', $customerAddress);
@@ -324,6 +330,8 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('resolveOrderAddresses', $orderController);
         $this->assertStringContainsString('?string $shippingType,', $order);
         $this->assertStringContainsString('$shippingType = $shippingType ?: self::SHIPPING_NONE;', $order);
+        $this->assertStringContainsString('PAYMENT_TIMING_PRE_PAID', $order);
+        $this->assertStringContainsString('PAYMENT_TIMING_POST_PAID', $order);
         $this->assertStringContainsString('data-invoice-addresses', $orderCreate);
         $this->assertStringContainsString('data-shipping-addresses', $orderCreate);
         $this->assertStringContainsString('JSON_HEX_APOS', $orderCreate);
@@ -346,8 +354,13 @@ class ViewMarkupTest extends TestCase
         $this->assertStringNotContainsString('Alamat yang dipakai', $orderCreate);
         $this->assertStringNotContainsString('<textarea name="address"', $orderCreate);
         $this->assertStringContainsString('updateDeliveryAddressSnapshot', $orderCreate);
+        $this->assertStringContainsString('Skema Pembayaran', $orderCreate);
+        $this->assertStringContainsString('Post-paid', $orderCreate);
+        $this->assertStringContainsString('payment_timing', $orderEdit);
         $this->assertStringContainsString('Alamat Invoice', $orderShow);
         $this->assertStringContainsString('Alamat Kirim', $orderShow);
+        $this->assertStringContainsString('Pre-paid', $orderShow);
+        $this->assertStringContainsString('Post-paid', $orderShow);
     }
 
     public function test_order_customer_address_dataset_is_parseable_json(): void
