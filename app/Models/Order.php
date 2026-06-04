@@ -29,6 +29,7 @@ class Order extends Model
         'longitude',
         'delivery_fee',
         'packing_fee',
+        'requires_packing',
         'subtotal',
         'total',
         'status',
@@ -74,6 +75,7 @@ class Order extends Model
         'total' => 'integer',
         'delivery_fee' => 'integer',
         'packing_fee' => 'integer',
+        'requires_packing' => 'boolean',
         'discount_value' => 'decimal:2',
         'discount_amount' => 'integer',
         'shipping_weight' => 'integer',
@@ -234,6 +236,11 @@ class Order extends Model
         return $this->payment_timing === self::PAYMENT_TIMING_POST_PAID;
     }
 
+    public function requiresPacking(): bool
+    {
+        return (bool) $this->requires_packing;
+    }
+
     public function updateStatus(string $newStatus, ?string $notes = null): bool
     {
         if (!$this->canUpdateStatus() && $newStatus !== self::STATUS_CANCELLED) {
@@ -308,9 +315,9 @@ class Order extends Model
                 : [
                 $this->useStockMode() ? self::STATUS_CHECKING_STOCK : self::STATUS_PROCURING,
                 ],
-            self::STATUS_CHECKING_STOCK => [self::STATUS_REPACKING],
-            self::STATUS_PROCURING => [self::STATUS_REPACKING],
-            self::STATUS_REPACKING => [self::STATUS_READY],
+            self::STATUS_CHECKING_STOCK => $this->requiresPacking() ? [self::STATUS_REPACKING] : [self::STATUS_READY],
+            self::STATUS_PROCURING => $this->requiresPacking() ? [self::STATUS_REPACKING] : [self::STATUS_READY],
+            self::STATUS_REPACKING => $this->requiresPacking() ? [self::STATUS_READY] : [],
             self::STATUS_READY => [self::STATUS_SHIPPED],
             self::STATUS_SHIPPED => $this->isPostPaid() ? [self::STATUS_PAID] : [self::STATUS_DELIVERED],
         ];

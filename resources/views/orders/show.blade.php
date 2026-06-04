@@ -50,6 +50,10 @@
                     <i class="bi bi-credit-card"></i>
                     {{ $order->payment_timing == 'pre_paid' ? 'Pre-paid' : 'Post-paid' }}
                 </span>
+                <span class="dms-badge {{ $order->requiresPacking() ? 'dms-badge-warning' : 'dms-badge-secondary' }}">
+                    <i class="bi bi-box2"></i>
+                    {{ $order->requiresPacking() ? 'Packing / Repack' : 'Tanpa Packing' }}
+                </span>
             </div>
         </div>
         
@@ -69,7 +73,9 @@
                     $statusSteps['procuring'] = ['label' => 'Belanja', 'icon' => 'bi-cart', 'color' => 'info'];
                 }
 
-                $statusSteps['repacking'] = ['label' => 'Repacking', 'icon' => 'bi-box', 'color' => 'info'];
+                if ($order->requiresPacking()) {
+                    $statusSteps['repacking'] = ['label' => 'Repacking', 'icon' => 'bi-box', 'color' => 'info'];
+                }
                 $statusSteps['ready'] = ['label' => 'Siap Kirim', 'icon' => 'bi-check-circle', 'color' => 'success'];
                 $statusSteps['shipped'] = ['label' => 'Dikirim', 'icon' => 'bi-truck', 'color' => 'success'];
 
@@ -160,6 +166,9 @@
 
                     <div style="font-weight: 600; color: var(--k-gray-600);">Skema Pembayaran</div>
                     <div>{{ $order->payment_timing == 'pre_paid' ? 'Pre-paid' : 'Post-paid' }}</div>
+
+                    <div style="font-weight: 600; color: var(--k-gray-600);">Packing / Repack</div>
+                    <div>{{ $order->requiresPacking() ? 'Ya' : 'Tidak' }}</div>
                 </div>
             </div>
         </div>
@@ -267,6 +276,7 @@
                         <td colspan="2"></td>
                         @endif
                     </tr>
+                    @if($order->requiresPacking())
                     <tr style="background: var(--k-gray-100);">
                         <td colspan="4" style="padding: 0.75rem; text-align: right; font-weight: 600;">Biaya Packing</td>
                         <td colspan="2" style="padding: 0.75rem; text-align: right;">
@@ -276,6 +286,7 @@
                         <td colspan="2"></td>
                         @endif
                     </tr>
+                    @endif
                     @if($order->ppn_amount > 0)
                     <tr style="background: var(--k-gray-100);">
                         <td colspan="4" style="padding: 0.75rem; text-align: right; font-weight: 600;">PPN ({{ $order->ppn_rate }}%)</td>
@@ -359,7 +370,7 @@
     
     {{-- Proses Repack (untuk mode stock setelah checking_stock) --}}
     @can('process orders')
-    @if($order->status == 'checking_stock' && $order->useStockMode())
+    @if($order->requiresPacking() && $order->status == 'checking_stock' && $order->useStockMode())
     <form action="{{ route('orders.process-repack', $order) }}" method="POST">
         @csrf
         <button type="submit" class="dms-btn dms-btn-primary">
@@ -371,7 +382,7 @@
     
     {{-- Proses Repack (untuk mode BLJ setelah procurement selesai) --}}
     @can('process orders')
-    @if($order->status == 'procuring' && $order->useJitMode() && $order->items()->where('fulfillment_status', 'pending')->count() == 0)
+    @if($order->requiresPacking() && $order->status == 'procuring' && $order->useJitMode() && $order->items()->where('fulfillment_status', 'pending')->count() == 0)
     <form action="{{ route('orders.process-repack', $order) }}" method="POST">
         @csrf
         <button type="submit" class="dms-btn dms-btn-primary">
@@ -383,7 +394,7 @@
     
     {{-- Siap Kirim --}}
     @can('process orders')
-    @if($order->status == 'repacking')
+    @if((!$order->requiresPacking() && in_array($order->status, ['checking_stock', 'procuring'], true)) || $order->status == 'repacking')
     <form action="{{ route('orders.mark-ready', $order) }}" method="POST">
         @csrf
         <button type="submit" class="dms-btn dms-btn-primary">

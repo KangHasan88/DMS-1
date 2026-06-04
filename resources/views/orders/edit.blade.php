@@ -109,9 +109,15 @@
                             </td>
                         </tr>
                         <tr>
-                            <td colspan="3" style="text-align: right; font-weight: 600;">Biaya Packing (opsional):</td>
+                            <td colspan="3" style="text-align: right; font-weight: 600;">
+                                <label style="display: inline-flex; align-items: center; gap: 0.35rem; margin: 0; cursor: pointer;">
+                                    <input type="hidden" name="requires_packing" value="0">
+                                    <input type="checkbox" name="requires_packing" id="requires_packing" value="1" {{ $order->requiresPacking() ? 'checked' : '' }}>
+                                    <span>Gunakan packing / repack</span>
+                                </label>
+                            </td>
                             <td colspan="2">
-                                <div style="position: relative; display: inline-block;">
+                                <div id="packing-fee-container" style="position: relative; display: inline-block; {{ $order->requiresPacking() ? '' : 'display: none;' }}">
                                     <span style="position: absolute; left: 0.5rem; top: 50%; transform: translateY(-50%);">Rp</span>
                                     <input type="number" name="packing_fee" id="packing-fee" class="form-control" style="width: 150px; padding-left: 2rem;" value="{{ $order->packing_fee ?? 0 }}" min="0" onchange="calculateGrandTotal()">
                                 </div>
@@ -258,7 +264,8 @@ function calculateGrandTotal() {
     });
     
     const deliveryFee = parseInt(document.getElementById('delivery-fee').value) || 0;
-    const packingFee = parseInt(document.getElementById('packing-fee').value) || 0;
+    const packingEnabled = document.getElementById('requires_packing').checked;
+    const packingFee = packingEnabled ? (parseInt(document.getElementById('packing-fee').value) || 0) : 0;
     const total = subtotal + deliveryFee + packingFee;
     
     document.getElementById('subtotal-total').innerText = 'Rp ' + new Intl.NumberFormat('id-ID').format(subtotal);
@@ -267,9 +274,20 @@ function calculateGrandTotal() {
     document.getElementById('total-input').value = total;
 }
 
+function togglePackingRequirement() {
+    const enabled = document.getElementById('requires_packing').checked;
+    const container = document.getElementById('packing-fee-container');
+    if (container) {
+        container.style.display = enabled ? 'inline-block' : 'none';
+    }
+    calculateGrandTotal();
+}
+
 // Initial calculation
 document.addEventListener('DOMContentLoaded', function() {
     calculateGrandTotal();
+    togglePackingRequirement();
+    document.getElementById('requires_packing').addEventListener('change', togglePackingRequirement);
 });
 </script>
 

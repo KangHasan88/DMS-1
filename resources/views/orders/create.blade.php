@@ -236,13 +236,18 @@
                         <i class="bi bi-box2" style="color: var(--k-green);"></i>
                         Packing / Repack
                     </h5>
-                    <div style="max-width: 520px;">
+                    <label class="dms-check" style="margin-bottom: 0.85rem;">
+                        <input type="hidden" name="requires_packing" value="0">
+                        <input type="checkbox" name="requires_packing" id="requires_packing" value="1" {{ old('requires_packing') ? 'checked' : '' }} onchange="togglePackingRequirement()">
+                        <span>Gunakan packing / repack</span>
+                    </label>
+                    <div id="packing-fee-container" style="display: none; max-width: 520px;">
                         <label class="form-label">Biaya Packing / Repack <span style="color: var(--k-gray-500); font-weight: 400;">(opsional)</span></label>
                         <div style="position: relative;">
                             <span style="position: absolute; left: 0.5rem; top: 50%; transform: translateY(-50%); font-size: 0.7rem;">Rp</span>
-                            <input type="number" name="packing_fee" id="packing_fee" class="form-control" value="0" step="500" onchange="calculateGrandTotal()" style="padding-left: 1.8rem;">
+                            <input type="number" name="packing_fee" id="packing_fee" class="form-control" value="{{ old('packing_fee', 0) }}" step="500" onchange="calculateGrandTotal()" style="padding-left: 1.8rem;">
                         </div>
-                        <small class="dms-form-help">Kosong atau 0 berarti tanpa biaya packing/repack.</small>
+                        <small class="dms-form-help">Centang bila order memang perlu packing/repack. Biaya boleh 0 jika free packing.</small>
                     </div>
                 </div>
             </div>
@@ -282,7 +287,7 @@
                     <span style="font-size: 0.75rem; color: var(--k-gray-600);">Ongkos Kirim:</span>
                     <span id="shipping-cost" style="font-weight: 600;">Rp 0</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div id="packing-fee-row" style="display: none; justify-content: space-between; align-items: center;">
                     <span style="font-size: 0.75rem; color: var(--k-gray-600);">Biaya Packing:</span>
                     <span id="packing-fee-display" style="font-weight: 600;">Rp 0</span>
                 </div>
@@ -644,6 +649,21 @@ function toggleShippingType() {
     calculateGrandTotal();
 }
 
+function togglePackingRequirement() {
+    const packingEnabled = document.getElementById('requires_packing').checked;
+    const packingContainer = document.getElementById('packing-fee-container');
+    const packingRow = document.getElementById('packing-fee-row');
+    const packingFeeInput = document.getElementById('packing_fee');
+
+    packingContainer.style.display = packingEnabled ? 'block' : 'none';
+    packingRow.style.display = packingEnabled ? 'flex' : 'none';
+
+    if (!packingEnabled) {
+        packingFeeInput.value = 0;
+    }
+    calculateGrandTotal();
+}
+
 function togglePPN() {
     const includePPN = document.getElementById('include_ppn').checked;
     const ppnRow = document.getElementById('ppn-row');
@@ -812,7 +832,8 @@ function calculateGrandTotal() {
     }
     
     // Packing fee
-    const packingFee = parseInt(document.getElementById('packing_fee').value) || 0;
+    const packingEnabled = document.getElementById('requires_packing').checked;
+    const packingFee = packingEnabled ? (parseInt(document.getElementById('packing_fee').value) || 0) : 0;
     
     // PPN
     const includePPN = document.getElementById('include_ppn').checked;
@@ -840,6 +861,7 @@ function calculateGrandTotal() {
     document.getElementById('after-discount').innerText = 'Rp ' + new Intl.NumberFormat('id-ID').format(afterDiscount);
     document.getElementById('shipping-cost').innerText = 'Rp ' + new Intl.NumberFormat('id-ID').format(shippingCost);
     document.getElementById('packing-fee-display').innerText = 'Rp ' + new Intl.NumberFormat('id-ID').format(packingFee);
+    document.getElementById('packing-fee-row').style.display = packingEnabled ? 'flex' : 'none';
     
     if (includePPN && ppnAmount > 0) {
         document.getElementById('ppn-amount').innerText = 'Rp ' + new Intl.NumberFormat('id-ID').format(ppnAmount) + ' (' + ppnRate + '%)';
@@ -860,6 +882,7 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleFulfillmentMode();
     toggleDiscountType();
     toggleShippingType();
+    togglePackingRequirement();
     togglePPN();
     
     document.getElementById('discount_type').addEventListener('change', calculateGrandTotal);
@@ -869,6 +892,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('shipping_weight').addEventListener('input', calculateGrandTotal);
     document.getElementById('shipping_distance').addEventListener('input', calculateGrandTotal);
     document.getElementById('packing_fee').addEventListener('input', calculateGrandTotal);
+    document.getElementById('requires_packing').addEventListener('change', togglePackingRequirement);
     document.getElementById('invoice-address-select').addEventListener('change', () => updateDeliveryAddressSnapshot(true));
     document.getElementById('shipping-address-select').addEventListener('change', () => updateDeliveryAddressSnapshot(true));
     document.getElementById('shipping_same_as_invoice').addEventListener('change', () => updateDeliveryAddressSnapshot(true));

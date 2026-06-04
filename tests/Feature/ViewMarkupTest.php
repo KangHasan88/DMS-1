@@ -272,14 +272,15 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('class="dms-shipping-extra"', $create);
         $this->assertStringContainsString('Packing / Repack', $create);
         $this->assertStringContainsString('Biaya Packing / Repack <span style="color: var(--k-gray-500); font-weight: 400;">(opsional)</span>', $create);
-        $this->assertStringContainsString('id="packing_fee" class="form-control" value="0"', $create);
+        $this->assertStringContainsString('id="packing_fee"', $create);
+        $this->assertStringContainsString('value="0"', $create);
         $this->assertStringContainsString('Ongkos Kirim & Packing', $create);
-        $this->assertStringContainsString('Kosong atau 0 berarti tanpa biaya packing/repack.', $create);
+        $this->assertStringContainsString('Centang bila order memang perlu packing/repack. Biaya boleh 0 jika free packing.', $create);
         $this->assertStringContainsString("'shipping_type' => 'nullable|in:none,flat,weight,distance'", $controller);
         $this->assertStringContainsString("'shipping_rate' => 'nullable|numeric|min:0'", $controller);
         $this->assertStringContainsString("'payment_timing' => 'required|in:' . Order::PAYMENT_TIMING_PRE_PAID . ',' . Order::PAYMENT_TIMING_POST_PAID", $controller);
         $this->assertStringContainsString('$defaultPaymentTiming = $request->get(\'payment_timing\', Order::PAYMENT_TIMING_POST_PAID);', $controller);
-        $this->assertStringContainsString('$packingFee = $request->packing_fee ?? 0;', $controller);
+        $this->assertStringContainsString('$packingFee = $requiresPacking ? ($request->packing_fee ?? 0) : 0;', $controller);
         $this->assertStringContainsString('$shippingTypeForStorage = $shippingType === Order::SHIPPING_NONE ? Order::SHIPPING_FLAT : $shippingType;', $controller);
         $this->assertStringContainsString("'shipping_type' => \$shippingTypeForStorage,", $controller);
         $this->assertStringNotContainsString("'packing_fee' => 1000", $controller);
@@ -357,6 +358,7 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('Skema Pembayaran', $orderCreate);
         $this->assertStringContainsString('Post-paid', $orderCreate);
         $this->assertStringContainsString('payment_timing', $orderEdit);
+        $this->assertStringContainsString('requires_packing', $orderEdit);
         $this->assertStringContainsString('Alamat Invoice', $orderShow);
         $this->assertStringContainsString('Alamat Kirim', $orderShow);
         $this->assertStringContainsString('Pre-paid', $orderShow);

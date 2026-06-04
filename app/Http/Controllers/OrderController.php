@@ -114,6 +114,7 @@ class OrderController extends Controller
                 'order_source' => Order::ORDER_SOURCE_APP,
                 'discount_type' => Order::DISCOUNT_NONE,
                 'discount_value' => 0,
+                'requires_packing' => false,
                 'packing_fee' => 0,
                 'shipping_type' => Order::SHIPPING_NONE,
                 'shipping_rate' => 0,
@@ -131,6 +132,7 @@ class OrderController extends Controller
             'invoice_address_id' => 'nullable|exists:customer_addresses,id',
             'shipping_address_id' => 'nullable|exists:customer_addresses,id',
             'shipping_same_as_invoice' => 'boolean',
+            'requires_packing' => 'nullable|boolean',
             'packing_fee' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
             'order_source' => 'required|in:' . Order::ORDER_SOURCE_APP . ',' . Order::ORDER_SOURCE_ADMIN,
@@ -198,7 +200,8 @@ class OrderController extends Controller
             $shippingType = $request->shipping_type ?: Order::SHIPPING_NONE;
             $shippingTypeForStorage = $shippingType === Order::SHIPPING_NONE ? Order::SHIPPING_FLAT : $shippingType;
             $shippingRate = $request->shipping_rate ?? 0;
-            $packingFee = $request->packing_fee ?? 0;
+            $requiresPacking = $request->boolean('requires_packing');
+            $packingFee = $requiresPacking ? ($request->packing_fee ?? 0) : 0;
             $totals = Order::calculateTotals(
                 $subtotal,
                 $request->discount_type,
@@ -254,6 +257,7 @@ class OrderController extends Controller
                 'longitude' => $shippingAddress?->longitude ?? $request->longitude,
                 'delivery_fee' => $totals['shipping_cost'],
                 'packing_fee' => $packingFee,
+                'requires_packing' => $requiresPacking,
                 'subtotal' => $subtotal,
                 'total' => $totals['grand_total'],
                 'discount_type' => $request->discount_type,
@@ -357,6 +361,7 @@ class OrderController extends Controller
             'delivery_time_slot' => 'required|string',
             'address' => 'required|string',
             'delivery_fee' => 'nullable|numeric|min:0',
+            'requires_packing' => 'nullable|boolean',
             'packing_fee' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
@@ -424,7 +429,8 @@ class OrderController extends Controller
             $shippingType = $request->shipping_type ?: ($editDeliveryFee !== null ? ((float) $editDeliveryFee > 0 ? Order::SHIPPING_FLAT : Order::SHIPPING_NONE) : ($order->shipping_type ?: Order::SHIPPING_NONE));
             $shippingTypeForStorage = $shippingType === Order::SHIPPING_NONE ? Order::SHIPPING_FLAT : $shippingType;
             $shippingRate = $request->shipping_rate ?? $editDeliveryFee ?? $order->shipping_rate ?? 0;
-            $packingFee = $request->packing_fee ?? $order->packing_fee ?? 0;
+            $requiresPacking = $request->boolean('requires_packing');
+            $packingFee = $requiresPacking ? ($request->packing_fee ?? $order->packing_fee ?? 0) : 0;
             $totals = Order::calculateTotals(
                 $subtotal,
                 $request->discount_type,
@@ -454,6 +460,7 @@ class OrderController extends Controller
                 'shipping_weight' => $request->shipping_weight,
                 'shipping_distance' => $request->shipping_distance,
                 'shipping_rate' => $shippingRate,
+                'requires_packing' => $requiresPacking,
                 'include_ppn' => $request->boolean('include_ppn'),
                 'ppn_rate' => $totals['ppn_rate'],
                 'ppn_amount' => $totals['ppn_amount'],
@@ -527,6 +534,10 @@ class OrderController extends Controller
 
                 if (!$allAvailable) {
                     session()->flash('warning', 'Beberapa item tidak tersedia di stock dan telah ditandai untuk refund.');
+                }
+
+                if (!$order->requiresPacking()) {
+                    $order->updateStatus(Order::STATUS_READY, 'Barang siap dikirim tanpa repack');
                 }
             });
 
@@ -610,7 +621,11 @@ class OrderController extends Controller
                 ->count();
             
             if ($remainingPending == 0) {
-                $order->updateStatus(Order::STATUS_REPACKING, 'Semua barang telah dibeli dari pasar');
+                if ($order->requiresPacking()) {
+                    $order->updateStatus(Order::STATUS_REPACKING, 'Semua barang telah dibeli dari pasar');
+                } else {
+                    $order->updateStatus(Order::STATUS_READY, 'Semua barang telah dibeli dari pasar');
+                }
             } else {
                 $order->updateStatus(Order::STATUS_PROCURING, 'Proses belanja berjalan');
             }
@@ -629,6 +644,12 @@ class OrderController extends Controller
     public function processRepack(Order $order)
     {
         $this->authorizeCustomerOrder($order);
+
+        if (!$order->requiresPacking()) {
+            $order->updateStatus(Order::STATUS_READY, 'Barang siap dikirim tanpa repack');
+            return redirect()->route('orders.show', $order)
+                ->with('success', 'Order langsung lanjut ke siap kirim');
+        }
 
         // Cek status yang valid untuk proses repack
         if ($order->useStockMode()) {
@@ -651,8 +672,12 @@ class OrderController extends Controller
     {
         $this->authorizeCustomerOrder($order);
 
-        if ($order->status !== Order::STATUS_REPACKING) {
-            return back()->with('error', 'Order harus dalam status repacking untuk siap kirim');
+        if ($order->requiresPacking()) {
+            if ($order->status !== Order::STATUS_REPACKING) {
+                return back()->with('error', 'Order harus dalam status repacking untuk siap kirim');
+            }
+        } elseif (!in_array($order->status, [Order::STATUS_CHECKING_STOCK, Order::STATUS_PROCURING], true)) {
+            return back()->with('error', 'Order harus dalam proses sebelumnya untuk siap kirim');
         }
         
         $order->updateStatus(Order::STATUS_READY, 'Barang siap dikirim');
