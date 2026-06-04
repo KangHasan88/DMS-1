@@ -193,7 +193,7 @@ class OrderController extends Controller
             
             // Hitung diskon order
             $shippingType = $request->shipping_type ?: Order::SHIPPING_NONE;
-            $shippingTypeForStorage = $shippingType === Order::SHIPPING_NONE ? null : $shippingType;
+            $shippingTypeForStorage = $shippingType === Order::SHIPPING_NONE ? Order::SHIPPING_FLAT : $shippingType;
             $shippingRate = $request->shipping_rate ?? 0;
             $packingFee = $request->packing_fee ?? 0;
             $totals = Order::calculateTotals(
@@ -413,7 +413,7 @@ class OrderController extends Controller
             
             $editDeliveryFee = $request->delivery_fee;
             $shippingType = $request->shipping_type ?: ($editDeliveryFee !== null ? ((float) $editDeliveryFee > 0 ? Order::SHIPPING_FLAT : Order::SHIPPING_NONE) : ($order->shipping_type ?: Order::SHIPPING_NONE));
-            $shippingTypeForStorage = $shippingType === Order::SHIPPING_NONE ? null : $shippingType;
+            $shippingTypeForStorage = $shippingType === Order::SHIPPING_NONE ? Order::SHIPPING_FLAT : $shippingType;
             $shippingRate = $request->shipping_rate ?? $editDeliveryFee ?? $order->shipping_rate ?? 0;
             $packingFee = $request->packing_fee ?? $order->packing_fee ?? 0;
             $totals = Order::calculateTotals(

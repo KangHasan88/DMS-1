@@ -275,7 +275,7 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString("'shipping_type' => 'nullable|in:none,flat,weight,distance'", $controller);
         $this->assertStringContainsString("'shipping_rate' => 'nullable|numeric|min:0'", $controller);
         $this->assertStringContainsString('$packingFee = $request->packing_fee ?? 0;', $controller);
-        $this->assertStringContainsString('$shippingTypeForStorage = $shippingType === Order::SHIPPING_NONE ? null : $shippingType;', $controller);
+        $this->assertStringContainsString('$shippingTypeForStorage = $shippingType === Order::SHIPPING_NONE ? Order::SHIPPING_FLAT : $shippingType;', $controller);
         $this->assertStringContainsString("'shipping_type' => \$shippingTypeForStorage,", $controller);
         $this->assertStringNotContainsString("'packing_fee' => 1000", $controller);
         $this->assertStringNotContainsString('JIT (', $create);
