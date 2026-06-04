@@ -262,15 +262,13 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('<option value="none">Tanpa Ongkir</option>', $create);
         $this->assertStringContainsString('class="dms-fee-grid"', $create);
         $this->assertStringContainsString('grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);', $create);
-        $this->assertStringContainsString('"packing packing"', $create);
-        $this->assertStringContainsString('"discount shipping"', $create);
-        $this->assertStringNotContainsString('"packing shipping"', $create);
+        $this->assertStringNotContainsString('grid-template-areas', $create);
         $this->assertStringContainsString('class="dms-shipping-extra"', $create);
         $this->assertStringContainsString('Packing / Repack', $create);
-        $this->assertStringContainsString('Biaya packing dihitung terpisah dari ongkos kirim.', $create);
         $this->assertStringContainsString('Biaya Packing / Repack <span style="color: var(--k-gray-500); font-weight: 400;">(opsional)</span>', $create);
         $this->assertStringContainsString('id="packing_fee" class="form-control" value="0"', $create);
-        $this->assertStringNotContainsString('Ongkos Kirim & Packing', $create);
+        $this->assertStringContainsString('Ongkos Kirim & Packing', $create);
+        $this->assertStringContainsString('Kosong atau 0 berarti tanpa biaya packing/repack.', $create);
         $this->assertStringContainsString("'shipping_type' => 'nullable|in:none,flat,weight,distance'", $controller);
         $this->assertStringContainsString("'shipping_rate' => 'nullable|numeric|min:0'", $controller);
         $this->assertStringContainsString('$packingFee = $request->packing_fee ?? 0;', $controller);

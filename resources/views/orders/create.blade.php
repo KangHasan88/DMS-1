@@ -184,7 +184,7 @@
             <div class="dms-fee-panel">
                 <h4 class="dms-fee-title">
                     <i class="bi bi-truck"></i>
-                    Ongkos Kirim
+                    Ongkos Kirim & Packing
                 </h4>
                 <div>
                     <label class="form-label">Tipe Ongkir <span style="color: var(--k-gray-500); font-weight: 400;">(opsional)</span></label>
@@ -212,21 +212,19 @@
                         <input type="number" name="shipping_distance" id="shipping_distance" class="form-control" value="0" step="1" onchange="calculateGrandTotal()">
                     </div>
                 </div>
-            </div>
-
-            <div class="dms-fee-panel dms-fee-panel-packing">
-                <h4 class="dms-fee-title">
-                    <i class="bi bi-box2"></i>
-                    Packing / Repack
-                </h4>
-                <p class="dms-fee-note">Biaya packing dihitung terpisah dari ongkos kirim.</p>
-                <div style="max-width: 520px;">
-                    <label class="form-label">Biaya Packing / Repack <span style="color: var(--k-gray-500); font-weight: 400;">(opsional)</span></label>
-                    <div style="position: relative;">
-                        <span style="position: absolute; left: 0.5rem; top: 50%; transform: translateY(-50%); font-size: 0.7rem;">Rp</span>
-                        <input type="number" name="packing_fee" id="packing_fee" class="form-control" value="0" step="500" onchange="calculateGrandTotal()" style="padding-left: 1.8rem;">
+                <div style="margin-top: 1rem; padding-top: 0.85rem; border-top: 1px dashed var(--k-gray-200);">
+                    <h5 style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; font-weight: 600; color: var(--k-gray-700); margin: 0 0 0.65rem;">
+                        <i class="bi bi-box2" style="color: var(--k-green);"></i>
+                        Packing / Repack
+                    </h5>
+                    <div style="max-width: 520px;">
+                        <label class="form-label">Biaya Packing / Repack <span style="color: var(--k-gray-500); font-weight: 400;">(opsional)</span></label>
+                        <div style="position: relative;">
+                            <span style="position: absolute; left: 0.5rem; top: 50%; transform: translateY(-50%); font-size: 0.7rem;">Rp</span>
+                            <input type="number" name="packing_fee" id="packing_fee" class="form-control" value="0" step="500" onchange="calculateGrandTotal()" style="padding-left: 1.8rem;">
+                        </div>
+                        <small class="dms-form-help">Kosong atau 0 berarti tanpa biaya packing/repack.</small>
                     </div>
-                    <small class="dms-form-help">Kosong atau 0 berarti tanpa biaya packing/repack.</small>
                 </div>
             </div>
         </div>
@@ -901,26 +899,12 @@ textarea.form-control {
 .dms-fee-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas:
-        "discount shipping"
-        "packing packing";
     align-items: start;
     gap: 1rem;
     margin-bottom: 1.5rem;
 }
 .dms-fee-panel {
     min-width: 0;
-}
-.dms-fee-panel:nth-child(1) {
-    grid-area: discount;
-}
-.dms-fee-panel:nth-child(2) {
-    grid-area: shipping;
-}
-.dms-fee-panel-packing {
-    grid-area: packing;
-    padding-top: 0.85rem;
-    border-top: 1px dashed var(--k-gray-200);
 }
 .dms-fee-title {
     display: flex;
@@ -1072,10 +1056,6 @@ textarea.form-control {
 @media (max-width: 900px) {
     .dms-fee-grid {
         grid-template-columns: 1fr;
-        grid-template-areas:
-            "discount"
-            "shipping"
-            "packing";
     }
 }
 </style>
