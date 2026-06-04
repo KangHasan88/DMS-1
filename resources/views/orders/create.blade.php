@@ -903,7 +903,7 @@ textarea.form-control {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     grid-template-areas:
         "discount shipping"
-        "packing shipping";
+        "packing packing";
     align-items: start;
     gap: 1rem;
     margin-bottom: 1.5rem;
