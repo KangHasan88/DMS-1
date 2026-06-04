@@ -227,6 +227,7 @@ class OrderController extends Controller
             $shippingSameAsInvoice = $request->boolean('shipping_same_as_invoice');
             $shippingSnapshot = $shippingAddress?->address ?? $request->address;
             $creditWarning = null;
+            $stockWarning = null;
 
             if ($customer) {
                 $this->ensureCustomerCreditAllowsOrder($customer, (int) $totals['grand_total']);
@@ -284,6 +285,20 @@ class OrderController extends Controller
                 $item['order_id'] = $order->id;
                 OrderItem::create($item);
             }
+
+            if ($paymentTiming === Order::PAYMENT_TIMING_POST_PAID && $order->useStockMode()) {
+                $order->load('items.product.stock');
+                $order->updateStatus(Order::STATUS_CHECKING_STOCK, 'Memeriksa ketersediaan stock');
+                $allAvailable = $order->processStockReduction();
+
+                if (!$allAvailable) {
+                    $stockWarning = 'Beberapa item tidak tersedia di stock dan telah ditandai untuk refund.';
+                }
+
+                if ($allAvailable && !$order->requiresPacking()) {
+                    $order->updateStatus(Order::STATUS_READY, 'Barang siap dikirim tanpa repack');
+                }
+            }
             
             DB::commit();
             
@@ -302,8 +317,9 @@ class OrderController extends Controller
             $redirect = redirect()->route('orders.show', $order)
                 ->with('success', $message);
 
-            if ($creditWarning) {
-                $redirect->with('warning', $creditWarning);
+            $warningMessage = trim(implode("\n", array_filter([$creditWarning, $stockWarning])));
+            if ($warningMessage !== '') {
+                $redirect->with('warning', $warningMessage);
             }
 
             return $redirect;
@@ -536,7 +552,7 @@ class OrderController extends Controller
                     session()->flash('warning', 'Beberapa item tidak tersedia di stock dan telah ditandai untuk refund.');
                 }
 
-                if (!$order->requiresPacking()) {
+                if ($allAvailable && !$order->requiresPacking()) {
                     $order->updateStatus(Order::STATUS_READY, 'Barang siap dikirim tanpa repack');
                 }
             });

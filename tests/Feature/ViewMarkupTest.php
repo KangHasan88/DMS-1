@@ -283,6 +283,9 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('$packingFee = $requiresPacking ? ($request->packing_fee ?? 0) : 0;', $controller);
         $this->assertStringContainsString('$shippingTypeForStorage = $shippingType === Order::SHIPPING_NONE ? Order::SHIPPING_FLAT : $shippingType;', $controller);
         $this->assertStringContainsString("'shipping_type' => \$shippingTypeForStorage,", $controller);
+        $this->assertStringContainsString("\$order->load('items.product.stock');", $controller);
+        $this->assertStringContainsString('$allAvailable = $order->processStockReduction();', $controller);
+        $this->assertStringContainsString('if ($allAvailable && !$order->requiresPacking())', $controller);
         $this->assertStringNotContainsString("'packing_fee' => 1000", $controller);
         $this->assertStringNotContainsString('JIT (', $create);
         $this->assertStringNotContainsString('Mode JIT:', $create);
