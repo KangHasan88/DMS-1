@@ -53,7 +53,7 @@ class OrderStockWorkflowTest extends TestCase
         $this->assertSame(7, $product->stock()->first()->quantity);
         $this->assertSame(OrderItem::FULFILLMENT_FULFILLED, $order->items()->first()->fulfillment_status);
         $this->assertSame(1, StockMovement::where('order_id', $order->id)->where('type', StockMovement::TYPE_OUT)->count());
-        $this->assertSame(1, ActivityLog::where('log_name', 'stock')->where('event', 'movement_created')->count());
+        $this->assertSame(1, ActivityLog::where('log_name', 'stock')->where('event', 'movement_created')->where('properties->order_id', $order->id)->count());
 
         $order->refresh()->load('items.product.stock');
 
@@ -141,8 +141,7 @@ class OrderStockWorkflowTest extends TestCase
 
     public function test_order_status_change_is_logged(): void
     {
-        [$order] = $this->createStockOrder();
-        $order->update(['status' => Order::STATUS_PENDING_PAYMENT]);
+        [$order] = $this->createStockOrder(status: Order::STATUS_PENDING_PAYMENT);
 
         $this->assertTrue($order->updateStatus(Order::STATUS_PAID, 'Paid in test'));
 
@@ -153,7 +152,10 @@ class OrderStockWorkflowTest extends TestCase
             'subject_id' => $order->id,
         ]);
 
-        $log = ActivityLog::where('log_name', 'orders')->where('event', 'status_changed')->first();
+        $log = ActivityLog::where('log_name', 'orders')
+            ->where('event', 'status_changed')
+            ->where('subject_id', $order->id)
+            ->first();
         $this->assertSame(Order::STATUS_PENDING_PAYMENT, $log->properties['old_status']);
         $this->assertSame(Order::STATUS_PAID, $log->properties['new_status']);
     }
@@ -188,7 +190,8 @@ class OrderStockWorkflowTest extends TestCase
     private function createStockOrder(
         int $stockQuantity = 10,
         int $itemQuantity = 3,
-        string $fulfillmentType = Order::FULFILLMENT_STOCK
+        string $fulfillmentType = Order::FULFILLMENT_STOCK,
+        string $status = Order::STATUS_PAID
     ): array {
         $user = User::factory()->create();
         $product = Product::create([
@@ -214,7 +217,7 @@ class OrderStockWorkflowTest extends TestCase
             'packing_fee' => 0,
             'subtotal' => $itemQuantity * 5000,
             'total' => $itemQuantity * 5000,
-            'status' => Order::STATUS_PAID,
+            'status' => $status,
             'order_source' => Order::ORDER_SOURCE_ADMIN,
             'fulfillment_type' => $fulfillmentType,
             'discount_type' => Order::DISCOUNT_NONE,
