@@ -900,7 +900,7 @@ textarea.form-control {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: start;
-    gap: 1rem;
+    gap: 1.75rem;
     margin-bottom: 1.5rem;
 }
 .dms-fee-panel {
