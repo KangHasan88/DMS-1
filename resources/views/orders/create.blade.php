@@ -22,7 +22,7 @@
                 Informasi Pelanggan & Mode Order
             </h4>
             
-            <div class="dms-form-grid">
+            <div class="dms-form-grid dms-order-form-grid">
                 <!-- Pelanggan -->
                 <div>
                     <label class="form-label">Pelanggan <span class="dms-required">*</span></label>
@@ -287,7 +287,7 @@
                 Informasi Pengiriman
             </h4>
             
-            <div class="dms-form-grid">
+            <div class="dms-form-grid dms-order-form-grid">
                 <div>
                     <label class="form-label">Tanggal Pengiriman <span class="dms-required">*</span></label>
                     <input type="date" name="delivery_date" class="form-control" value="{{ old('delivery_date', $defaultDeliveryDate) }}" required>
@@ -902,6 +902,9 @@ textarea.form-control {
     align-items: start;
     gap: 1.75rem;
     margin-bottom: 1.5rem;
+}
+.dms-order-form-grid {
+    gap: 1.75rem;
 }
 .dms-fee-panel {
     min-width: 0;

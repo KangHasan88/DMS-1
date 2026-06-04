@@ -243,6 +243,8 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('<h3 class="dms-form-title">Detail Order Penjualan</h3>', $create);
         $this->assertStringNotContainsString('<h3 class="dms-form-title">Buat Order Baru</h3>', $create);
         $this->assertStringContainsString('class="dms-combobox js-searchable-dropdown"', $create);
+        $this->assertSame(2, substr_count($create, 'class="dms-form-grid dms-order-form-grid"'));
+        $this->assertStringContainsString('.dms-order-form-grid', $create);
         $this->assertStringContainsString('data-select-id="customer-select"', $create);
         $this->assertStringContainsString('class="dms-combobox js-searchable-dropdown product-search"', $create);
         $this->assertStringContainsString('class="dms-combobox-search"', $create);
