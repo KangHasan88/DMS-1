@@ -291,7 +291,7 @@ class Order extends Model
         int|float $subtotal,
         string $discountType,
         int|float $discountValue,
-        string $shippingType,
+        ?string $shippingType,
         int|float|null $shippingWeight,
         int|float|null $shippingDistance,
         int|float|null $shippingRate,
@@ -301,6 +301,7 @@ class Order extends Model
     ): array {
         $subtotal = max(0, (float) $subtotal);
         $discountValue = max(0, (float) $discountValue);
+        $shippingType = $shippingType ?: self::SHIPPING_NONE;
         $shippingRate = max(0, (float) $shippingRate);
         $packingFee = max(0, (float) $packingFee);
         $ppnRate = max(0, (float) ($ppnRate ?? 0));

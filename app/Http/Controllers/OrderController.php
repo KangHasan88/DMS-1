@@ -193,6 +193,7 @@ class OrderController extends Controller
             
             // Hitung diskon order
             $shippingType = $request->shipping_type ?: Order::SHIPPING_NONE;
+            $shippingTypeForStorage = $shippingType === Order::SHIPPING_NONE ? null : $shippingType;
             $shippingRate = $request->shipping_rate ?? 0;
             $packingFee = $request->packing_fee ?? 0;
             $totals = Order::calculateTotals(
@@ -250,7 +251,7 @@ class OrderController extends Controller
                 'discount_type' => $request->discount_type,
                 'discount_value' => $request->discount_value ?? 0,
                 'discount_amount' => $totals['discount_amount'],
-                'shipping_type' => $shippingType,
+                'shipping_type' => $shippingTypeForStorage,
                 'shipping_weight' => $request->shipping_weight,
                 'shipping_distance' => $request->shipping_distance,
                 'shipping_rate' => $shippingRate,
@@ -412,6 +413,7 @@ class OrderController extends Controller
             
             $editDeliveryFee = $request->delivery_fee;
             $shippingType = $request->shipping_type ?: ($editDeliveryFee !== null ? ((float) $editDeliveryFee > 0 ? Order::SHIPPING_FLAT : Order::SHIPPING_NONE) : ($order->shipping_type ?: Order::SHIPPING_NONE));
+            $shippingTypeForStorage = $shippingType === Order::SHIPPING_NONE ? null : $shippingType;
             $shippingRate = $request->shipping_rate ?? $editDeliveryFee ?? $order->shipping_rate ?? 0;
             $packingFee = $request->packing_fee ?? $order->packing_fee ?? 0;
             $totals = Order::calculateTotals(
@@ -439,7 +441,7 @@ class OrderController extends Controller
                 'discount_type' => $request->discount_type,
                 'discount_value' => $request->discount_value ?? 0,
                 'discount_amount' => $totals['discount_amount'],
-                'shipping_type' => $shippingType,
+                'shipping_type' => $shippingTypeForStorage,
                 'shipping_weight' => $request->shipping_weight,
                 'shipping_distance' => $request->shipping_distance,
                 'shipping_rate' => $shippingRate,

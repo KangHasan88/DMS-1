@@ -275,6 +275,8 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString("'shipping_type' => 'nullable|in:none,flat,weight,distance'", $controller);
         $this->assertStringContainsString("'shipping_rate' => 'nullable|numeric|min:0'", $controller);
         $this->assertStringContainsString('$packingFee = $request->packing_fee ?? 0;', $controller);
+        $this->assertStringContainsString('$shippingTypeForStorage = $shippingType === Order::SHIPPING_NONE ? null : $shippingType;', $controller);
+        $this->assertStringContainsString("'shipping_type' => \$shippingTypeForStorage,", $controller);
         $this->assertStringNotContainsString("'packing_fee' => 1000", $controller);
         $this->assertStringNotContainsString('JIT (', $create);
         $this->assertStringNotContainsString('Mode JIT:', $create);
@@ -320,6 +322,8 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('invoice_address_id', $order);
         $this->assertStringContainsString('shipping_address_snapshot', $order);
         $this->assertStringContainsString('resolveOrderAddresses', $orderController);
+        $this->assertStringContainsString('?string $shippingType,', $order);
+        $this->assertStringContainsString('$shippingType = $shippingType ?: self::SHIPPING_NONE;', $order);
         $this->assertStringContainsString('data-invoice-addresses', $orderCreate);
         $this->assertStringContainsString('data-shipping-addresses', $orderCreate);
         $this->assertStringContainsString('JSON_HEX_APOS', $orderCreate);
