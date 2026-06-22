@@ -12,10 +12,7 @@ DMS berjalan di:
 Jangan ubah Apache global, `/var/www/html`, `/var/www/kurmigo-usahaup`, atau project lain saat maintenance DMS. Smoke service IP sebelum dan sesudah deployment:
 
 ```bash
-curl -k -o /dev/null -w 'central %{http_code}\n' https://31.97.106.123/central
-curl -k -o /dev/null -w 'bmp %{http_code}\n' https://31.97.106.123/dev/bmp/bmp_report/Auth
-curl -o /dev/null -w 'dms_login %{http_code}\n' https://dms.kurmigo.id/login
-curl -o /dev/null -w 'dms_health %{http_code}\n' https://dms.kurmigo.id/health
+bash deploy/smoke-production.sh
 ```
 
 Expected:
@@ -113,9 +110,9 @@ php8.3 artisan view:cache
 
 ## Deployment Checklist
 
-1. Smoke Central, BMP, DMS login, and DMS health.
+1. Run `bash deploy/smoke-production.sh`.
 2. Pull or deploy DMS code only.
 3. Run DMS migrations.
 4. Run targeted tests with testing env override.
 5. Restore DMS production cache.
-6. Smoke Central, BMP, DMS login, and DMS health again.
+6. Run `bash deploy/smoke-production.sh` again.
