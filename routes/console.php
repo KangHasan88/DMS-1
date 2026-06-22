@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Order;
+use App\Models\SaasModuleTenant;
 use App\Services\Saas\RemoteModuleProvisioningSigner;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -104,3 +105,60 @@ Artisan::command('saas:health-callback {--send : Send payload to central callbac
 
     return self::FAILURE;
 })->purpose('Build or send signed SaaS health callback payload for the central registry.');
+
+Artisan::command('saas:provisioning-callback {tenant_module_id : Central tenant module id} {--send : Send payload to central callback URL}', function (RemoteModuleProvisioningSigner $signer) {
+    $tenant = SaasModuleTenant::query()
+        ->where('tenant_module_id', $this->argument('tenant_module_id'))
+        ->where('module_key', config('modules.key', 'dms'))
+        ->first();
+
+    if (!$tenant) {
+        $this->error('SaaS tenant module tidak ditemukan di registry DMS.');
+
+        return self::FAILURE;
+    }
+
+    if (!$tenant->operation_id) {
+        $this->error('SaaS tenant module belum memiliki operation_id provisioning.');
+
+        return self::FAILURE;
+    }
+
+    $payload = $signer->callbackPayload([
+        'tenant_id' => $tenant->tenant_id,
+        'tenant_module_id' => $tenant->tenant_module_id,
+        'module_key' => $tenant->module_key,
+        'operation_id' => $tenant->operation_id,
+    ]);
+
+    $url = config('modules.central_provisioning_callback_url');
+
+    if (!$this->option('send')) {
+        $this->line(json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        $this->info('Dry-run selesai. Tambahkan --send untuk POST ke central provisioning callback URL.');
+
+        return self::SUCCESS;
+    }
+
+    if (!$url) {
+        $this->error('MODULE_CENTRAL_PROVISIONING_CALLBACK_URL belum dikonfigurasi.');
+
+        return self::FAILURE;
+    }
+
+    $response = Http::asJson()
+        ->timeout(10)
+        ->post($url, $payload);
+
+    if ($response->successful()) {
+        $this->info('Provisioning callback terkirim: HTTP '.$response->status());
+        $this->line($response->body());
+
+        return self::SUCCESS;
+    }
+
+    $this->error('Provisioning callback gagal: HTTP '.$response->status());
+    $this->line($response->body());
+
+    return self::FAILURE;
+})->purpose('Build or send signed SaaS provisioning callback payload for the central registry.');
