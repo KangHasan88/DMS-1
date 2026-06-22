@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
+use App\Services\AccountingPostingService;
 
 class SupplierPayment extends Model
 {
@@ -111,6 +112,8 @@ class SupplierPayment extends Model
                 'invoice_number' => $invoice->invoice_number,
                 'amount' => $amount,
             ]);
+
+            app(AccountingPostingService::class)->postSupplierPayment($payment, $payer);
 
             return $payment;
         });

@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use App\Models\ApInvoice;
 use App\Models\ArInvoice;
 use App\Models\ChartAccount;
 use App\Models\CustomerPayment;
 use App\Models\JournalEntry;
+use App\Models\SupplierPayment;
 use App\Models\User;
 
 class AccountingPostingService
@@ -60,6 +62,60 @@ class AccountingPostingService
             lines: [
                 [$cash, $amount, 0, 'Kas diterima dari ' . $payment->payment_number],
                 [$receivable, 0, $amount, 'Pelunasan piutang ' . $payment->payment_number],
+            ],
+        );
+    }
+
+    public function postApInvoice(ApInvoice $invoice, ?User $postedBy = null): JournalEntry
+    {
+        $existing = $this->existingJournal(ApInvoice::class, $invoice->id);
+
+        if ($existing) {
+            return $existing;
+        }
+
+        $invoice->loadMissing('companyBranch');
+        $inventory = $this->account('1301', 'Persediaan Barang Dagang', ChartAccount::TYPE_ASSET);
+        $payable = $this->account('2101', 'Hutang Usaha', ChartAccount::TYPE_LIABILITY);
+        $amount = (int) $invoice->total_amount;
+
+        return $this->journal(
+            sourceType: ApInvoice::class,
+            sourceId: $invoice->id,
+            date: $invoice->invoice_date?->toDateString() ?? now()->toDateString(),
+            description: 'AP Invoice ' . $invoice->invoice_number,
+            branchId: $invoice->company_branch_id,
+            postedBy: $postedBy,
+            lines: [
+                [$inventory, $amount, 0, 'Persediaan dari ' . $invoice->invoice_number],
+                [$payable, 0, $amount, 'Hutang dari ' . $invoice->invoice_number],
+            ],
+        );
+    }
+
+    public function postSupplierPayment(SupplierPayment $payment, ?User $postedBy = null): JournalEntry
+    {
+        $existing = $this->existingJournal(SupplierPayment::class, $payment->id);
+
+        if ($existing) {
+            return $existing;
+        }
+
+        $payment->loadMissing('companyBranch');
+        $payable = $this->account('2101', 'Hutang Usaha', ChartAccount::TYPE_LIABILITY);
+        $cash = $this->account('1110', 'Kas dan Bank', ChartAccount::TYPE_ASSET, isCashAccount: true);
+        $amount = (int) $payment->amount;
+
+        return $this->journal(
+            sourceType: SupplierPayment::class,
+            sourceId: $payment->id,
+            date: $payment->payment_date?->toDateString() ?? now()->toDateString(),
+            description: 'Pembayaran supplier ' . $payment->payment_number,
+            branchId: $payment->company_branch_id,
+            postedBy: $postedBy,
+            lines: [
+                [$payable, $amount, 0, 'Pelunasan hutang ' . $payment->payment_number],
+                [$cash, 0, $amount, 'Kas keluar untuk ' . $payment->payment_number],
             ],
         );
     }

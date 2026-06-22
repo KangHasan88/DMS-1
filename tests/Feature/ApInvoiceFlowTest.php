@@ -3,8 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\ApInvoice;
+use App\Models\ChartAccount;
 use App\Models\CompanyBranch;
 use App\Models\CompanyProfile;
+use App\Models\JournalEntry;
 use App\Models\Product;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
@@ -44,6 +46,16 @@ class ApInvoiceFlowTest extends TestCase
         $this->assertSame(ApInvoice::STATUS_ISSUED, $invoice->status);
         $this->assertCount(1, $invoice->items);
         $this->assertSame('Produk AP', $invoice->items->first()->description);
+
+        $journal = JournalEntry::with('lines.account')
+            ->where('source_type', ApInvoice::class)
+            ->where('source_id', $invoice->id)
+            ->firstOrFail();
+
+        $this->assertSame(60000, $journal->debit_total);
+        $this->assertSame(60000, $journal->credit_total);
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1301' && $line->debit_amount === 60000));
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '2101' && $line->credit_amount === 60000));
 
         $this->actingAs($finance)
             ->get(route('ap-invoices.show', $invoice))
@@ -103,6 +115,16 @@ class ApInvoiceFlowTest extends TestCase
         $this->assertSame(25000, $invoice->paid_amount);
         $this->assertSame(35000, $invoice->outstanding_amount);
         $this->assertSame(ApInvoice::STATUS_PARTIALLY_PAID, $invoice->status);
+
+        $journal = JournalEntry::with('lines.account')
+            ->where('source_type', SupplierPayment::class)
+            ->where('source_id', $payment->id)
+            ->firstOrFail();
+
+        $this->assertSame(25000, $journal->debit_total);
+        $this->assertSame(25000, $journal->credit_total);
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '2101' && $line->debit_amount === 25000));
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1110' && $line->credit_amount === 25000));
     }
 
     public function test_full_supplier_payment_marks_ap_invoice_paid(): void
@@ -204,6 +226,34 @@ class ApInvoiceFlowTest extends TestCase
             ->assertNotFound();
 
         $this->assertDatabaseCount('supplier_payments', 0);
+    }
+
+    public function test_ap_auto_journals_flow_into_trial_balance(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ap-trial@example.test');
+        [$purchaseOrder] = $this->receivedPurchaseOrder();
+        $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, $finance);
+        SupplierPayment::payForInvoice($invoice, [
+            'payment_date' => now()->toDateString(),
+            'payment_method' => SupplierPayment::METHOD_TRANSFER,
+            'amount' => 60000,
+        ], $finance);
+
+        $this->actingAs($finance)
+            ->get(route('trial-balance.index', [
+                'date_from' => now()->startOfMonth()->toDateString(),
+                'date_to' => now()->toDateString(),
+            ]))
+            ->assertOk()
+            ->assertSee('Neraca Saldo')
+            ->assertSee('Persediaan Barang Dagang')
+            ->assertSee('Kas dan Bank');
+
+        $this->assertDatabaseHas('chart_accounts', [
+            'code' => '2101',
+            'name' => 'Hutang Usaha',
+            'account_type' => ChartAccount::TYPE_LIABILITY,
+        ]);
     }
 
     private function receivedPurchaseOrder(

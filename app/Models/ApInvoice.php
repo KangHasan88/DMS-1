@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
+use App\Services\AccountingPostingService;
 
 class ApInvoice extends Model
 {
@@ -191,6 +192,8 @@ class ApInvoice extends Model
                 'po_number' => $purchaseOrder->po_number,
                 'total_amount' => $invoice->total_amount,
             ]);
+
+            app(AccountingPostingService::class)->postApInvoice($invoice, $issuer);
 
             return $invoice;
         });
