@@ -28,7 +28,8 @@ check_url() {
   printf 'OK   %-18s %s\n' "$label" "$status"
 }
 
-check_url "central" "https://31.97.106.123/central" "200" "true" "true"
+check_url "central_http" "http://31.97.106.123/central" "200" "false" "true"
+check_url "central_https" "https://31.97.106.123/central" "200" "true" "true"
 check_url "bmp_auth" "https://31.97.106.123/dev/bmp/bmp_report/Auth" "200" "true"
 check_url "dms_login" "https://dms.kurmigo.id/login" "200"
 check_url "dms_health" "https://dms.kurmigo.id/health" "200"

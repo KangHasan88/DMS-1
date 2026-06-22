@@ -17,7 +17,8 @@ bash deploy/smoke-production.sh
 
 Expected final status:
 
-- Central login chain: `200`
+- Central HTTP login chain: `200`
+- Central HTTPS login chain: `200`
 - BMP report auth: `200`
 - DMS login: `200`
 - DMS health: `200`
