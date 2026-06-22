@@ -14,6 +14,7 @@ class Customer extends Model
 
     protected $fillable = [
         'user_id',
+        'company_branch_id',
         'name',
         'phone',
         'email',
@@ -59,6 +60,11 @@ class Customer extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function companyBranch(): BelongsTo
+    {
+        return $this->belongsTo(CompanyBranch::class);
+    }
+
     public function referrer(): BelongsTo
     {
         return $this->belongsTo(Customer::class, 'referred_by');
@@ -92,6 +98,22 @@ class Customer extends Model
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class, 'user_id', 'user_id');
+    }
+
+    public function salesAssignments(): HasMany
+    {
+        return $this->hasMany(CustomerSalesAssignment::class);
+    }
+
+    public function activeSalesAssignment()
+    {
+        return $this->hasOne(CustomerSalesAssignment::class)
+            ->where('is_active', true)
+            ->whereDate('start_date', '<=', now()->toDateString())
+            ->where(function ($query) {
+                $query->whereNull('end_date')->orWhereDate('end_date', '>=', now()->toDateString());
+            })
+            ->latestOfMany('start_date');
     }
 
     public function wallet(): BelongsTo
@@ -174,6 +196,7 @@ class Customer extends Model
             Order::STATUS_PENDING_PAYMENT,
             Order::STATUS_PAID,
             Order::STATUS_CHECKING_STOCK,
+            Order::STATUS_PICKING,
             Order::STATUS_PROCURING,
             Order::STATUS_REPACKING,
             Order::STATUS_READY,
@@ -236,6 +259,11 @@ class Customer extends Model
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    public function scopeForCompanyBranch($query, ?int $branchId)
+    {
+        return $branchId ? $query->where('company_branch_id', $branchId) : $query;
     }
 
     public function scopePremium($query)

@@ -1,7 +1,7 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Detail FOC Out')
-@section('breadcrumb', 'Outbound / FOC Out / Detail')
+@section('page-title', 'Detail Barang Bonus')
+@section('breadcrumb', 'Operasional / Barang Bonus / Detail')
 
 @section('content')
 <div class="dms-card">
@@ -9,10 +9,10 @@
         <div>
             <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">
                 <i class="bi bi-gift" style="color: var(--k-green);"></i>
-                Detail FOC Out
+                Detail Barang Bonus
             </h3>
             <p style="font-size: 0.85rem; color: var(--k-gray-500); margin-top: 0.25rem;">
-                FOC #{{ $outboundFoc->foc_number }}
+                Barang Bonus #{{ $outboundFoc->foc_number }}
             </p>
         </div>
         <div style="display: flex; gap: 0.5rem;">

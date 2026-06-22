@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\CustomerType;
+use App\Models\CompanyBranch;
+use App\Models\CompanyProfile;
 use App\Models\Wallet;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -18,13 +21,22 @@ class CustomerController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Customer::with('user', 'type');
+        $branchScopeId = $this->currentBranchScopeId();
+        $companyBranches = $this->availableCompanyBranches();
+        $query = Customer::with('user', 'type', 'companyBranch')
+            ->forCompanyBranch($branchScopeId);
         
         // Search
         if ($request->filled('search')) {
-            $query->where('name', 'like', "%{$request->search}%")
-                  ->orWhere('phone', 'like', "%{$request->search}%")
-                  ->orWhere('email', 'like', "%{$request->search}%");
+            $query->where(function ($searchQuery) use ($request) {
+                $searchQuery->where('name', 'like', "%{$request->search}%")
+                    ->orWhere('phone', 'like', "%{$request->search}%")
+                    ->orWhere('email', 'like', "%{$request->search}%");
+            });
+        }
+
+        if (!$branchScopeId && $request->filled('company_branch_id')) {
+            $query->where('company_branch_id', $request->company_branch_id);
         }
         
         // Filter by type
@@ -50,7 +62,7 @@ class CustomerController extends Controller
         
         $customerTypes = CustomerType::active()->orderBy('sort_order')->orderBy('name')->get();
         
-        return view('customers.index', compact('customers', 'customerTypes'));
+        return view('customers.index', compact('customers', 'customerTypes', 'companyBranches', 'branchScopeId'));
     }
 
     /**
@@ -59,8 +71,11 @@ class CustomerController extends Controller
     public function create()
     {
         $customerTypes = CustomerType::active()->orderBy('sort_order')->orderBy('name')->get();
+        $companyBranches = $this->availableCompanyBranches();
+        $defaultCompanyBranchId = $this->defaultCompanyBranchId();
+        $branchLocked = (bool) $this->currentBranchScopeId();
 
-        return view('customers.create', compact('customerTypes'));
+        return view('customers.create', compact('customerTypes', 'companyBranches', 'defaultCompanyBranchId', 'branchLocked'));
     }
 
     /**
@@ -72,6 +87,7 @@ class CustomerController extends Controller
             'name' => 'required|string|max:255',
             'phone' => ['required', 'string', 'max:20', 'unique:customers,phone', 'unique:users,phone'],
             'email' => ['nullable', 'email', 'max:255', 'unique:customers,email', 'unique:users,email'],
+            'company_branch_id' => 'nullable|exists:company_branches,id',
             'address' => 'nullable|string',
             'latitude' => 'nullable|string',
             'longitude' => 'nullable|string',
@@ -93,6 +109,8 @@ class CustomerController extends Controller
         DB::beginTransaction();
         
         try {
+            $validated['company_branch_id'] = $this->resolveCustomerBranchId($validated['company_branch_id'] ?? null);
+
             // Create user account for customer
             $user = User::create([
                 'name' => $validated['name'],
@@ -128,7 +146,9 @@ class CustomerController extends Controller
      */
     public function show(Customer $customer)
     {
-        $customer->load('user', 'orders', 'type', 'addresses');
+        $this->authorizeCustomerBranch($customer);
+
+        $customer->load('user', 'orders', 'type', 'addresses', 'companyBranch');
         $totalOrders = $customer->orders()->count();
         $totalSpent = $customer->orders()->where('status', 'delivered')->sum('total');
         $lastOrder = $customer->orders()->latest()->first();
@@ -141,9 +161,14 @@ class CustomerController extends Controller
      */
     public function edit(Customer $customer)
     {
-        $customerTypes = CustomerType::active()->orderBy('sort_order')->orderBy('name')->get();
+        $this->authorizeCustomerBranch($customer);
 
-        return view('customers.edit', compact('customer', 'customerTypes'));
+        $customerTypes = CustomerType::active()->orderBy('sort_order')->orderBy('name')->get();
+        $companyBranches = $this->availableCompanyBranches();
+        $defaultCompanyBranchId = $customer->company_branch_id ?: $this->defaultCompanyBranchId();
+        $branchLocked = (bool) $this->currentBranchScopeId();
+
+        return view('customers.edit', compact('customer', 'customerTypes', 'companyBranches', 'defaultCompanyBranchId', 'branchLocked'));
     }
 
     /**
@@ -151,6 +176,8 @@ class CustomerController extends Controller
      */
     public function update(Request $request, Customer $customer)
     {
+        $this->authorizeCustomerBranch($customer);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'phone' => [
@@ -167,6 +194,7 @@ class CustomerController extends Controller
                 Rule::unique('customers', 'email')->ignore($customer->id),
                 Rule::unique('users', 'email')->ignore($customer->user_id),
             ],
+            'company_branch_id' => 'nullable|exists:company_branches,id',
             'address' => 'nullable|string',
             'latitude' => 'nullable|string',
             'longitude' => 'nullable|string',
@@ -188,6 +216,8 @@ class CustomerController extends Controller
         DB::beginTransaction();
         
         try {
+            $validated['company_branch_id'] = $this->resolveCustomerBranchId($validated['company_branch_id'] ?? $customer->company_branch_id);
+
             // Update user account
             if ($customer->user) {
                 $customer->user->update([
@@ -221,6 +251,8 @@ class CustomerController extends Controller
      */
     public function destroy(Customer $customer)
     {
+        $this->authorizeCustomerBranch($customer);
+
         // Check if customer has orders
         if ($customer->orders()->count() > 0) {
             return back()->with('error', 'Customer tidak dapat dihapus karena memiliki riwayat order');
@@ -253,6 +285,8 @@ class CustomerController extends Controller
      */
     public function toggleStatus(Customer $customer)
     {
+        $this->authorizeCustomerBranch($customer);
+
         $newStatus = !$customer->is_active;
         $customer->update(['is_active' => $newStatus]);
         
@@ -273,6 +307,8 @@ class CustomerController extends Controller
      */
     public function topupWallet(Request $request, Customer $customer)
     {
+        $this->authorizeCustomerBranch($customer);
+
         $validated = $request->validate([
             'amount' => 'required|numeric|min:10000',
             'notes' => 'nullable|string',
@@ -297,6 +333,8 @@ class CustomerController extends Controller
      */
     public function orderHistory(Customer $customer)
     {
+        $this->authorizeCustomerBranch($customer);
+
         $orders = $customer->orders()->with('items')->orderBy('created_at', 'desc')->paginate(10);
         
         return view('customers.order-history', compact('customer', 'orders'));
@@ -340,5 +378,55 @@ class CustomerController extends Controller
                 'is_active' => true,
             ]
         );
+    }
+
+    private function currentBranchScopeId(): ?int
+    {
+        return Auth::user()?->scopedCompanyBranchId();
+    }
+
+    private function availableCompanyBranches()
+    {
+        $query = CompanyProfile::defaultProfile()->activeBranches();
+        $branchScopeId = $this->currentBranchScopeId();
+
+        if ($branchScopeId) {
+            $query->whereKey($branchScopeId);
+        }
+
+        return $query->get();
+    }
+
+    private function defaultCompanyBranchId(): ?int
+    {
+        if ($branchScopeId = $this->currentBranchScopeId()) {
+            return $branchScopeId;
+        }
+
+        $defaultBranch = CompanyProfile::defaultProfile()->defaultInvoiceBranch();
+
+        return $defaultBranch ? $defaultBranch->id : null;
+    }
+
+    private function resolveCustomerBranchId($requestedBranchId): ?int
+    {
+        if ($branchScopeId = $this->currentBranchScopeId()) {
+            return $branchScopeId;
+        }
+
+        if ($requestedBranchId && CompanyBranch::whereKey($requestedBranchId)->where('is_active', true)->exists()) {
+            return (int) $requestedBranchId;
+        }
+
+        return $this->defaultCompanyBranchId();
+    }
+
+    private function authorizeCustomerBranch(Customer $customer): void
+    {
+        $branchScopeId = $this->currentBranchScopeId();
+
+        if ($branchScopeId && (int) $customer->company_branch_id !== $branchScopeId) {
+            abort(403);
+        }
     }
 }

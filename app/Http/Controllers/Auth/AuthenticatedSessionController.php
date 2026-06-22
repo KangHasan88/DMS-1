@@ -42,7 +42,7 @@ class AuthenticatedSessionController extends Controller
         }
         // =======================================
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        return redirect()->intended($this->defaultLandingRoute($user));
     }
 
     /**
@@ -65,5 +65,30 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/');
+    }
+
+    private function defaultLandingRoute($user): string
+    {
+        if ($user?->hasRole('kurir') && !$user?->hasAnyRole(['super-admin', 'admin', 'manager', 'supervisor'])) {
+            return route('deliveries.kurir.today', absolute: false);
+        }
+
+        if ($user?->hasRole('finance')) {
+            return route('reports.financial', absolute: false);
+        }
+
+        if ($user?->hasRole('warehouse')) {
+            return route('stock.index', absolute: false);
+        }
+
+        if ($user?->hasRole('operator')) {
+            return route('orders.index', absolute: false);
+        }
+
+        if ($user?->hasRole('sales')) {
+            return route('orders.index', absolute: false);
+        }
+
+        return route('dashboard', absolute: false);
     }
 }

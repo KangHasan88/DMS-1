@@ -6,9 +6,33 @@ use App\Models\Customer;
 use App\Models\CustomerAddress;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 class CustomerAddressController extends Controller
 {
+    public function reverseGeocode(Request $request)
+    {
+        $validated = $request->validate([
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+        ]);
+
+        $address = $this->resolveAddressFromCoordinates(
+            (string) $validated['latitude'],
+            (string) $validated['longitude']
+        );
+
+        if (!$address) {
+            return response()->json([
+                'message' => 'Alamat detail Google Maps belum tersedia. Aktifkan GOOGLE_MAPS_API_KEY atau isi alamat manual.',
+            ], 404);
+        }
+
+        return response()->json([
+            'address' => $address,
+        ]);
+    }
+
     public function store(Request $request, Customer $customer)
     {
         $validated = $request->validate([
@@ -104,5 +128,32 @@ class CustomerAddressController extends Controller
         $address->delete();
 
         return back()->with('success', 'Alamat pelanggan berhasil dihapus');
+    }
+
+    private function resolveAddressFromCoordinates(string $latitude, string $longitude): ?string
+    {
+        $googleMapsKey = config('services.google_maps.key');
+
+        if (!$googleMapsKey) {
+            return null;
+        }
+
+        return $this->resolveAddressFromGoogle($latitude, $longitude, $googleMapsKey);
+    }
+
+    private function resolveAddressFromGoogle(string $latitude, string $longitude, string $apiKey): ?string
+    {
+        $response = Http::timeout(8)->get('https://maps.googleapis.com/maps/api/geocode/json', [
+            'latlng' => $latitude . ',' . $longitude,
+            'key' => $apiKey,
+            'language' => 'id',
+            'region' => 'id',
+        ]);
+
+        if (!$response->ok() || $response->json('status') !== 'OK') {
+            return null;
+        }
+
+        return $response->json('results.0.formatted_address');
     }
 }

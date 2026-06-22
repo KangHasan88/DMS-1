@@ -7,9 +7,12 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\Customer;
+use App\Models\CompanyBranch;
+use App\Models\CompanyProfile;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class CustomerOrderBoundaryTest extends TestCase
@@ -35,6 +38,53 @@ class CustomerOrderBoundaryTest extends TestCase
             ->assertOk()
             ->assertSee($ownOrder->order_number)
             ->assertDontSee($otherOrder->order_number);
+    }
+
+    public function test_customer_maps_reverse_geocode_returns_address_from_coordinates(): void
+    {
+        config(['services.google_maps.key' => 'google-test-key']);
+
+        Http::fake([
+            'maps.googleapis.com/maps/api/geocode/json*' => Http::response([
+                'status' => 'OK',
+                'results' => [
+                    [
+                        'formatted_address' => 'Jalan Jenderal Sudirman Kav. 59 5, RT.5/RW.3, Senayan, Jakarta Selatan 12110',
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $admin = $this->superAdmin('maps-geocode-admin@example.test');
+
+        $this->actingAs($admin)
+            ->getJson(route('customers.maps.reverse-geocode', [
+                'latitude' => '-6.2255839',
+                'longitude' => '106.7955787',
+            ]))
+            ->assertOk()
+            ->assertJson([
+                'address' => 'Jalan Jenderal Sudirman Kav. 59 5, RT.5/RW.3, Senayan, Jakarta Selatan 12110',
+            ]);
+    }
+
+    public function test_customer_maps_reverse_geocode_does_not_fallback_to_non_google_address(): void
+    {
+        config(['services.google_maps.key' => null]);
+
+        Http::fake();
+
+        $admin = $this->superAdmin('maps-no-key-admin@example.test');
+
+        $this->actingAs($admin)
+            ->getJson(route('customers.maps.reverse-geocode', [
+                'latitude' => '-6.2255839',
+                'longitude' => '106.7955787',
+            ]))
+            ->assertNotFound()
+            ->assertJson([
+                'message' => 'Alamat detail Google Maps belum tersedia. Aktifkan GOOGLE_MAPS_API_KEY atau isi alamat manual.',
+            ]);
     }
 
     public function test_customer_cannot_view_another_customer_order(): void
@@ -94,9 +144,9 @@ class CustomerOrderBoundaryTest extends TestCase
         $this->assertSame(Order::ORDER_SOURCE_APP, $order->order_source);
         $this->assertSame(Order::DISCOUNT_NONE, $order->discount_type);
         $this->assertSame(0, $order->discount_amount);
-        $this->assertSame(1000, $order->packing_fee);
+        $this->assertSame(0, $order->packing_fee);
         $this->assertFalse($order->include_ppn);
-        $this->assertSame(11000, $order->grand_total);
+        $this->assertSame(10000, $order->grand_total);
     }
 
     public function test_admin_created_customer_does_not_use_default_password(): void
@@ -214,6 +264,101 @@ class CustomerOrderBoundaryTest extends TestCase
         $this->assertSame(1, Order::where('user_id', $customer->id)->count());
     }
 
+    public function test_duplicate_order_submit_with_same_request_token_returns_existing_order(): void
+    {
+        $admin = $this->superAdmin('idempotent-admin@example.test');
+        $customer = $this->customer('idempotent-customer@example.test');
+        $this->customerProfile($customer);
+        $product = $this->product('Idempotent Product');
+        $payload = $this->orderPayload($customer, $product, 'order-token-001');
+
+        $firstResponse = $this->actingAs($admin)
+            ->withSession(['_token' => 'test-token'])
+            ->post('/orders', $payload);
+
+        $firstResponse->assertRedirect();
+        $firstOrder = Order::where('request_token', 'order-token-001')->firstOrFail();
+
+        $secondResponse = $this->actingAs($admin)
+            ->withSession(['_token' => 'test-token'])
+            ->post('/orders', $payload);
+
+        $secondResponse->assertRedirect(route('orders.show', $firstOrder));
+        $this->assertSame(1, Order::where('request_token', 'order-token-001')->count());
+        $this->assertSame(1, Order::where('user_id', $customer->id)->count());
+    }
+
+    public function test_order_store_defaults_optional_save_fields_when_inputs_are_missing(): void
+    {
+        $admin = $this->superAdmin('save-default-admin@example.test');
+        $customer = $this->customer('save-default-customer@example.test');
+        $this->customerProfile($customer);
+        $product = $this->product('Save Default Product');
+        $payload = $this->orderPayload($customer, $product, 'save-default-token-001');
+
+        unset($payload['payment_timing'], $payload['shipping_type'], $payload['shipping_rate']);
+        $payload['requires_packing'] = 0;
+        $payload['include_ppn'] = false;
+
+        $this->actingAs($admin)
+            ->withSession(['_token' => 'test-token'])
+            ->post('/orders', $payload)
+            ->assertRedirect();
+
+        $order = Order::where('request_token', 'save-default-token-001')->firstOrFail();
+
+        $this->assertSame(Order::PAYMENT_TIMING_POST_PAID, $order->payment_timing);
+        $this->assertSame(Order::SHIPPING_FLAT, $order->shipping_type);
+        $this->assertSame(0, (int) $order->delivery_fee);
+        $this->assertFalse($order->requires_packing);
+        $this->assertSame(0, (int) $order->packing_fee);
+        $this->assertSame(10000, (int) $order->grand_total);
+    }
+
+    public function test_branch_admin_only_sees_customers_from_assigned_branch_on_order_create(): void
+    {
+        [$branchA, $branchB] = $this->twoCompanyBranches();
+        $customerA = $this->customer('branch-a-customer@example.test');
+        $customerB = $this->customer('branch-b-customer@example.test');
+        $customerA->update(['name' => 'Customer Cabang A']);
+        $customerB->update(['name' => 'Customer Cabang B']);
+        $this->customerProfile($customerA, ['company_branch_id' => $branchA->id, 'name' => 'Customer Cabang A']);
+        $this->customerProfile($customerB, ['company_branch_id' => $branchB->id, 'name' => 'Customer Cabang B']);
+        $admin = User::factory()->create([
+            'email' => 'branch-admin@example.test',
+            'company_branch_id' => $branchA->id,
+        ]);
+        $admin->assignRole('admin');
+
+        $this->actingAs($admin)
+            ->get(route('orders.create'))
+            ->assertOk()
+            ->assertSee('Customer Cabang A')
+            ->assertDontSee('Customer Cabang B');
+    }
+
+    public function test_order_store_rejects_customer_from_different_branch(): void
+    {
+        [$branchA, $branchB] = $this->twoCompanyBranches();
+        $admin = $this->superAdmin('branch-mismatch-admin@example.test');
+        $customer = $this->customer('branch-mismatch-customer@example.test');
+        $this->customerProfile($customer, ['company_branch_id' => $branchB->id]);
+        $product = $this->product('Branch Mismatch Product');
+        $payload = $this->orderPayload($customer, $product, 'branch-mismatch-token-001');
+        $payload['company_branch_id'] = $branchA->id;
+
+        $this->actingAs($admin)
+            ->withSession(['_token' => 'test-token'])
+            ->from(route('orders.create'))
+            ->post('/orders', $payload)
+            ->assertRedirect(route('orders.create'))
+            ->assertSessionHas('error', 'Gagal membuat order: Pelanggan tidak terdaftar pada cabang pengirim yang dipilih.');
+
+        $this->assertDatabaseMissing('orders', [
+            'request_token' => 'branch-mismatch-token-001',
+        ]);
+    }
+
     private function customer(string $email): User
     {
         $user = User::factory()->create(['email' => $email]);
@@ -257,10 +402,26 @@ class CustomerOrderBoundaryTest extends TestCase
         ]);
     }
 
-    private function orderPayload(User $customer, Product $product): array
+    private function twoCompanyBranches(): array
+    {
+        $company = CompanyProfile::defaultProfile();
+        $branchA = $company->defaultInvoiceBranch();
+        $branchB = CompanyBranch::create([
+            'company_profile_id' => $company->id,
+            'name' => 'Cabang Dua',
+            'code' => 'DUB',
+            'is_active' => true,
+            'sort_order' => 2,
+        ]);
+
+        return [$branchA, $branchB];
+    }
+
+    private function orderPayload(User $customer, Product $product, string $requestToken = 'test-order-token'): array
     {
         return [
             '_token' => 'test-token',
+            'order_request_token' => $requestToken,
             'user_id' => $customer->id,
             'delivery_date' => now()->addDay()->toDateString(),
             'delivery_time_slot' => '06:00-09:00',

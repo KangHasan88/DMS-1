@@ -1,20 +1,36 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Tambah Return Out')
-@section('breadcrumb', 'Outbound / Return Out / Tambah')
+@section('page-title', 'Tambah Retur Penjualan')
+@section('breadcrumb', 'Operasional / Retur Penjualan / Tambah')
 
 @section('content')
 <div class="dms-card">
     <div style="margin-bottom: 1.5rem;">
-        <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-green); margin-bottom: 0.25rem;">Tambah Return Out (Retur / Ganti Rugi)</h3>
+        <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-green); margin-bottom: 0.25rem;">Tambah Retur Penjualan</h3>
         <p style="font-size: 0.85rem; color: var(--k-gray-500);">
             Catat pengeluaran barang untuk retur pelanggan (barang rusak, salah, kedaluwarsa, dll).
-            <strong>Stock akan berkurang otomatis.</strong>
+            <strong>Stok akan berkurang otomatis.</strong>
         </p>
     </div>
 
     <form action="{{ route('outbound-returns.store') }}" method="POST">
         @csrf
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label class="form-label">Cabang Operasional</label>
+            <select name="company_branch_id" class="form-control" {{ $branchLocked ? 'disabled' : '' }}>
+                @foreach($companyBranches as $branch)
+                    <option value="{{ $branch->id }}" {{ (string) old('company_branch_id', $defaultBranchId) === (string) $branch->id ? 'selected' : '' }}>
+                        {{ $branch->name }} - {{ $branch->code }}
+                    </option>
+                @endforeach
+            </select>
+            @if($branchLocked)
+                <input type="hidden" name="company_branch_id" value="{{ $defaultBranchId }}">
+            @endif
+            <small class="dms-form-help">Cabang yang mencatat pengeluaran barang retur/ganti rugi.</small>
+            @error('company_branch_id') <span class="dms-error">{{ $message }}</span> @enderror
+        </div>
         
         <!-- Pelanggan Information -->
         <div style="margin-bottom: 1.5rem;">
@@ -48,18 +64,18 @@
         <div style="margin-bottom: 1.5rem;">
             <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--k-gray-200);">
                 <i class="bi bi-arrow-return-left" style="margin-right: 0.4rem; color: var(--k-green);"></i>
-                Detail Return
+                Detail Retur
             </h4>
             
             <div class="dms-form-grid">
                 <div>
-                    <label class="form-label">Tanggal Return <span class="dms-required">*</span></label>
+                    <label class="form-label">Tanggal Retur <span class="dms-required">*</span></label>
                     <input type="date" name="return_date" class="form-control" value="{{ date('Y-m-d') }}" required>
                     @error('return_date') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
                 
                 <div>
-                    <label class="form-label">Tipe Return <span class="dms-required">*</span></label>
+                    <label class="form-label">Tipe Retur <span class="dms-required">*</span></label>
                     <select name="return_type" class="form-control" required>
                         <option value="">-- Pilih Tipe --</option>
                         @foreach($types as $key => $label)
@@ -99,7 +115,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
                 <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--k-gray-800);">
                     <i class="bi bi-box-seam" style="margin-right: 0.4rem; color: var(--k-green);"></i>
-                    Daftar Produk Return
+                    Daftar Produk Retur
                 </h4>
                 <button type="button" class="dms-btn dms-btn-outline" onclick="addProductRow()" style="padding: 0.3rem 0.8rem; font-size: 0.7rem;">
                     <i class="bi bi-plus-circle"></i> Tambah Produk
@@ -111,7 +127,7 @@
                     <thead>
                         <tr style="background: var(--k-gray-100); border-bottom: 1px solid var(--k-gray-200);">
                             <th style="padding: 0.6rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600); width: 40%;">Produk</th>
-                            <th style="padding: 0.6rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600); width: 15%;">Jumlah Return</th>
+                            <th style="padding: 0.6rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600); width: 15%;">Jumlah Retur</th>
                             <th style="padding: 0.6rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600); width: 20%;">Harga</th>
                             <th style="padding: 0.6rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600); width: 20%;">Subtotal</th>
                             <th style="padding: 0.6rem; text-align: center; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600); width: 5%;"></th>
@@ -149,7 +165,7 @@
                     </tbody>
                     <tfoot>
                         <tr style="background: var(--k-gray-50); border-top: 1px solid var(--k-gray-200);">
-                            <td colspan="3" style="padding: 0.6rem; text-align: right; font-weight: 600; font-size: 0.8rem;">Total Nilai Return: </td>
+                            <td colspan="3" style="padding: 0.6rem; text-align: right; font-weight: 600; font-size: 0.8rem;">Total Nilai Retur: </td>
                             <td colspan="2" style="padding: 0.6rem; font-weight: 700; font-size: 0.9rem; color: var(--k-green);">
                                 <span id="grand-total">Rp 0</span>
                                 <input type="hidden" name="total" id="total-input" value="0">
@@ -172,7 +188,7 @@
                 <i class="bi bi-arrow-left"></i> Batal
             </a>
             <button type="submit" class="dms-btn dms-btn-primary" style="padding: 0.5rem 1rem; font-size: 0.75rem;">
-                <i class="bi bi-save"></i> Simpan & Kurangi Stock
+                <i class="bi bi-save"></i> Simpan & Kurangi Stok
             </button>
         </div>
     </form>

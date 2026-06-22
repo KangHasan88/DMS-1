@@ -14,9 +14,14 @@ class Order extends Model
 
     protected $fillable = [
         'user_id',
+        'created_by',
+        'salesperson_id',
+        'route_session_id',
+        'company_branch_id',
         'invoice_address_id',
         'shipping_address_id',
         'order_number',
+        'request_token',
         'delivery_date',
         'delivery_time_slot',
         'address',
@@ -93,6 +98,7 @@ class Order extends Model
     const STATUS_PENDING_PAYMENT = 'pending_payment';
     const STATUS_PAID = 'paid';
     const STATUS_CHECKING_STOCK = 'checking_stock';
+    const STATUS_PICKING = 'picking';
     const STATUS_PROCURING = 'procuring';
     const STATUS_REPACKING = 'repacking';
     const STATUS_READY = 'ready';
@@ -102,12 +108,13 @@ class Order extends Model
 
     const STATUS_LIST = [
         self::STATUS_PENDING_PAYMENT => 'Menunggu Bayar',
-        self::STATUS_PAID => 'Sudah Bayar',
-        self::STATUS_CHECKING_STOCK => 'Cek Stock',
-        self::STATUS_PROCURING => 'Belanja',
-        self::STATUS_REPACKING => 'Repacking',
+        self::STATUS_CHECKING_STOCK => 'Alokasi Stok',
+        self::STATUS_PICKING => 'Picking',
+        self::STATUS_PROCURING => 'Belanja BLJ',
+        self::STATUS_REPACKING => 'Packing / Repack',
         self::STATUS_READY => 'Siap Kirim',
-        self::STATUS_SHIPPED => 'Dikirim',
+        self::STATUS_SHIPPED => 'Dalam Pengiriman',
+        self::STATUS_PAID => 'Sudah Bayar',
         self::STATUS_DELIVERED => 'Selesai',
         self::STATUS_CANCELLED => 'Dibatalkan',
     ];
@@ -116,6 +123,7 @@ class Order extends Model
         self::STATUS_PENDING_PAYMENT => 'warning',
         self::STATUS_PAID => 'info',
         self::STATUS_CHECKING_STOCK => 'info',
+        self::STATUS_PICKING => 'info',
         self::STATUS_PROCURING => 'info',
         self::STATUS_REPACKING => 'info',
         self::STATUS_READY => 'success',
@@ -128,6 +136,15 @@ class Order extends Model
     
     const ORDER_SOURCE_APP = 'app';
     const ORDER_SOURCE_ADMIN = 'admin';
+    const ORDER_SOURCE_SFA = 'sfa';
+    const ORDER_SOURCE_TELESALES = 'telesales';
+
+    const ORDER_SOURCE_LIST = [
+        self::ORDER_SOURCE_ADMIN => 'Admin',
+        self::ORDER_SOURCE_SFA => 'SFA',
+        self::ORDER_SOURCE_TELESALES => 'Telesales',
+        self::ORDER_SOURCE_APP => 'Aplikasi Customer',
+    ];
 
     // ===================== FULFILLMENT TYPE CONSTANTS =====================
     
@@ -170,6 +187,26 @@ class Order extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function salesperson(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'salesperson_id');
+    }
+
+    public function routeSession(): BelongsTo
+    {
+        return $this->belongsTo(DeliveryRouteSession::class, 'route_session_id');
+    }
+
+    public function companyBranch(): BelongsTo
+    {
+        return $this->belongsTo(CompanyBranch::class);
+    }
+
     public function invoiceAddress(): BelongsTo
     {
         return $this->belongsTo(CustomerAddress::class, 'invoice_address_id');
@@ -201,9 +238,55 @@ class Order extends Model
         return 'KMG' . $date . str_pad($sequence, 4, '0', STR_PAD_LEFT);
     }
 
+    public function documentNumber(string $prefix, ?string $companyCode = null, ?string $branchCode = null): string
+    {
+        $date = $this->created_at ? $this->created_at->format('Ymd') : now()->format('Ymd');
+        $digits = preg_replace('/\D/', '', (string) $this->order_number);
+        $sequence = $digits ? substr($digits, -4) : str_pad((string) $this->id, 4, '0', STR_PAD_LEFT);
+
+        return strtoupper($prefix) . '-'
+            . $this->documentCodePart($companyCode ?: 'KMG', 'KMG')
+            . $this->documentCodePart($branchCode ?: 'MAI', 'MAI')
+            . $date
+            . $sequence;
+    }
+
+    private function documentCodePart(string $value, string $fallback): string
+    {
+        $code = preg_replace('/[^A-Za-z0-9]/', '', $value) ?: $fallback;
+
+        return substr(strtoupper($code), 0, 3);
+    }
+
     public function canUpdateStatus(): bool
     {
         return !in_array($this->status, [self::STATUS_DELIVERED, self::STATUS_CANCELLED]);
+    }
+
+    public function canEditOrder(): bool
+    {
+        if ($this->isPrePaid()) {
+            return $this->status === self::STATUS_PENDING_PAYMENT;
+        }
+
+        return in_array($this->status, [
+            self::STATUS_CHECKING_STOCK,
+            self::STATUS_PROCURING,
+        ], true);
+    }
+
+    public function canDeleteOrder(): bool
+    {
+        return $this->canEditOrder();
+    }
+
+    public function canViewDeliveryOrderDocument(): bool
+    {
+        return in_array($this->status, [
+            self::STATUS_READY,
+            self::STATUS_SHIPPED,
+            self::STATUS_DELIVERED,
+        ], true) || ($this->isPostPaid() && $this->status === self::STATUS_PAID);
     }
 
     public function isFromApp(): bool
@@ -214,6 +297,11 @@ class Order extends Model
     public function isFromAdmin(): bool
     {
         return $this->order_source === self::ORDER_SOURCE_ADMIN;
+    }
+
+    public function getOrderSourceLabelAttribute(): string
+    {
+        return self::ORDER_SOURCE_LIST[$this->order_source] ?? ucfirst((string) $this->order_source);
     }
 
     public function useStockMode(): bool
@@ -243,6 +331,10 @@ class Order extends Model
 
     public function updateStatus(string $newStatus, ?string $notes = null): bool
     {
+        if (!array_key_exists($newStatus, self::STATUS_LIST)) {
+            return false;
+        }
+
         if (!$this->canUpdateStatus() && $newStatus !== self::STATUS_CANCELLED) {
             return false;
         }
@@ -296,6 +388,10 @@ class Order extends Model
 
     public function canTransitionTo(string $newStatus): bool
     {
+        if (!array_key_exists($newStatus, self::STATUS_LIST)) {
+            return false;
+        }
+
         if ($newStatus === self::STATUS_CANCELLED) {
             return !in_array($this->status, [self::STATUS_SHIPPED, self::STATUS_DELIVERED, self::STATUS_CANCELLED], true);
         }
@@ -315,7 +411,8 @@ class Order extends Model
                 : [
                 $this->useStockMode() ? self::STATUS_CHECKING_STOCK : self::STATUS_PROCURING,
                 ],
-            self::STATUS_CHECKING_STOCK => $this->requiresPacking() ? [self::STATUS_REPACKING] : [self::STATUS_READY],
+            self::STATUS_CHECKING_STOCK => [self::STATUS_PICKING],
+            self::STATUS_PICKING => $this->requiresPacking() ? [self::STATUS_REPACKING] : [self::STATUS_READY],
             self::STATUS_PROCURING => $this->requiresPacking() ? [self::STATUS_REPACKING] : [self::STATUS_READY],
             self::STATUS_REPACKING => $this->requiresPacking() ? [self::STATUS_READY] : [],
             self::STATUS_READY => [self::STATUS_SHIPPED],
@@ -354,7 +451,8 @@ class Order extends Model
         $shippingCost = match ($shippingType) {
             self::SHIPPING_WEIGHT => max(0, (float) ($shippingWeight ?? 0)) * $shippingRate,
             self::SHIPPING_DISTANCE => max(0, (float) ($shippingDistance ?? 0)) * $shippingRate,
-            default => $shippingRate,
+            self::SHIPPING_FLAT => $shippingRate,
+            default => 0,
         };
         $taxableAmount = $afterDiscount + $shippingCost + $packingFee;
         $ppnAmount = $includePpn ? $taxableAmount * min($ppnRate, 100) / 100 : 0;
@@ -495,6 +593,11 @@ class Order extends Model
     public function scopeCheckingStock($query)
     {
         return $query->where('status', self::STATUS_CHECKING_STOCK);
+    }
+
+    public function scopePicking($query)
+    {
+        return $query->where('status', self::STATUS_PICKING);
     }
 
     public function scopeProcuring($query)

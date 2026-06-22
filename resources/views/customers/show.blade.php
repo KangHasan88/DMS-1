@@ -142,6 +142,15 @@
                         <div style="font-size: 0.7rem; color: var(--k-gray-500); margin-bottom: 0.25rem;">Email</div>
                         <div style="font-weight: 600; color: var(--k-gray-800);">{{ $customer->email ?? '-' }}</div>
                     </div>
+                    <div style="padding: 0.75rem; background: var(--k-gray-50); border-radius: 8px;">
+                        <div style="font-size: 0.7rem; color: var(--k-gray-500); margin-bottom: 0.25rem;">Cabang Pelanggan</div>
+                        <div style="font-weight: 600; color: var(--k-gray-800);">
+                            {{ $customer->companyBranch?->name ?? '-' }}
+                            @if($customer->companyBranch?->code)
+                                <span style="color: var(--k-gray-500);">({{ $customer->companyBranch->code }})</span>
+                            @endif
+                        </div>
+                    </div>
                     <div style="grid-column: span 2; padding: 0.75rem; background: var(--k-gray-50); border-radius: 8px;">
                         <div style="font-size: 0.7rem; color: var(--k-gray-500); margin-bottom: 0.25rem;">Alamat</div>
                         <div style="font-weight: 500; color: var(--k-gray-800);">{{ $customer->address ?? '-' }}</div>
@@ -179,10 +188,12 @@
                                 <option value="both">Invoice & Pengiriman</option>
                             </select>
                         </div>
-                        <div class="dms-form-span-2">
-                            <label class="form-label">Alamat Lengkap <span class="dms-required">*</span></label>
-                            <textarea name="address" class="form-control" rows="2" required placeholder="Alamat lengkap customer"></textarea>
-                        </div>
+                        @include('customers.partials.address-lookup', [
+                            'addressLabel' => 'Alamat Lengkap',
+                            'addressRequired' => true,
+                            'addressPlaceholder' => 'Alamat lengkap customer',
+                            'addressHelp' => 'Alamat ini bisa dipilih sebagai alamat invoice/dokumen atau alamat pengiriman saat input order.',
+                        ])
                         <div>
                             <label class="form-label">PIC Penerima</label>
                             <input type="text" name="recipient_name" class="form-control" placeholder="{{ $customer->name }}">
@@ -190,14 +201,6 @@
                         <div>
                             <label class="form-label">Telepon Penerima</label>
                             <input type="text" name="recipient_phone" class="form-control" placeholder="{{ $customer->phone }}">
-                        </div>
-                        <div>
-                            <label class="form-label">Latitude</label>
-                            <input type="text" name="latitude" class="form-control" placeholder="-6.200000">
-                        </div>
-                        <div>
-                            <label class="form-label">Longitude</label>
-                            <input type="text" name="longitude" class="form-control" placeholder="106.816666">
                         </div>
                         <div class="dms-form-span-2" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
                             <label class="dms-check">
@@ -251,6 +254,16 @@
                                     @endunless
                                 </td>
                                 <td>
+                                    <div style="display: flex; gap: 0.4rem; justify-content: flex-end;">
+                                    @if($address->latitude && $address->longitude)
+                                    <a href="https://www.google.com/maps/search/?api=1&query={{ urlencode($address->latitude . ',' . $address->longitude) }}"
+                                        class="dms-btn dms-btn-outline dms-btn-sm"
+                                        target="_blank"
+                                        rel="noopener"
+                                        title="Buka Maps">
+                                        <i class="bi bi-map"></i>
+                                    </a>
+                                    @endif
                                     @can('edit customers')
                                     <form action="{{ route('customers.addresses.destroy', [$customer, $address]) }}" method="POST" onsubmit="return confirm('Hapus alamat ini?')">
                                         @csrf
@@ -260,6 +273,7 @@
                                         </button>
                                     </form>
                                     @endcan
+                                    </div>
                                 </td>
                             </tr>
                             @empty

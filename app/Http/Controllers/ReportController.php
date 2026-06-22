@@ -129,12 +129,17 @@ class ReportController extends Controller
 
         $orders = Order::whereBetween('created_at', [$startDate, $endDate]);
         $delivered = (clone $orders)->where('status', Order::STATUS_DELIVERED);
+        $deliveredOrderIds = (clone $delivered)->pluck('id');
+        $actualShippingCost = Delivery::whereIn('order_id', $deliveredOrderIds)->sum('actual_shipping_cost');
+        $customerShippingRevenue = (clone $delivered)->sum('delivery_fee');
 
         $summary = [
             'revenue' => (clone $delivered)->sum('grand_total'),
             'subtotal' => (clone $delivered)->sum('subtotal'),
             'discount' => (clone $delivered)->sum('discount_amount'),
-            'delivery_fee' => (clone $delivered)->sum('delivery_fee'),
+            'delivery_fee' => $customerShippingRevenue,
+            'actual_shipping_cost' => $actualShippingCost,
+            'shipping_margin' => $customerShippingRevenue - $actualShippingCost,
             'packing_fee' => (clone $delivered)->sum('packing_fee'),
             'tax' => (clone $delivered)->sum('ppn_amount'),
             'paid_orders' => (clone $orders)->whereNotNull('paid_at')->count(),

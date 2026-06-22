@@ -7,6 +7,8 @@ use App\Models\Customer;
 use App\Models\Supplier;
 use App\Models\Product;
 use App\Models\Unit;
+use App\Models\SalesTerritory;
+use App\Models\CustomerSalesAssignment;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
@@ -372,6 +374,8 @@ class DatabaseSeeder extends Seeder
         }
         $this->command->info("? " . count($suppliers) . " suppliers created!");
 
+        $this->call(SalesTerritorySeeder::class);
+
         // ========================================
         // 9. FINAL MESSAGE
         // ========================================
@@ -398,6 +402,8 @@ class DatabaseSeeder extends Seeder
         $this->command->info('? Suppliers: ' . Supplier::count() . ' suppliers');
         $this->command->info('? Units: ' . Unit::count() . ' units');
         $this->command->info('? Products: ' . Product::count() . ' products');
+        $this->command->info('? Sales Territories: ' . SalesTerritory::count() . ' territories');
+        $this->command->info('? Customer Sales Assignments: ' . CustomerSalesAssignment::count() . ' assignments');
         $this->command->info('========================================');
     }
 }

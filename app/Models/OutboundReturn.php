@@ -13,6 +13,7 @@ class OutboundReturn extends Model
 
     protected $fillable = [
         'return_number',
+        'company_branch_id',
         'customer_name',
         'customer_phone',
         'reference_order',
@@ -73,6 +74,11 @@ class OutboundReturn extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function companyBranch(): BelongsTo
+    {
+        return $this->belongsTo(CompanyBranch::class);
+    }
+
     // ===================== HELPER METHODS =====================
     
     public static function generateReturnNumber(): string
@@ -108,5 +114,10 @@ class OutboundReturn extends Model
     public function scopeByAction($query, $action)
     {
         return $query->where('action', $action);
+    }
+
+    public function scopeForCompanyBranch($query, ?int $companyBranchId)
+    {
+        return $companyBranchId ? $query->where('company_branch_id', $companyBranchId) : $query;
     }
 }

@@ -94,6 +94,19 @@
                             </select>
                             @error('roles') <span style="color: var(--dms-danger); font-size: 0.75rem;">{{ $message }}</span> @enderror
                         </div>
+                        <div class="form-group">
+                            <label class="form-label">Cabang Operasional</label>
+                            <select name="company_branch_id" class="form-control">
+                                <option value="">Semua cabang / pusat</option>
+                                @foreach($companyBranches as $branch)
+                                    <option value="{{ $branch->id }}" {{ old('company_branch_id') == $branch->id ? 'selected' : '' }}>
+                                        {{ $branch->name }}{{ $branch->code ? ' - '.$branch->code : '' }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small style="color: var(--dms-gray-500);">Kosongkan untuk Super Admin/HQ. Isi untuk admin atau staff per cabang.</small>
+                            @error('company_branch_id') <span style="color: var(--dms-danger); font-size: 0.75rem;">{{ $message }}</span> @enderror
+                        </div>
                     </div>
                 </div>
 

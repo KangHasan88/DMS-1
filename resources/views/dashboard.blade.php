@@ -162,18 +162,25 @@
             <i class="bi bi-plus-circle"></i> {{ $isIndonesian ? 'Pesanan Baru' : 'New Order' }}
         </a>
         @endcan
+        @can('view deliveries')
         <a href="{{ route('deliveries.index') }}" class="dms-btn dms-btn-primary" style="text-decoration: none;">
             <i class="bi bi-truck"></i> {{ $isIndonesian ? 'Lacak Pengiriman' : 'Track Delivery' }}
         </a>
+        @endcan
+        @can('export reports')
         <button class="dms-btn dms-btn-outline" onclick="alert('Feature coming soon!')">
             <i class="bi bi-file-earmark-spreadsheet"></i> {{ $isIndonesian ? 'Export Laporan' : 'Export Report' }}
         </button>
+        @endcan
+        @can('view sales order')
         <button onclick="openSearchModal()" class="dms-btn dms-btn-outline">
             <i class="bi bi-search"></i> {{ $isIndonesian ? 'Cari Pesanan' : 'Search Orders' }}
         </button>
+        @endcan
     </div>
 </div>
 
+@can('view sales order')
 <!-- Search Orders Modal -->
 <div id="searchModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
     <div style="background: white; border-radius: 12px; padding: 1.5rem; width: 500px; max-width: 90%;">
@@ -211,12 +218,13 @@
                 <select name="status" class="form-control" style="width: 100%; padding: 0.6rem; border: 1px solid var(--k-gray-300); border-radius: 8px;">
                     <option value="">-- {{ $isIndonesian ? 'Semua Status' : 'All Statuses' }} --</option>
                     <option value="pending_payment">{{ $isIndonesian ? 'Menunggu Pembayaran' : 'Pending Payment' }}</option>
-                    <option value="paid">{{ $isIndonesian ? 'Dibayar' : 'Paid' }}</option>
-                    <option value="checking_stock">{{ $isIndonesian ? 'Cek Stok' : 'Checking Stock' }}</option>
-                    <option value="procuring">{{ $isIndonesian ? 'Belanja' : 'Procuring' }}</option>
-                    <option value="repacking">Repacking</option>
+                    <option value="checking_stock">{{ $isIndonesian ? 'Alokasi Stok' : 'Stock Allocation' }}</option>
+                    <option value="picking">Picking</option>
+                    <option value="procuring">{{ $isIndonesian ? 'Belanja BLJ' : 'BLJ Purchase' }}</option>
+                    <option value="repacking">Packing / Repack</option>
                     <option value="ready">{{ $isIndonesian ? 'Siap Kirim' : 'Ready' }}</option>
-                    <option value="shipped">{{ $isIndonesian ? 'Dikirim' : 'Shipped' }}</option>
+                    <option value="shipped">{{ $isIndonesian ? 'Dalam Pengiriman' : 'In Delivery' }}</option>
+                    <option value="paid">{{ $isIndonesian ? 'Sudah Bayar' : 'Paid' }}</option>
                     <option value="delivered">{{ $isIndonesian ? 'Terkirim' : 'Delivered' }}</option>
                     <option value="cancelled">{{ $isIndonesian ? 'Dibatalkan' : 'Cancelled' }}</option>
                 </select>
@@ -229,6 +237,7 @@
         </form>
     </div>
 </div>
+@endcan
 
 <!-- RECENT ORDERS TABLE -->
 <div class="dms-card">
@@ -237,9 +246,11 @@
             <i class="bi bi-clock-history" style="color: var(--k-orange);"></i>
             {{ $isIndonesian ? 'Pesanan Terbaru' : 'Recent Orders' }}
         </h3>
+        @can('view sales order')
         <a href="{{ route('orders.index') }}" style="color: var(--k-blue); text-decoration: none; font-size: 0.8rem; font-weight: 700;">
             {{ $isIndonesian ? 'Lihat Semua' : 'View All' }} <i class="bi bi-arrow-right"></i>
         </a>
+        @endcan
     </div>
 
     <div class="dms-table-wrap">
@@ -279,6 +290,7 @@
                                 'pending_payment' => 'warning',
                                 'paid' => 'info',
                                 'checking_stock' => 'info',
+                                'picking' => 'info',
                                 'procuring' => 'info',
                                 'repacking' => 'info',
                                 'ready' => 'success',
@@ -288,12 +300,13 @@
                             ];
                             $statusLabels = [
                                 'pending_payment' => $isIndonesian ? 'Menunggu' : 'Pending',
-                                'paid' => $isIndonesian ? 'Dibayar' : 'Paid',
-                                'checking_stock' => $isIndonesian ? 'Cek Stok' : 'Stock Check',
-                                'procuring' => $isIndonesian ? 'Belanja' : 'Procuring',
-                                'repacking' => 'Repacking',
+                                'paid' => $isIndonesian ? 'Sudah Bayar' : 'Paid',
+                                'checking_stock' => $isIndonesian ? 'Alokasi Stok' : 'Stock Allocation',
+                                'picking' => 'Picking',
+                                'procuring' => $isIndonesian ? 'Belanja BLJ' : 'BLJ Purchase',
+                                'repacking' => 'Packing / Repack',
                                 'ready' => $isIndonesian ? 'Siap Kirim' : 'Ready',
-                                'shipped' => $isIndonesian ? 'Dikirim' : 'Shipped',
+                                'shipped' => $isIndonesian ? 'Dalam Pengiriman' : 'In Delivery',
                                 'delivered' => $isIndonesian ? 'Terkirim' : 'Delivered',
                                 'cancelled' => $isIndonesian ? 'Dibatalkan' : 'Cancelled'
                             ];
@@ -338,6 +351,7 @@
     </div>
 </div>
 
+@can('view sales order')
 <script>
 function openSearchModal() {
     document.getElementById('searchModal').style.display = 'flex';
@@ -354,6 +368,7 @@ document.getElementById('searchModal').addEventListener('click', function(e) {
     }
 });
 </script>
+@endcan
 
 <style>
     .stats-grid {

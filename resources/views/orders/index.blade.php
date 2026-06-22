@@ -34,6 +34,24 @@
             <button type="button" onclick="toggleAdvancedSearch()" class="dms-btn dms-btn-outline">
                 <i class="bi bi-sliders2"></i> Advanced Search
             </button>
+
+            @if($canFilterBranches)
+            <select name="company_branch_id" onchange="window.location.href = this.value" class="form-control">
+                <option value="{{ route('orders.index', array_merge(request()->except('company_branch_id', 'page'), ['company_branch_id' => null])) }}" {{ !request('company_branch_id') ? 'selected' : '' }}>Semua Cabang</option>
+                @foreach($companyBranches as $branch)
+                <option value="{{ route('orders.index', array_merge(request()->except('company_branch_id', 'page'), ['company_branch_id' => $branch->id])) }}" {{ request('company_branch_id') == $branch->id ? 'selected' : '' }}>
+                    {{ $branch->name }}{{ $branch->code ? ' - '.$branch->code : '' }}
+                </option>
+                @endforeach
+            </select>
+            @endif
+
+            <!-- Payment Timing Filter -->
+            <select name="payment_timing" onchange="window.location.href = this.value" class="form-control">
+                <option value="{{ route('orders.index', array_merge(request()->except('payment_timing', 'page'), ['payment_timing' => null])) }}" {{ !request('payment_timing') ? 'selected' : '' }}>Semua Skema</option>
+                <option value="{{ route('orders.index', array_merge(request()->except('payment_timing', 'page'), ['payment_timing' => 'pre_paid'])) }}" {{ request('payment_timing') == 'pre_paid' ? 'selected' : '' }}>Pre-paid</option>
+                <option value="{{ route('orders.index', array_merge(request()->except('payment_timing', 'page'), ['payment_timing' => 'post_paid'])) }}" {{ request('payment_timing') == 'post_paid' ? 'selected' : '' }}>Post-paid</option>
+            </select>
             
             <!-- Per Page -->
             <select name="per_page" onchange="window.location.href = this.value" class="form-control">
@@ -84,6 +102,18 @@
                     @endforeach
                 </select>
             </div>
+
+            <div>
+                <label class="form-label">Sales Owner</label>
+                <select name="salesperson_id" class="form-control">
+                    <option value="">-- Semua --</option>
+                    @foreach($salespeople as $salesperson)
+                        <option value="{{ $salesperson->id }}" {{ request('salesperson_id') == $salesperson->id ? 'selected' : '' }}>
+                            {{ $salesperson->name }}{{ $salesperson->companyBranch?->code ? ' - '.$salesperson->companyBranch->code : '' }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
             
             <div>
                 <label class="form-label">Mode Pemenuhan</label>
@@ -103,35 +133,37 @@
     </div>
 
     <!-- Orders Table -->
-    <div class="dms-table-wrap">
-        <table class="dms-table">
+    <div class="dms-table-wrap orders-table-wrap">
+        <table class="dms-table orders-table">
             <thead>
                 <tr>
-                    <th>No. Order</th>
+                    <th class="col-order">No. Order</th>
                     <th>Pelanggan</th>
-                    <th>Tanggal</th>
+                    <th class="col-date">Tanggal</th>
                     <th style="text-align: right;">Total</th>
-                    <th>Sumber</th>
-                    <th>Mode</th>
+                    <th class="col-attribute">Sumber</th>
+                    <th class="col-sales-owner">Sales Owner</th>
+                    <th class="col-attribute">Mode</th>
+                    <th class="col-attribute">Skema</th>
                     <th>Status</th>
-                    <th style="text-align: center;">Aksi</th>
+                    <th class="col-actions">Aksi</th>
                  </tr>
             </thead>
             <tbody>
                 @forelse($orders as $order)
                 <tr>
                     <td>
-                        <strong style="font-family: monospace; font-size: 0.75rem;">{{ $order->order_number }}</strong>
+                        <a href="{{ route('orders.show', $order) }}" class="order-number">{{ $order->order_number }}</a>
                     </td>
                     <td>
-                        <div style="display: flex; flex-direction: column;">
+                        <div class="order-customer">
                             <span class="dms-strong">{{ $order->user->name ?? '-' }}</span>
                             <span class="dms-muted">{{ $order->user->phone ?? '-' }}</span>
                         </div>
                     </td>
                     <td>
-                        <div style="display: flex; flex-direction: column;">
-                            <span style="font-size: 0.75rem;">{{ $order->created_at->format('d M Y') }}</span>
+                        <div class="order-date">
+                            <span>{{ $order->created_at->format('d M Y') }}</span>
                             <span class="dms-muted">{{ $order->created_at->format('H:i') }}</span>
                         </div>
                     </td>
@@ -141,34 +173,44 @@
                         </span>
                     </td>
                     <td>
-                        <span class="dms-badge dms-badge-{{ $order->order_source == 'app' ? 'success' : 'info' }}" style="font-size: 0.6rem;">
-                            {{ $order->order_source == 'app' ? 'Aplikasi' : 'Admin' }}
+                        <span class="order-attribute">
+                            {{ $order->order_source_label }}
                         </span>
                     </td>
                     <td>
-                        <span class="dms-badge dms-badge-{{ $order->fulfillment_type == 'stock' ? 'warning' : 'info' }}" style="font-size: 0.6rem;">
+                        <div class="order-sales-owner">
+                            <span>{{ $order->salesperson->name ?? 'House Account' }}</span>
+                            @if($order->createdBy)
+                                <span class="dms-muted">Input: {{ $order->createdBy->name }}</span>
+                            @endif
+                        </div>
+                    </td>
+                    <td>
+                        <span class="order-attribute {{ $order->fulfillment_type == 'stock' ? 'is-stock' : 'is-blj' }}">
                             {{ $order->fulfillment_type == 'stock' ? 'Stock' : 'BLJ' }}
                         </span>
                     </td>
                     <td>
-                        <span class="dms-badge dms-badge-{{ $order->status_color }}" style="font-size: 0.6rem;">
+                        <span class="order-payment-attribute {{ $order->payment_timing == 'pre_paid' ? 'is-prepaid' : 'is-postpaid' }}" title="{{ $order->payment_timing == 'pre_paid' ? 'Pre-paid' : 'Post-paid' }}" aria-label="{{ $order->payment_timing == 'pre_paid' ? 'Pre-paid' : 'Post-paid' }}">
+                            {{ $order->payment_timing == 'pre_paid' ? 'Pre-paid' : 'Post-paid' }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="dms-badge dms-badge-{{ $order->status_color }} order-status">
                             {{ $order->status_label }}
                         </span>
                     </td>
-                    <td style="text-align: center;">
+                    <td class="col-actions">
                         <div class="dms-actions">
-                            <a href="{{ route('orders.show', $order) }}" class="dms-btn dms-btn-outline dms-btn-sm" style="text-decoration: none;" title="Detail">
-                                <i class="bi bi-eye"></i>
-                            </a>
                             @can('edit sales order')
-                            @if($order->canUpdateStatus())
+                            @if($order->canEditOrder())
                             <a href="{{ route('orders.edit', $order) }}" class="dms-btn dms-btn-outline dms-btn-sm" style="text-decoration: none;" title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </a>
                             @endif
                             @endcan
                             @can('delete sales order')
-                            @if($order->status == 'pending_payment')
+                            @if($order->canDeleteOrder())
                             <button onclick="deleteOrder({{ $order->id }}, '{{ $order->order_number }}')" class="dms-btn dms-btn-outline dms-btn-sm" style="color: var(--k-red);" title="Hapus">
                                 <i class="bi bi-trash"></i>
                             </button>
@@ -179,7 +221,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="8">
+                    <td colspan="10">
                         <div class="dms-empty-state">
                         <i class="bi bi-inbox"></i>
                         <p>Tidak ada data order</p>
@@ -231,5 +273,167 @@ function deleteOrder(orderId, orderNumber) {
     form.submit();
 }
 </script>
+
+<style>
+.orders-table-wrap {
+    border-radius: 8px;
+}
+
+.orders-table {
+    table-layout: fixed;
+}
+
+.orders-table th {
+    padding: 0.62rem 0.75rem;
+    font-size: 0.68rem;
+    letter-spacing: 0;
+}
+
+.orders-table td {
+    padding: 0.58rem 0.75rem;
+    vertical-align: middle;
+}
+
+.orders-table .col-order {
+    width: 150px;
+}
+
+.orders-table .col-date {
+    width: 120px;
+}
+
+.orders-table .col-attribute {
+    width: 96px;
+}
+
+.orders-table .col-sales-owner {
+    width: 138px;
+}
+
+.order-payment-attribute {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 74px;
+    min-height: 26px;
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--k-gray-200);
+    background: var(--k-gray-50);
+    color: var(--k-gray-700);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.order-payment-attribute.is-prepaid {
+    background: #fff7ed;
+    color: #c2410c;
+    border-color: #fed7aa;
+}
+
+.order-payment-attribute.is-postpaid {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-color: #bfdbfe;
+}
+
+.orders-table .col-actions {
+    width: 96px;
+    text-align: center;
+}
+
+.order-number {
+    display: inline-block;
+    font-family: inherit;
+    font-size: 0.76rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    color: var(--k-blue);
+    line-height: 1.2;
+    text-decoration: none;
+}
+
+.order-number:hover {
+    color: var(--k-blue-darker);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.order-customer,
+.order-date,
+.order-sales-owner {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+    min-width: 0;
+}
+
+.order-sales-owner span:first-child {
+    color: var(--k-gray-800);
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.order-customer .dms-strong {
+    line-height: 1.2;
+}
+
+.order-date span:first-child {
+    color: var(--k-gray-700);
+    font-size: 0.74rem;
+    line-height: 1.2;
+}
+
+.order-attribute {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 0.16rem 0.45rem;
+    border-radius: 999px;
+    background: var(--k-gray-100);
+    color: var(--k-gray-600);
+    font-size: 0.68rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.order-attribute.is-stock {
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.order-attribute.is-blj {
+    background: #f1f5f9;
+    color: var(--k-gray-700);
+}
+
+.order-status {
+    font-size: 0.68rem;
+    min-height: 22px;
+    padding: 0.18rem 0.55rem;
+}
+
+.orders-table .dms-actions {
+    justify-content: center;
+    gap: 0.38rem;
+}
+
+.orders-table .dms-btn-sm {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    padding: 0;
+}
+
+@media (max-width: 1180px) {
+    .orders-table {
+        min-width: 1120px;
+    }
+}
+</style>
 
 @endsection

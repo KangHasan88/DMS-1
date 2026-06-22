@@ -33,6 +33,7 @@ class UserRequest extends FormRequest
                 Rule::unique('users')->ignore($userId)
             ],
             'phone' => 'nullable|string|max:20',
+            'company_branch_id' => 'nullable|exists:company_branches,id',
             'photo' => 'nullable|image|max:2048|mimes:jpeg,png,jpg',
             
             // Informasi Pribadi

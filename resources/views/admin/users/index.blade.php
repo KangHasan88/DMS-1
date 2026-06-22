@@ -1,14 +1,14 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Pengguna')
-@section('breadcrumb', 'Administrasi / Pengguna')
+@section('page-title', 'User Management')
+@section('breadcrumb', 'Users / List')
 
 @section('content')
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Data Pengguna</h3>
-            <p class="dms-section-subtitle">Kelola akun internal, status aktif, role, dan keamanan akses.</p>
+            <h3 class="dms-section-title">Daftar User</h3>
+            <p class="dms-section-subtitle">Kelola semua user dalam sistem</p>
         </div>
         @can('create users')
         <a href="{{ route('admin.users.create') }}" class="dms-btn dms-btn-primary">
@@ -20,7 +20,7 @@
     <!-- Filter & Search -->
     <div class="dms-toolbar">
         <form method="GET" action="{{ route('admin.users.index') }}">
-            <div style="display: grid; grid-template-columns: 1fr 200px 200px auto; gap: 1rem; align-items: end;">
+            <div style="display: grid; grid-template-columns: 1fr 200px 200px 200px auto; gap: 1rem; align-items: end;">
                 <!-- Search -->
                 <div>
                     <label class="form-label">Cari</label>
@@ -49,6 +49,18 @@
                         <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
                     </select>
                 </div>
+
+                <div>
+                    <label class="form-label">Cabang</label>
+                    <select name="company_branch_id" class="form-control">
+                        <option value="">Semua Cabang</option>
+                        @foreach($companyBranches as $branch)
+                            <option value="{{ $branch->id }}" {{ request('company_branch_id') == $branch->id ? 'selected' : '' }}>
+                                {{ $branch->name }}{{ $branch->code ? ' - '.$branch->code : '' }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
                 
                 <!-- Buttons -->
                 <div class="dms-actions">
@@ -71,6 +83,7 @@
                     <th width="50">#</th>
                     <th>User</th>
                     <th>Kontak</th>
+                    <th>Cabang</th>
                     <th>Role</th>
                     <th>Status</th>
                     <th>Terakhir Login</th>
@@ -95,6 +108,14 @@
                     <td>
                         <div>{{ $user->email }}</div>
                         <div class="dms-muted">{{ $user->phone ?? '-' }}</div>
+                    </td>
+                    <td>
+                        @if($user->companyBranch)
+                            <span class="dms-badge dms-badge-secondary">{{ $user->companyBranch->code }}</span>
+                            <div class="dms-muted">{{ $user->companyBranch->name }}</div>
+                        @else
+                            <span class="dms-badge dms-badge-info">Semua Cabang</span>
+                        @endif
                     </td>
                     <td>
                         @foreach($user->roles as $role)

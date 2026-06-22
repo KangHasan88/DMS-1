@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\CompanyBranch;
+use App\Models\CompanyProfile;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -68,11 +70,57 @@ class AdminUserSafetyTest extends TestCase
         $this->assertTrue($admin->fresh()->is_active);
     }
 
-    private function userWithRole(string $role): User
+    public function test_branch_admin_only_sees_users_from_own_branch(): void
     {
-        $user = User::factory()->create(['is_active' => true]);
+        [$branchA, $branchB] = $this->twoCompanyBranches();
+        $admin = $this->userWithRole('admin', ['company_branch_id' => $branchA->id]);
+        $ownBranchUser = $this->userWithRole('sales', [
+            'name' => 'Sales Cabang A',
+            'company_branch_id' => $branchA->id,
+        ]);
+        $otherBranchUser = $this->userWithRole('sales', [
+            'name' => 'Sales Cabang B',
+            'company_branch_id' => $branchB->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.users.index'))
+            ->assertOk()
+            ->assertSee($ownBranchUser->name)
+            ->assertDontSee($otherBranchUser->name);
+    }
+
+    public function test_branch_admin_cannot_edit_user_from_other_branch(): void
+    {
+        [$branchA, $branchB] = $this->twoCompanyBranches();
+        $admin = $this->userWithRole('admin', ['company_branch_id' => $branchA->id]);
+        $otherBranchUser = $this->userWithRole('sales', ['company_branch_id' => $branchB->id]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.users.edit', $otherBranchUser))
+            ->assertForbidden();
+    }
+
+    private function userWithRole(string $role, array $attributes = []): User
+    {
+        $user = User::factory()->create(array_merge(['is_active' => true], $attributes));
         $user->assignRole($role);
 
         return $user;
+    }
+
+    private function twoCompanyBranches(): array
+    {
+        $company = CompanyProfile::defaultProfile();
+        $branchA = $company->defaultInvoiceBranch();
+        $branchB = CompanyBranch::create([
+            'company_profile_id' => $company->id,
+            'name' => 'Cabang Dua',
+            'code' => 'DUB',
+            'is_active' => true,
+            'sort_order' => 2,
+        ]);
+
+        return [$branchA, $branchB];
     }
 }

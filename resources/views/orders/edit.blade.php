@@ -12,7 +12,7 @@
         </p>
         <div style="margin-top: 0.5rem;">
             <span class="dms-badge dms-badge-{{ $order->order_source == 'app' ? 'success' : 'info' }}">
-                {{ $order->order_source == 'app' ? 'Dari Aplikasi' : 'Dari Admin' }}
+                {{ $order->order_source_label }}
             </span>
             <span class="dms-badge dms-badge-{{ $order->fulfillment_type == 'stock' ? 'warning' : 'info' }}">
                 {{ $order->fulfillment_type == 'stock' ? 'Mode Stock' : 'Mode BLJ' }}
@@ -37,6 +37,22 @@
             <div class="form-group">
                 <label class="form-label">Skema Pembayaran</label>
                 <input type="text" class="form-control" value="{{ $order->payment_timing == 'pre_paid' ? 'Pre-paid' : 'Post-paid' }}" readonly disabled>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Cabang Pengirim</label>
+                @if($branchLocked)
+                    <input type="hidden" name="company_branch_id" value="{{ $defaultCompanyBranchId }}">
+                @endif
+                <select name="company_branch_id" class="form-control" {{ $branchLocked ? 'disabled' : '' }}>
+                    <option value="">Gunakan cabang default</option>
+                    @foreach($companyBranches as $branch)
+                        <option value="{{ $branch->id }}" {{ (string) old('company_branch_id', $defaultCompanyBranchId) === (string) $branch->id ? 'selected' : '' }}>
+                            {{ $branch->name }}{{ $branch->code ? ' - '.$branch->code : '' }}
+                        </option>
+                    @endforeach
+                </select>
+                <small class="dms-form-help">Dipakai sebagai cabang pengirim pada invoice/dokumen.</small>
+                @error('company_branch_id') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
         </div>
         
@@ -145,10 +161,17 @@
                 <div class="form-group">
                     <label class="form-label">Waktu Pengiriman</label>
                     <select name="delivery_time_slot" class="form-control" required>
-                        <option value="06:00-09:00" {{ $order->delivery_time_slot == '06:00-09:00' ? 'selected' : '' }}>06:00 - 09:00 (Pagi)</option>
-                        <option value="09:00-12:00" {{ $order->delivery_time_slot == '09:00-12:00' ? 'selected' : '' }}>09:00 - 12:00 (Siang)</option>
-                        <option value="12:00-15:00" {{ $order->delivery_time_slot == '12:00-15:00' ? 'selected' : '' }}>12:00 - 15:00 (Sore)</option>
+                        @forelse($deliveryTimeSlots as $slot)
+                            <option value="{{ $slot->value }}" {{ old('delivery_time_slot', $order->delivery_time_slot) === $slot->value ? 'selected' : '' }}>{{ $slot->display_label }}</option>
+                        @empty
+                            <option value="06:00-09:00" {{ old('delivery_time_slot', $order->delivery_time_slot) === '06:00-09:00' ? 'selected' : '' }}>06:00 - 09:00 (Pagi)</option>
+                            <option value="09:00-12:00" {{ old('delivery_time_slot', $order->delivery_time_slot) === '09:00-12:00' ? 'selected' : '' }}>09:00 - 12:00 (Siang)</option>
+                            <option value="12:00-15:00" {{ old('delivery_time_slot', $order->delivery_time_slot) === '12:00-15:00' ? 'selected' : '' }}>12:00 - 15:00 (Sore)</option>
+                        @endforelse
                     </select>
+                    <small class="dms-form-help">
+                        <a href="{{ route('delivery-time-slots.index') }}">Kelola slot waktu</a>
+                    </small>
                 </div>
                 
                 <div class="form-group dms-form-span-2">

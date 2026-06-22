@@ -228,6 +228,27 @@ class RolePermissionSeeder extends Seeder
             'view sales report', 'view inventory report', 'view delivery report', 'view financial report', 'export reports',
             'download apk', 'view sync status',
         ]);
+
+        // ROLE: SUPERVISOR
+        $supervisor = Role::firstOrCreate(['name' => 'supervisor']);
+        $supervisor->syncPermissions([
+            'view dashboard',
+            'view products',
+            'view categories',
+            'view units',
+            'view customers', 'create customers', 'edit customers',
+            'view suppliers',
+            'view sales order', 'create sales order', 'edit sales order', 'process orders',
+            'view order history',
+            'view deliveries', 'create deliveries', 'edit deliveries', 'process deliveries',
+            'view warehouse',
+            'view stock movement',
+            'view invoice',
+            'view payment',
+            'view sales report', 'view inventory report', 'view delivery report',
+            'download apk',
+            'view sync status',
+        ]);
         
         // ROLE: WAREHOUSE
         $warehouse = Role::firstOrCreate(['name' => 'warehouse']);
@@ -236,6 +257,8 @@ class RolePermissionSeeder extends Seeder
             'view products',
             'view categories',
             'view units',
+            'view sales order', 'process orders',
+            'view deliveries',
             'view warehouse', 'manage warehouse',
             'view stock movement', 'create stock movement',
             'view purchase order', 'create purchase order', 'edit purchase order',
@@ -245,6 +268,19 @@ class RolePermissionSeeder extends Seeder
             'view outbound return', 'create outbound return', 'edit outbound return',
             'view stock opname', 'do stock opname',
             'view inventory report',
+            'download apk',
+            'view sync status',
+        ]);
+
+        // ROLE: OPERATOR / HELPER GUDANG
+        $operator = Role::firstOrCreate(['name' => 'operator']);
+        $operator->syncPermissions([
+            'view dashboard',
+            'view products',
+            'view sales order', 'process orders',
+            'view deliveries',
+            'view warehouse',
+            'view stock movement',
             'download apk',
             'view sync status',
         ]);

@@ -7,14 +7,14 @@
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Catatan Retur Penjualan</h3>
+            <h3 class="dms-section-title">Data Retur Penjualan</h3>
             <p class="dms-section-subtitle">
                 Catatan pengeluaran barang untuk retur pelanggan, barang rusak, atau ganti rugi.
             </p>
         </div>
         @can('create outbound return')
         <a href="{{ route('outbound-returns.create') }}" class="dms-btn dms-btn-primary">
-            <i class="bi bi-plus-circle"></i> Tambah Return
+            <i class="bi bi-plus-circle"></i> Tambah Retur
         </a>
         @endcan
     </div>
@@ -31,7 +31,18 @@
                 <button type="submit" class="dms-btn dms-btn-primary">Cari</button>
             </form>
         <div class="dms-toolbar-actions">
-            <!-- Filter Return Type -->
+            @if($canFilterBranches)
+            <select name="company_branch_id" onchange="window.location.href = this.value" class="form-control">
+                <option value="{{ route('outbound-returns.index', array_merge(request()->except('company_branch_id'), ['company_branch_id' => null])) }}">Semua Cabang</option>
+                @foreach($companyBranches as $branch)
+                    <option value="{{ route('outbound-returns.index', array_merge(request()->except('company_branch_id'), ['company_branch_id' => $branch->id])) }}" {{ (string) request('company_branch_id') === (string) $branch->id ? 'selected' : '' }}>
+                        {{ $branch->name }} - {{ $branch->code }}
+                    </option>
+                @endforeach
+            </select>
+            @endif
+
+            <!-- Filter Retur Type -->
             <select name="return_type" onchange="window.location.href = this.value" class="form-control">
                 <option value="{{ route('outbound-returns.index', array_merge(request()->except('return_type'), ['return_type' => null])) }}">Semua Tipe</option>
                 @foreach($types as $key => $label)
@@ -51,12 +62,15 @@
         </div>
     </div>
 
-    <!-- Returns Table -->
+    <!-- Retur Table -->
     <div class="dms-table-wrap">
         <table class="dms-table">
             <thead>
                 <tr>
-                    <th>No. Return</th>
+                    <th>No. Retur</th>
+                    @if($canFilterBranches)
+                    <th>Cabang</th>
+                    @endif
                     <th>Pelanggan</th>
                     <th>Tanggal</th>
                     <th>Tipe</th>
@@ -70,6 +84,12 @@
                 @forelse($returns as $return)
                 <tr>
                     <td><strong>{{ $return->return_number }}</strong></td>
+                    @if($canFilterBranches)
+                    <td>
+                        <div>{{ $return->companyBranch->name ?? '-' }}</div>
+                        <div style="font-size: 0.65rem; color: var(--k-gray-500);">{{ $return->companyBranch->code ?? '' }}</div>
+                    </td>
+                    @endif
                     <td>
                         <div>
                             <div>{{ $return->customer_name }}</div>
@@ -101,12 +121,12 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="8" style="text-align: center; padding: 3rem;">
+                    <td colspan="{{ $canFilterBranches ? 9 : 8 }}" style="text-align: center; padding: 3rem;">
                         <i class="bi bi-arrow-return-left" style="font-size: 3rem; color: var(--k-gray-300);"></i>
-                        <p style="margin-top: 1rem; color: var(--k-gray-500);">Belum ada data Return Out</p>
+                        <p style="margin-top: 1rem; color: var(--k-gray-500);">Belum ada data retur penjualan</p>
                         @can('create outbound return')
                         <a href="{{ route('outbound-returns.create') }}" class="dms-btn dms-btn-primary" style="margin-top: 1rem;">
-                            <i class="bi bi-plus-circle"></i> Tambah Return
+                            <i class="bi bi-plus-circle"></i> Tambah Retur
                         </a>
                         @endcan
                     </td>

@@ -4,7 +4,7 @@
 @section('breadcrumb', 'Pelanggan / Edit')
 
 @section('content')
-<div class="dms-card">
+<div class="dms-card customer-form-card">
     <div class="dms-form-header">
         <h3 class="dms-form-title">Edit Pelanggan</h3>
         <p class="dms-form-subtitle">Edit informasi pelanggan: {{ $customer->name }}</p>
@@ -14,134 +14,165 @@
         @csrf
         @method('PUT')
         
-        <div class="dms-form-grid">
-            <!-- Name -->
-            <div class="form-group">
-                <label class="form-label">Nama Lengkap <span class="dms-required">*</span></label>
-                <input type="text" name="name" value="{{ old('name', $customer->name) }}" class="form-control" required>
-                @error('name') <span class="dms-error">{{ $message }}</span> @enderror
-            </div>
-
-            <!-- Phone -->
-            <div class="form-group">
-                <label class="form-label">Nomor Telepon <span class="dms-required">*</span></label>
-                <input type="text" name="phone" value="{{ old('phone', $customer->phone) }}" class="form-control" required>
-                @error('phone') <span class="dms-error">{{ $message }}</span> @enderror
-            </div>
-
-            <!-- Email -->
-            <div class="form-group">
-                <label class="form-label">Email</label>
-                <input type="email" name="email" value="{{ old('email', $customer->email) }}" class="form-control">
-                @error('email') <span class="dms-error">{{ $message }}</span> @enderror
-            </div>
-
-            <!-- Tipe Pelanggan -->
-            <div class="form-group">
-                <label class="form-label">Tipe Pelanggan <span class="dms-required">*</span></label>
-                <select name="customer_type" class="form-control" required>
-                    @foreach($customerTypes as $type)
-                    <option value="{{ $type->code }}" {{ old('customer_type', $customer->customer_type) == $type->code ? 'selected' : '' }}>{{ $type->name }}</option>
-                    @endforeach
-                </select>
-                <small class="dms-form-help">
-                    <a href="{{ route('customer-types.index') }}">Kelola tipe pelanggan</a>
-                </small>
-                @error('customer_type') <span class="dms-error">{{ $message }}</span> @enderror
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Termin Pembayaran</label>
-                <select name="payment_term" class="form-control js-payment-term">
-                    <option value="cash" {{ old('payment_term', $customer->payment_term ?? 'cash') == 'cash' ? 'selected' : '' }}>Tunai</option>
-                    <option value="credit" {{ old('payment_term', $customer->payment_term ?? 'cash') == 'credit' ? 'selected' : '' }}>Kredit</option>
-                </select>
-                <small class="dms-form-help">Tunai tidak memakai credit limit. Kredit memakai aturan kredit di bawah.</small>
-                @error('payment_term') <span class="dms-error">{{ $message }}</span> @enderror
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Credit Limit</label>
-                <input type="number" name="credit_limit" value="{{ old('credit_limit', $customer->credit_limit ?? 0) }}" class="form-control js-credit-control" min="0">
-                <small class="dms-form-help">Hanya berlaku untuk termin Kredit.</small>
-                @error('credit_limit') <span class="dms-error">{{ $message }}</span> @enderror
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Maks. Outstanding Order</label>
-                <input type="number" name="max_outstanding_orders" value="{{ old('max_outstanding_orders', $customer->max_outstanding_orders ?? 0) }}" class="form-control js-credit-control" min="0" max="999">
-                <small class="dms-form-help">Hanya berlaku untuk termin Kredit. Isi 0 jika tidak dibatasi.</small>
-                @error('max_outstanding_orders') <span class="dms-error">{{ $message }}</span> @enderror
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Status Kredit <span class="dms-required">*</span></label>
-                <select name="credit_status" class="form-control js-credit-control" required>
-                    <option value="normal" {{ old('credit_status', $customer->credit_status ?? 'normal') == 'normal' ? 'selected' : '' }}>Normal</option>
-                    <option value="watchlist" {{ old('credit_status', $customer->credit_status) == 'watchlist' ? 'selected' : '' }}>Watchlist</option>
-                    <option value="blocked" {{ old('credit_status', $customer->credit_status) == 'blocked' ? 'selected' : '' }}>Blocked</option>
-                </select>
-                <small class="dms-form-help">Hanya berlaku untuk termin Kredit. Tunai mengabaikan status kredit.</small>
-                @error('credit_status') <span class="dms-error">{{ $message }}</span> @enderror
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Catatan Kredit</label>
-                <textarea name="credit_notes" class="form-control js-credit-control" rows="2">{{ old('credit_notes', $customer->credit_notes) }}</textarea>
-                @error('credit_notes') <span class="dms-error">{{ $message }}</span> @enderror
-            </div>
-
-            <!-- Address -->
-            <div class="form-group dms-form-span-2">
-                <label class="form-label">Alamat Utama</label>
-                <textarea name="address" class="form-control" rows="3">{{ old('address', $customer->address) }}</textarea>
-                <small class="dms-form-help">
-                    Alamat ini disinkronkan sebagai Alamat Utama.
-                    <a href="{{ route('customers.show', $customer) }}#customer-addresses" style="color: var(--k-green); font-weight: 600;">Tambah alamat pengiriman/invoice lain</a>
-                </small>
-                @error('address') <span class="dms-error">{{ $message }}</span> @enderror
-            </div>
-
-            <!-- Latitude & Longitude -->
-            <div class="form-group">
-                <label class="form-label">Latitude</label>
-                <input type="text" name="latitude" value="{{ old('latitude', $customer->latitude) }}" class="form-control">
-                @error('latitude') <span class="dms-error">{{ $message }}</span> @enderror
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Longitude</label>
-                <input type="text" name="longitude" value="{{ old('longitude', $customer->longitude) }}" class="form-control">
-                @error('longitude') <span class="dms-error">{{ $message }}</span> @enderror
-            </div>
-
-            <!-- Notes -->
-            <div class="form-group dms-form-span-2">
-                <label class="form-label">Catatan</label>
-                <textarea name="notes" class="form-control" rows="2">{{ old('notes', $customer->notes) }}</textarea>
-                @error('notes') <span class="dms-error">{{ $message }}</span> @enderror
-            </div>
-
-            <!-- Stats Info -->
-            <div class="form-group dms-form-span-2">
-                <div style="display: flex; gap: 1rem; padding: 1rem; background: var(--k-gray-50); border-radius: 8px;">
-                    <div style="flex: 1; text-align: center;">
-                        <div style="font-size: 0.7rem; color: var(--k-gray-500);">Total Orders</div>
-                        <div style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">{{ number_format($customer->total_orders) }}</div>
+        <div class="customer-master-form">
+            <div class="customer-form-section">
+                <div class="customer-section-title">
+                    <i class="bi bi-person-vcard"></i>
+                    <span>Data Utama</span>
+                </div>
+                <div class="dms-form-grid customer-form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Nama Lengkap <span class="dms-required">*</span></label>
+                        <input type="text" name="name" value="{{ old('name', $customer->name) }}" class="form-control" required>
+                        @error('name') <span class="dms-error">{{ $message }}</span> @enderror
                     </div>
-                    <div style="flex: 1; text-align: center;">
-                        <div style="font-size: 0.7rem; color: var(--k-gray-500);">Total Belanja</div>
-                        <div style="font-size: 1.2rem; font-weight: 600; color: var(--k-green);">Rp {{ number_format($customer->total_spent, 0, ',', '.') }}</div>
+
+                    <div class="form-group">
+                        <label class="form-label">Nomor Telepon <span class="dms-required">*</span></label>
+                        <input type="text" name="phone" value="{{ old('phone', $customer->phone) }}" class="form-control" required>
+                        @error('phone') <span class="dms-error">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" value="{{ old('email', $customer->email) }}" class="form-control">
+                        @error('email') <span class="dms-error">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Cabang Pelanggan <span class="dms-required">*</span></label>
+                        @if($branchLocked)
+                            <input type="hidden" name="company_branch_id" value="{{ $defaultCompanyBranchId }}">
+                        @endif
+                        <select name="company_branch_id" class="form-control" required {{ $branchLocked ? 'disabled' : '' }}>
+                            @foreach($companyBranches as $branch)
+                            <option value="{{ $branch->id }}" {{ (string) old('company_branch_id', $defaultCompanyBranchId) === (string) $branch->id ? 'selected' : '' }}>
+                                {{ $branch->name }}{{ $branch->code ? ' - '.$branch->code : '' }}
+                            </option>
+                            @endforeach
+                        </select>
+                        <small class="dms-form-help">Dipakai untuk filter pelanggan per cabang saat input order.</small>
+                        @error('company_branch_id') <span class="dms-error">{{ $message }}</span> @enderror
                     </div>
                 </div>
             </div>
 
-            <!-- Active Status -->
-            <div class="form-group dms-form-span-2">
-                <label class="dms-check">
-                    <input type="checkbox" name="is_active" value="1" {{ old('is_active', $customer->is_active) ? 'checked' : '' }}>
-                    <span>Pelanggan aktif</span>
-                </label>
+            <div class="customer-form-section">
+                <div class="customer-section-title">
+                    <i class="bi bi-tags"></i>
+                    <span>Klasifikasi & Termin</span>
+                </div>
+                <div class="dms-form-grid customer-form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Tipe Pelanggan <span class="dms-required">*</span></label>
+                        <select name="customer_type" class="form-control" required>
+                            @foreach($customerTypes as $type)
+                            <option value="{{ $type->code }}" {{ old('customer_type', $customer->customer_type) == $type->code ? 'selected' : '' }}>{{ $type->name }}</option>
+                            @endforeach
+                        </select>
+                        <small class="dms-form-help">
+                            <a href="{{ route('customer-types.index') }}">Kelola tipe pelanggan</a>
+                        </small>
+                        @error('customer_type') <span class="dms-error">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Termin Pembayaran</label>
+                        <select name="payment_term" class="form-control js-payment-term">
+                            <option value="cash" {{ old('payment_term', $customer->payment_term ?? 'cash') == 'cash' ? 'selected' : '' }}>Tunai</option>
+                            <option value="credit" {{ old('payment_term', $customer->payment_term ?? 'cash') == 'credit' ? 'selected' : '' }}>Kredit</option>
+                        </select>
+                        <small class="dms-form-help">Tunai tidak memakai credit limit. Kredit memakai aturan kredit di bawah.</small>
+                        @error('payment_term') <span class="dms-error">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+            </div>
+
+            <div class="customer-form-section customer-credit-section">
+                <div class="customer-section-title">
+                    <i class="bi bi-shield-check"></i>
+                    <span>Aturan Kredit</span>
+                </div>
+                <div class="dms-form-grid customer-form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Credit Limit</label>
+                        <input type="number" name="credit_limit" value="{{ old('credit_limit', $customer->credit_limit ?? 0) }}" class="form-control js-credit-control" min="0">
+                        <small class="dms-form-help">Hanya berlaku untuk termin Kredit.</small>
+                        @error('credit_limit') <span class="dms-error">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Maks. Outstanding Order</label>
+                        <input type="number" name="max_outstanding_orders" value="{{ old('max_outstanding_orders', $customer->max_outstanding_orders ?? 0) }}" class="form-control js-credit-control" min="0" max="999">
+                        <small class="dms-form-help">Isi 0 jika tidak dibatasi.</small>
+                        @error('max_outstanding_orders') <span class="dms-error">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Status Kredit <span class="dms-required">*</span></label>
+                        <select name="credit_status" class="form-control js-credit-control" required>
+                            <option value="normal" {{ old('credit_status', $customer->credit_status ?? 'normal') == 'normal' ? 'selected' : '' }}>Normal</option>
+                            <option value="watchlist" {{ old('credit_status', $customer->credit_status) == 'watchlist' ? 'selected' : '' }}>Watchlist</option>
+                            <option value="blocked" {{ old('credit_status', $customer->credit_status) == 'blocked' ? 'selected' : '' }}>Blocked</option>
+                        </select>
+                        <small class="dms-form-help">Tunai mengabaikan status kredit.</small>
+                        @error('credit_status') <span class="dms-error">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Catatan Kredit</label>
+                        <textarea name="credit_notes" class="form-control js-credit-control" rows="2">{{ old('credit_notes', $customer->credit_notes) }}</textarea>
+                        @error('credit_notes') <span class="dms-error">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+            </div>
+
+            <div class="customer-form-section">
+                <div class="customer-section-title">
+                    <i class="bi bi-geo-alt"></i>
+                    <span>Alamat</span>
+                </div>
+                <div class="dms-form-grid customer-form-grid">
+                    @include('customers.partials.address-lookup', [
+                        'addressLabel' => 'Alamat Utama',
+                        'addressValue' => $customer->address,
+                        'latitudeValue' => $customer->latitude,
+                        'longitudeValue' => $customer->longitude,
+                        'addressHelp' => 'Alamat ini disinkronkan sebagai Alamat Utama. <a href="'.route('customers.show', $customer).'#customer-addresses" style="color: var(--k-green); font-weight: 600;">Tambah alamat pengiriman/invoice lain</a>',
+                    ])
+                </div>
+            </div>
+
+            <div class="customer-form-section">
+                <div class="customer-section-title">
+                    <i class="bi bi-journal-text"></i>
+                    <span>Catatan & Status</span>
+                </div>
+                <div class="dms-form-grid customer-form-grid">
+                    <div class="form-group dms-form-span-2">
+                        <label class="form-label">Catatan</label>
+                        <textarea name="notes" class="form-control" rows="2">{{ old('notes', $customer->notes) }}</textarea>
+                        @error('notes') <span class="dms-error">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="form-group dms-form-span-2 customer-stat-strip">
+                        <div>
+                            <span>Total Orders</span>
+                            <strong>{{ number_format($customer->total_orders) }}</strong>
+                        </div>
+                        <div>
+                            <span>Total Belanja</span>
+                            <strong>Rp {{ number_format($customer->total_spent, 0, ',', '.') }}</strong>
+                        </div>
+                    </div>
+
+                    <div class="form-group dms-form-span-2">
+                        <label class="dms-check">
+                            <input type="checkbox" name="is_active" value="1" {{ old('is_active', $customer->is_active) ? 'checked' : '' }}>
+                            <span>Pelanggan aktif</span>
+                        </label>
+                    </div>
+                </div>
             </div>
         </div>
 

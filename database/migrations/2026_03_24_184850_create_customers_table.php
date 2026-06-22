@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('photo')->nullable();
             $table->string('referral_code')->nullable();
             $table->foreignId('referred_by')->nullable()->references('id')->on('customers');
-            $table->enum('customer_type', ['regular', 'premium', 'wholesale'])->default('regular');
+            $table->string('customer_type', 100)->default('regular');
             $table->integer('total_orders')->default(0);
             $table->bigInteger('total_spent')->default(0);
             $table->boolean('is_active')->default(true);

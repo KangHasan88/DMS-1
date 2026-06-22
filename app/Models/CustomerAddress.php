@@ -23,6 +23,9 @@ class CustomerAddress extends Model
         'recipient_phone',
         'latitude',
         'longitude',
+        'delivery_zone_id',
+        'coverage_verified_at',
+        'coverage_verified_by',
         'is_default_invoice',
         'is_default_shipping',
         'is_active',
@@ -33,11 +36,22 @@ class CustomerAddress extends Model
         'is_default_invoice' => 'boolean',
         'is_default_shipping' => 'boolean',
         'is_active' => 'boolean',
+        'coverage_verified_at' => 'datetime',
     ];
 
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function deliveryZone(): BelongsTo
+    {
+        return $this->belongsTo(DeliveryZone::class);
+    }
+
+    public function coverageVerifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'coverage_verified_by');
     }
 
     public function supportsInvoice(): bool

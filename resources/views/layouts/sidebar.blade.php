@@ -1154,6 +1154,10 @@
 
             <!-- Navigation Menu -->
             <div class="nav-menu">
+                @php
+                    $currentUser = Auth::user();
+                    $branchScope = $currentUser?->scopedCompanyBranchId();
+                @endphp
                 <!-- SECTION: HOME -->
                 <div class="nav-section">
                     <div class="nav-section-title">{{ __('navigation.home') }}</div>
@@ -1178,7 +1182,9 @@
                                 <i class="bi bi-cart"></i>
                                 <span>{{ __('navigation.orders') }}</span>
                                 @php
-                                    $pendingOrders = \App\Models\Order::whereIn('status', ['pending_payment', 'paid'])->count();
+                                    $pendingOrders = \App\Models\Order::whereIn('status', ['pending_payment', 'paid'])
+                                        ->when($branchScope, fn ($query) => $query->where('company_branch_id', $branchScope))
+                                        ->count();
                                 @endphp
                                 @if($pendingOrders > 0)
                                     <span class="nav-badge">{{ $pendingOrders }}</span>
@@ -1190,13 +1196,16 @@
                         <!-- Deliveries -->
                         @can('view deliveries')
                         <li class="nav-item">
-                            <a href="{{ route('deliveries.index') }}" class="nav-link {{ request()->routeIs('deliveries.*') ? 'active' : '' }}">
+                            <a href="{{ route('deliveries.index') }}" class="nav-link {{ request()->routeIs('deliveries.*') || request()->routeIs('delivery-vendors.*') || request()->routeIs('delivery-vehicles.*') || request()->routeIs('delivery-drivers.*') || request()->routeIs('delivery-time-slots.*') || request()->routeIs('delivery-coverage.*') ? 'active' : '' }}">
                                 <i class="bi bi-truck"></i>
                                 <span>{{ __('navigation.deliveries') }}</span>
                                 @php
                                     $activeDeliveriesQuery = \App\Models\Delivery::where('status', '!=', 'completed');
-                                    if (Auth::user()?->hasRole('kurir') && !Auth::user()?->hasAnyRole(['super-admin', 'admin', 'manager'])) {
-                                        $activeDeliveriesQuery->where('kurir_id', Auth::id());
+                                    if ($branchScope) {
+                                        $activeDeliveriesQuery->whereHas('order', fn ($query) => $query->where('company_branch_id', $branchScope));
+                                    }
+                                    if ($currentUser?->hasRole('kurir') && !$currentUser?->hasAnyRole(['super-admin', 'admin', 'manager', 'supervisor'])) {
+                                        $activeDeliveriesQuery->where('kurir_id', $currentUser->id);
                                     }
                                     $activeDeliveries = $activeDeliveriesQuery->count();
                                 @endphp
@@ -1358,6 +1367,15 @@
                             </a>
                         </li>
                         @endcan
+
+                        @can('view sales team')
+                        <li class="nav-item">
+                            <a href="{{ route('sales-coverage.index') }}" class="nav-link {{ request()->routeIs('sales-coverage.*') ? 'active' : '' }}">
+                                <i class="bi bi-diagram-3"></i>
+                                <span>Sales Coverage</span>
+                            </a>
+                        </li>
+                        @endcan
                         
                         <!-- Suppliers -->
                         @can('view suppliers')
@@ -1428,6 +1446,15 @@
                             <a href="{{ route('roles.index') }}" class="nav-link {{ request()->routeIs('roles.*') ? 'active' : '' }}">
                                 <i class="bi bi-shield"></i>
                                 <span>{{ __('navigation.roles') }}</span>
+                            </a>
+                        </li>
+                        @endcan
+
+                        @can('view company profile')
+                        <li class="nav-item">
+                            <a href="{{ route('company-profile.index') }}" class="nav-link {{ request()->routeIs('company-profile.*') ? 'active' : '' }}">
+                                <i class="bi bi-building"></i>
+                                <span>Perusahaan & Cabang</span>
                             </a>
                         </li>
                         @endcan

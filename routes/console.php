@@ -38,8 +38,10 @@ Artisan::command('orders:sync-legacy-stock {--dry-run : Simulate syncing without
                     $warnings++;
                 }
 
-                if (in_array($order->status, [Order::STATUS_CHECKING_STOCK, Order::STATUS_PROCURING], true) && $allAvailable && !$order->requiresPacking()) {
-                    $order->updateStatus(Order::STATUS_READY, 'Barang siap dikirim tanpa repack');
+                if ($order->status === Order::STATUS_CHECKING_STOCK && $allAvailable) {
+                    $order->updateStatus(Order::STATUS_PICKING, 'Stok dialokasikan, picking dimulai');
+                } elseif ($order->status === Order::STATUS_PROCURING && $allAvailable && !$order->requiresPacking()) {
+                    $order->updateStatus(Order::STATUS_READY, 'Barang siap dikirim tanpa packing/repack');
                 }
             });
 

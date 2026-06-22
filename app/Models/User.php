@@ -43,6 +43,7 @@ class User extends Authenticatable
         'address',
         'is_active',
         'locale',
+        'company_branch_id',
         'last_login_at',
         'last_login_ip',
         'employee_id',
@@ -133,6 +134,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Cabang operasional user/staff.
+     */
+    public function companyBranch()
+    {
+        return $this->belongsTo(CompanyBranch::class);
+    }
+
+    /**
      * Relasi ke Orders (satu user bisa punya banyak order)
      */
     public function orders()
@@ -146,6 +155,33 @@ class User extends Authenticatable
     public function deliveries()
     {
         return $this->hasMany(Delivery::class, 'kurir_id');
+    }
+
+    public function driverVehicleAssignments()
+    {
+        return $this->hasMany(DriverVehicleAssignment::class, 'driver_id');
+    }
+
+    public function activeDriverVehicleAssignment()
+    {
+        return $this->hasOne(DriverVehicleAssignment::class, 'driver_id')
+            ->whereNull('ended_at')
+            ->latestOfMany('started_at');
+    }
+
+    public function customerSalesAssignments()
+    {
+        return $this->hasMany(CustomerSalesAssignment::class, 'salesperson_id');
+    }
+
+    public function activeCustomerSalesAssignments()
+    {
+        return $this->customerSalesAssignments()
+            ->where('is_active', true)
+            ->whereDate('start_date', '<=', now()->toDateString())
+            ->where(function ($query) {
+                $query->whereNull('end_date')->orWhereDate('end_date', '>=', now()->toDateString());
+            });
     }
 
     /**
@@ -186,11 +222,27 @@ class User extends Authenticatable
     }
 
     /**
-     * Cek apakah user adalah operator (tim belanja & repack)
+     * Cek apakah user adalah helper (alias role operator tim gudang)
+     */
+    public function isHelper()
+    {
+        return $this->hasRole('operator');
+    }
+
+    /**
+     * Alias role operator untuk kompatibilitas lama.
      */
     public function isOperator()
     {
-        return $this->hasRole('operator');
+        return $this->isHelper();
+    }
+
+    /**
+     * Cek apakah user adalah driver (alias role kurir)
+     */
+    public function isDriver()
+    {
+        return $this->hasRole('kurir');
     }
 
     /**
@@ -342,6 +394,32 @@ class User extends Authenticatable
         return $this->hasRole('manager');
     }
 
+    public function canAccessAllBranches(): bool
+    {
+        return $this->isSuperAdmin() || !$this->company_branch_id;
+    }
+
+    public function scopedCompanyBranchId(): ?int
+    {
+        return $this->canAccessAllBranches() ? null : (int) $this->company_branch_id;
+    }
+
+    public function deliveryZones()
+    {
+        return $this->belongsToMany(DeliveryZone::class, 'delivery_zone_drivers', 'driver_id', 'delivery_zone_id')
+            ->withTimestamps();
+    }
+
+    public function canProcessOrders()
+    {
+        return $this->canProcessFulfillment();
+    }
+
+    public function canProcessDeliveries()
+    {
+        return $this->canProcessDelivery();
+    }
+
     public function isWarehouse()
     {
         return $this->hasRole('warehouse');
@@ -350,6 +428,57 @@ class User extends Authenticatable
     public function isFinance()
     {
         return $this->hasRole('finance');
+    }
+
+    public function canProcessFulfillment(): bool
+    {
+        return $this->isSuperAdmin()
+            || $this->isAdmin()
+            || $this->isManager()
+            || $this->isWarehouse()
+            || $this->isHelper();
+    }
+
+    public function canAllocateStock(): bool
+    {
+        return $this->isSuperAdmin()
+            || $this->isAdmin()
+            || $this->isManager()
+            || $this->isWarehouse();
+    }
+
+    public function canPickOrders(): bool
+    {
+        return $this->isSuperAdmin()
+            || $this->isAdmin()
+            || $this->isManager()
+            || $this->isHelper();
+    }
+
+    public function canPackOrders(): bool
+    {
+        return $this->canPickOrders();
+    }
+
+    public function canProcessProcurement(): bool
+    {
+        return $this->canPickOrders();
+    }
+
+    public function canProcessDelivery(): bool
+    {
+        return $this->isSuperAdmin()
+            || $this->isAdmin()
+            || $this->isManager()
+            || $this->isDriver();
+    }
+
+    public function canProcessFinance(): bool
+    {
+        return $this->isSuperAdmin()
+            || $this->isAdmin()
+            || $this->isManager()
+            || $this->isFinance();
     }
 
     public function canImpersonate()

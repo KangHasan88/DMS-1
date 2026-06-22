@@ -1,20 +1,36 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Tambah FOC Out')
-@section('breadcrumb', 'Outbound / FOC Out / Tambah')
+@section('page-title', 'Tambah Barang Bonus')
+@section('breadcrumb', 'Operasional / Barang Bonus / Tambah')
 
 @section('content')
 <div class="dms-card">
     <div style="margin-bottom: 1.5rem;">
-        <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-green); margin-bottom: 0.25rem;">Tambah FOC Out (Hadiah / Sample)</h3>
+        <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-green); margin-bottom: 0.25rem;">Tambah Barang Bonus</h3>
         <p style="font-size: 0.85rem; color: var(--k-gray-500);">
             Catat pengeluaran barang gratis untuk pelanggan (hadiah, sampel, dukungan, kompensasi).
-            <strong>Stock akan berkurang otomatis.</strong>
+            <strong>Stok akan berkurang otomatis.</strong>
         </p>
     </div>
 
     <form action="{{ route('outbound-focs.store') }}" method="POST">
         @csrf
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label class="form-label">Cabang Operasional</label>
+            <select name="company_branch_id" class="form-control" {{ $branchLocked ? 'disabled' : '' }}>
+                @foreach($companyBranches as $branch)
+                    <option value="{{ $branch->id }}" {{ (string) old('company_branch_id', $defaultBranchId) === (string) $branch->id ? 'selected' : '' }}>
+                        {{ $branch->name }} - {{ $branch->code }}
+                    </option>
+                @endforeach
+            </select>
+            @if($branchLocked)
+                <input type="hidden" name="company_branch_id" value="{{ $defaultBranchId }}">
+            @endif
+            <small class="dms-form-help">Cabang yang mencatat pengeluaran barang bonus.</small>
+            @error('company_branch_id') <span class="dms-error">{{ $message }}</span> @enderror
+        </div>
         
         <!-- Pelanggan Information -->
         <div style="margin-bottom: 1.5rem;">
@@ -48,7 +64,7 @@
         <div style="margin-bottom: 1.5rem;">
             <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--k-gray-200);">
                 <i class="bi bi-gift" style="margin-right: 0.4rem; color: var(--k-green);"></i>
-                Detail FOC
+                Detail Barang Bonus
             </h4>
             
             <div class="dms-form-grid">
@@ -71,7 +87,7 @@
                 
                 <div class="dms-form-span-2">
                     <label class="form-label">Detail Alasan</label>
-                    <textarea name="reason_detail" class="form-control" rows="2" placeholder="Detail alasan pemberian FOC (opsional)"></textarea>
+                    <textarea name="reason_detail" class="form-control" rows="2" placeholder="Detail alasan pemberian barang bonus (opsional)"></textarea>
                     @error('reason_detail') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
                 
@@ -161,7 +177,7 @@
                 <i class="bi bi-arrow-left"></i> Batal
             </a>
             <button type="submit" class="dms-btn dms-btn-primary" style="padding: 0.5rem 1rem; font-size: 0.75rem;">
-                <i class="bi bi-save"></i> Simpan & Kurangi Stock
+                <i class="bi bi-save"></i> Simpan & Kurangi Stok
             </button>
         </div>
     </form>

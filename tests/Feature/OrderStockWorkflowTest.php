@@ -22,6 +22,7 @@ class OrderStockWorkflowTest extends TestCase
         $order = new Order([
             'status' => Order::STATUS_PENDING_PAYMENT,
             'fulfillment_type' => Order::FULFILLMENT_STOCK,
+            'payment_timing' => Order::PAYMENT_TIMING_PRE_PAID,
         ]);
 
         $this->assertTrue($order->canTransitionTo(Order::STATUS_PAID));
@@ -31,6 +32,12 @@ class OrderStockWorkflowTest extends TestCase
 
         $this->assertTrue($order->canTransitionTo(Order::STATUS_CHECKING_STOCK));
         $this->assertFalse($order->canTransitionTo(Order::STATUS_PROCURING));
+
+        $order->status = Order::STATUS_CHECKING_STOCK;
+
+        $this->assertTrue($order->canTransitionTo(Order::STATUS_PICKING));
+        $this->assertFalse($order->canTransitionTo(Order::STATUS_READY));
+        $this->assertFalse($order->canTransitionTo(Order::STATUS_REPACKING));
     }
 
     public function test_jit_order_moves_from_paid_to_procuring_not_stock_checking(): void
@@ -38,10 +45,139 @@ class OrderStockWorkflowTest extends TestCase
         $order = new Order([
             'status' => Order::STATUS_PAID,
             'fulfillment_type' => Order::FULFILLMENT_JIT,
+            'payment_timing' => Order::PAYMENT_TIMING_PRE_PAID,
         ]);
 
         $this->assertTrue($order->canTransitionTo(Order::STATUS_PROCURING));
         $this->assertFalse($order->canTransitionTo(Order::STATUS_CHECKING_STOCK));
+    }
+
+    public function test_prepaid_and_postpaid_have_different_payment_positions(): void
+    {
+        $prePaid = new Order([
+            'status' => Order::STATUS_PENDING_PAYMENT,
+            'fulfillment_type' => Order::FULFILLMENT_STOCK,
+            'payment_timing' => Order::PAYMENT_TIMING_PRE_PAID,
+        ]);
+
+        $this->assertTrue($prePaid->canTransitionTo(Order::STATUS_PAID));
+        $this->assertFalse($prePaid->canTransitionTo(Order::STATUS_CHECKING_STOCK));
+
+        $prePaid->status = Order::STATUS_SHIPPED;
+
+        $this->assertTrue($prePaid->canTransitionTo(Order::STATUS_DELIVERED));
+        $this->assertFalse($prePaid->canTransitionTo(Order::STATUS_PAID));
+
+        $postPaid = new Order([
+            'status' => Order::STATUS_CHECKING_STOCK,
+            'fulfillment_type' => Order::FULFILLMENT_STOCK,
+            'payment_timing' => Order::PAYMENT_TIMING_POST_PAID,
+        ]);
+
+        $this->assertTrue($postPaid->canTransitionTo(Order::STATUS_PICKING));
+        $this->assertFalse($postPaid->canTransitionTo(Order::STATUS_PAID));
+
+        $postPaid->status = Order::STATUS_SHIPPED;
+
+        $this->assertTrue($postPaid->canTransitionTo(Order::STATUS_PAID));
+        $this->assertFalse($postPaid->canTransitionTo(Order::STATUS_DELIVERED));
+
+        $postPaid->status = Order::STATUS_PAID;
+
+        $this->assertTrue($postPaid->canTransitionTo(Order::STATUS_DELIVERED));
+    }
+
+    public function test_edit_and_delete_rules_depend_on_payment_timing(): void
+    {
+        $prePaid = new Order([
+            'status' => Order::STATUS_PENDING_PAYMENT,
+            'fulfillment_type' => Order::FULFILLMENT_STOCK,
+            'payment_timing' => Order::PAYMENT_TIMING_PRE_PAID,
+        ]);
+
+        $this->assertTrue($prePaid->canEditOrder());
+        $this->assertTrue($prePaid->canDeleteOrder());
+
+        $prePaid->status = Order::STATUS_PAID;
+
+        $this->assertFalse($prePaid->canEditOrder());
+        $this->assertFalse($prePaid->canDeleteOrder());
+
+        $postPaid = new Order([
+            'status' => Order::STATUS_CHECKING_STOCK,
+            'fulfillment_type' => Order::FULFILLMENT_STOCK,
+            'payment_timing' => Order::PAYMENT_TIMING_POST_PAID,
+        ]);
+
+        $this->assertTrue($postPaid->canEditOrder());
+        $this->assertTrue($postPaid->canDeleteOrder());
+
+        $postPaid->status = Order::STATUS_PICKING;
+
+        $this->assertFalse($postPaid->canEditOrder());
+        $this->assertFalse($postPaid->canDeleteOrder());
+    }
+
+    public function test_delivery_order_document_availability_follows_payment_and_delivery_stage(): void
+    {
+        $prePaid = new Order([
+            'status' => Order::STATUS_PAID,
+            'fulfillment_type' => Order::FULFILLMENT_STOCK,
+            'payment_timing' => Order::PAYMENT_TIMING_PRE_PAID,
+        ]);
+
+        $this->assertFalse($prePaid->canViewDeliveryOrderDocument());
+
+        $prePaid->status = Order::STATUS_READY;
+
+        $this->assertTrue($prePaid->canViewDeliveryOrderDocument());
+
+        $postPaid = new Order([
+            'status' => Order::STATUS_PAID,
+            'fulfillment_type' => Order::FULFILLMENT_STOCK,
+            'payment_timing' => Order::PAYMENT_TIMING_POST_PAID,
+        ]);
+
+        $this->assertTrue($postPaid->canViewDeliveryOrderDocument());
+
+        $notReady = new Order([
+            'status' => Order::STATUS_CHECKING_STOCK,
+            'fulfillment_type' => Order::FULFILLMENT_STOCK,
+            'payment_timing' => Order::PAYMENT_TIMING_POST_PAID,
+        ]);
+
+        $this->assertFalse($notReady->canViewDeliveryOrderDocument());
+    }
+
+    public function test_packing_step_is_conditional_after_picking(): void
+    {
+        $withoutPacking = new Order([
+            'status' => Order::STATUS_PICKING,
+            'fulfillment_type' => Order::FULFILLMENT_STOCK,
+            'payment_timing' => Order::PAYMENT_TIMING_POST_PAID,
+            'requires_packing' => false,
+        ]);
+
+        $this->assertTrue($withoutPacking->canTransitionTo(Order::STATUS_READY));
+        $this->assertFalse($withoutPacking->canTransitionTo(Order::STATUS_REPACKING));
+
+        $withPacking = new Order([
+            'status' => Order::STATUS_PICKING,
+            'fulfillment_type' => Order::FULFILLMENT_STOCK,
+            'payment_timing' => Order::PAYMENT_TIMING_POST_PAID,
+            'requires_packing' => true,
+        ]);
+
+        $this->assertTrue($withPacking->canTransitionTo(Order::STATUS_REPACKING));
+        $this->assertFalse($withPacking->canTransitionTo(Order::STATUS_READY));
+    }
+
+    public function test_unknown_status_is_rejected_before_database_write(): void
+    {
+        [$order] = $this->createStockOrder(status: Order::STATUS_PICKING);
+
+        $this->assertFalse($order->updateStatus('ready_for_delivery', 'Legacy status should not be saved'));
+        $this->assertSame(Order::STATUS_PICKING, $order->refresh()->status);
     }
 
     public function test_stock_reduction_only_runs_once_for_fulfilled_items(): void
@@ -105,6 +241,25 @@ class OrderStockWorkflowTest extends TestCase
         $this->assertSame(0, $totals['after_discount']);
         $this->assertSame(660, $totals['ppn_amount']);
         $this->assertSame(6660, $totals['grand_total']);
+    }
+
+    public function test_shipping_none_ignores_stale_shipping_rate(): void
+    {
+        $totals = Order::calculateTotals(
+            subtotal: 50000,
+            discountType: Order::DISCOUNT_NONE,
+            discountValue: 0,
+            shippingType: Order::SHIPPING_NONE,
+            shippingWeight: null,
+            shippingDistance: null,
+            shippingRate: 15000,
+            packingFee: 0,
+            includePpn: false,
+            ppnRate: 11
+        );
+
+        $this->assertSame(0, $totals['shipping_cost']);
+        $this->assertSame(50000, $totals['grand_total']);
     }
 
     public function test_order_recalculate_total_never_goes_negative(): void
@@ -182,6 +337,20 @@ class OrderStockWorkflowTest extends TestCase
             'subject_type' => Wallet::class,
             'subject_id' => $wallet->id,
         ]);
+    }
+
+    public function test_order_document_number_uses_company_and_branch_codes(): void
+    {
+        $order = new Order([
+            'order_number' => 'KMG202606050001',
+        ]);
+        $order->id = 99;
+        $order->created_at = now()->setDate(2026, 6, 5)->setTime(15, 21);
+
+        $this->assertSame('PI-KMGTNG202606050001', $order->documentNumber('PI', 'KMG', 'TNG'));
+        $this->assertSame('INV-KMGTNG202606050001', $order->documentNumber('INV', 'KMG', 'TNG'));
+        $this->assertSame('DO-KMGTNG202606050001', $order->documentNumber('DO', 'KMG', 'TNG'));
+        $this->assertSame('PI-KURMAI202606050001', $order->documentNumber('PI', 'Kurmigo', 'MAIN'));
     }
 
     /**

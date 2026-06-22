@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('latitude')->nullable();
             $table->string('longitude')->nullable();
             $table->string('photo')->nullable();
-            $table->enum('category', ['sayur', 'buah', 'lauk', 'bumbu', 'sembako', 'all'])->default('all');
+            $table->string('category', 100)->default('all');
             $table->string('specialty')->nullable(); // Spesialisasi (contoh: sayur organik, ayam potong)
             $table->integer('min_order')->default(0); // Minimal order dalam rupiah
             $table->boolean('is_active')->default(true);

@@ -7,14 +7,14 @@
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Catatan Barang Bonus</h3>
+            <h3 class="dms-section-title">Data Barang Bonus</h3>
             <p class="dms-section-subtitle">
                 Catatan pengeluaran barang untuk hadiah, sampel, dukungan pelanggan, atau kompensasi.
             </p>
         </div>
         @can('create outbound foc')
         <a href="{{ route('outbound-focs.create') }}" class="dms-btn dms-btn-primary">
-            <i class="bi bi-plus-circle"></i> Tambah FOC
+            <i class="bi bi-plus-circle"></i> Tambah Barang Bonus
         </a>
         @endcan
     </div>
@@ -24,13 +24,24 @@
         <form action="{{ route('outbound-focs.index') }}" method="GET" class="dms-search-form">
                 <div class="dms-search-field">
                     <i class="bi bi-search"></i>
-                    <input type="text" name="search" placeholder="Cari nomor FOC, pelanggan..."
+                    <input type="text" name="search" placeholder="Cari nomor barang bonus, pelanggan..."
                            value="{{ request('search') }}"
                            class="form-control">
                 </div>
                 <button type="submit" class="dms-btn dms-btn-primary">Cari</button>
             </form>
         <div class="dms-toolbar-actions">
+            @if($canFilterBranches)
+            <select name="company_branch_id" onchange="window.location.href = this.value" class="form-control">
+                <option value="{{ route('outbound-focs.index', array_merge(request()->except('company_branch_id'), ['company_branch_id' => null])) }}">Semua Cabang</option>
+                @foreach($companyBranches as $branch)
+                    <option value="{{ route('outbound-focs.index', array_merge(request()->except('company_branch_id'), ['company_branch_id' => $branch->id])) }}" {{ (string) request('company_branch_id') === (string) $branch->id ? 'selected' : '' }}>
+                        {{ $branch->name }} - {{ $branch->code }}
+                    </option>
+                @endforeach
+            </select>
+            @endif
+
             <!-- Filter Reason -->
             <select name="reason" onchange="window.location.href = this.value" class="form-control">
                 <option value="{{ route('outbound-focs.index', array_merge(request()->except('reason'), ['reason' => null])) }}">Semua Alasan</option>
@@ -51,12 +62,15 @@
         </div>
     </div>
 
-    <!-- FOC Table -->
+    <!-- Bonus Table -->
     <div class="dms-table-wrap">
         <table class="dms-table">
             <thead>
                 <tr>
-                    <th>No. FOC</th>
+                    <th>No. Bonus</th>
+                    @if($canFilterBranches)
+                    <th>Cabang</th>
+                    @endif
                     <th>Pelanggan</th>
                     <th>Tanggal</th>
                     <th>Alasan</th>
@@ -69,6 +83,12 @@
                 @forelse($focs as $foc)
                 <tr>
                     <td><strong>{{ $foc->foc_number }}</strong></td>
+                    @if($canFilterBranches)
+                    <td>
+                        <div>{{ $foc->companyBranch->name ?? '-' }}</div>
+                        <div style="font-size: 0.65rem; color: var(--k-gray-500);">{{ $foc->companyBranch->code ?? '' }}</div>
+                    </td>
+                    @endif
                     <td>
                         <div>
                             <div>{{ $foc->customer_name }}</div>
@@ -95,12 +115,12 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="7" style="text-align: center; padding: 3rem;">
+                    <td colspan="{{ $canFilterBranches ? 8 : 7 }}" style="text-align: center; padding: 3rem;">
                         <i class="bi bi-gift" style="font-size: 3rem; color: var(--k-gray-300);"></i>
-                        <p style="margin-top: 1rem; color: var(--k-gray-500);">Belum ada data FOC Out</p>
+                        <p style="margin-top: 1rem; color: var(--k-gray-500);">Belum ada data barang bonus</p>
                         @can('create outbound foc')
                         <a href="{{ route('outbound-focs.create') }}" class="dms-btn dms-btn-primary" style="margin-top: 1rem;">
-                            <i class="bi bi-plus-circle"></i> Tambah FOC
+                            <i class="bi bi-plus-circle"></i> Tambah Barang Bonus
                         </a>
                         @endcan
                     </td>

@@ -3,6 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\Delivery;
+use App\Models\DeliveryTimeSlot;
+use App\Models\DeliveryVendor;
+use App\Models\DeliveryVehicle;
+use App\Models\DriverVehicleAssignment;
 use App\Models\DirectPurchase;
 use App\Models\ActivityLog;
 use App\Models\Order;
@@ -181,6 +185,7 @@ class InventoryQaRegressionTest extends TestCase
             ->from('/deliveries/create')
             ->post('/deliveries', [
                 'order_id' => $order->id,
+                'delivery_method' => Delivery::METHOD_INTERNAL,
                 'kurir_id' => $kurir->id,
             ])
             ->assertRedirect('/deliveries/create')
@@ -188,6 +193,506 @@ class InventoryQaRegressionTest extends TestCase
 
         $this->assertDatabaseCount('deliveries', 0);
         $this->assertSame(Order::STATUS_PAID, $order->refresh()->status);
+    }
+
+    public function test_expedition_delivery_tracks_actual_cost_after_assignment(): void
+    {
+        $admin = $this->superAdmin();
+        $order = $this->createOrder(Order::STATUS_READY, 'KMGEXP0001');
+        $order->update(['delivery_fee' => 20000, 'total' => 120000, 'grand_total' => 120000]);
+        $vendor = DeliveryVendor::create([
+            'name' => 'Ekspedisi Test',
+            'code' => 'EXP',
+            'vendor_type' => DeliveryVendor::TYPE_EXPEDITION,
+            'payment_term' => DeliveryVendor::PAYMENT_TERM_INVOICE,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('deliveries.store'), [
+                'order_id' => $order->id,
+                'delivery_method' => Delivery::METHOD_EXPEDITION,
+                'delivery_vendor_id' => $vendor->id,
+                'tracking_code' => 'RESI-001',
+            ])
+            ->assertRedirect();
+
+        $delivery = Delivery::where('order_id', $order->id)->firstOrFail();
+
+        $this->assertSame(Delivery::METHOD_EXPEDITION, $delivery->delivery_method);
+        $this->assertSame($vendor->id, $delivery->delivery_vendor_id);
+        $this->assertSame(0, $delivery->actual_shipping_cost);
+        $this->assertSame(Delivery::COST_UNBILLED, $delivery->shipping_cost_status);
+        $this->assertSame(20000, $order->refresh()->delivery_fee);
+        $this->assertSame('RESI-001', $order->tracking_code);
+
+        $this->actingAs($admin)
+            ->put(route('deliveries.update', $delivery), [
+                'tracking_code' => 'RESI-001',
+                'actual_shipping_cost' => 17000,
+                'shipping_cost_status' => Delivery::COST_BILLED,
+                'vendor_invoice_number' => 'INV-JNE-001',
+            ])
+            ->assertRedirect(route('deliveries.show', $delivery));
+
+        $delivery->refresh();
+
+        $this->assertSame(17000, $delivery->actual_shipping_cost);
+        $this->assertSame(Delivery::COST_BILLED, $delivery->shipping_cost_status);
+        $this->assertSame('INV-JNE-001', $delivery->vendor_invoice_number);
+        $this->assertSame(3000, $delivery->fresh('order')->shippingMargin());
+    }
+
+    public function test_internal_delivery_requires_available_vehicle(): void
+    {
+        $admin = $this->superAdmin('vehicle-admin@example.test');
+        $kurir = $this->userWithRole('kurir', 'vehicle-kurir@example.test');
+        $order = $this->createOrder(Order::STATUS_READY, 'KMGVEH0001');
+        $vehicle = DeliveryVehicle::create([
+            'code' => 'MAI-MTR-001',
+            'name' => 'Motor Delivery 01',
+            'vehicle_type' => DeliveryVehicle::TYPE_MOTORCYCLE,
+            'plate_number' => 'B 1001 KMG',
+            'status' => DeliveryVehicle::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('deliveries.store'), [
+                'order_id' => $order->id,
+                'delivery_method' => Delivery::METHOD_INTERNAL,
+                'kurir_id' => $kurir->id,
+                'delivery_vehicle_id' => $vehicle->id,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('deliveries', [
+            'order_id' => $order->id,
+            'kurir_id' => $kurir->id,
+            'delivery_vehicle_id' => $vehicle->id,
+            'delivery_method' => Delivery::METHOD_INTERNAL,
+        ]);
+    }
+
+    public function test_delivery_vehicle_master_page_renders(): void
+    {
+        $admin = $this->superAdmin('vehicle-master-admin@example.test');
+
+        DeliveryVehicle::create([
+            'code' => 'MAI-MTR-009',
+            'name' => 'Motor Backup',
+            'vehicle_type' => DeliveryVehicle::TYPE_MOTORCYCLE,
+            'plate_number' => 'B 9009 KMG',
+            'status' => DeliveryVehicle::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('delivery-vehicles.index'))
+            ->assertOk()
+            ->assertSee('Data Armada')
+            ->assertSee('MAI-MTR-009')
+            ->assertSee('Motor Backup');
+    }
+
+    public function test_internal_delivery_rejects_vehicle_under_maintenance(): void
+    {
+        $admin = $this->superAdmin('vehicle-maintenance-admin@example.test');
+        $kurir = $this->userWithRole('kurir', 'vehicle-maintenance-kurir@example.test');
+        $order = $this->createOrder(Order::STATUS_READY, 'KMGVEH0002');
+        $vehicle = DeliveryVehicle::create([
+            'code' => 'MAI-MTR-002',
+            'name' => 'Motor Backup Rusak',
+            'vehicle_type' => DeliveryVehicle::TYPE_MOTORCYCLE,
+            'plate_number' => 'B 1002 KMG',
+            'status' => DeliveryVehicle::STATUS_MAINTENANCE,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('deliveries.create'))
+            ->post(route('deliveries.store'), [
+                'order_id' => $order->id,
+                'delivery_method' => Delivery::METHOD_INTERNAL,
+                'kurir_id' => $kurir->id,
+                'delivery_vehicle_id' => $vehicle->id,
+            ])
+            ->assertRedirect(route('deliveries.create'))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseMissing('deliveries', [
+            'order_id' => $order->id,
+            'delivery_vehicle_id' => $vehicle->id,
+        ]);
+    }
+
+    public function test_internal_delivery_rejects_vehicle_with_overlapping_schedule(): void
+    {
+        $admin = $this->superAdmin('vehicle-conflict-admin@example.test');
+        $kurir = $this->userWithRole('kurir', 'vehicle-conflict-kurir@example.test');
+        $vehicle = DeliveryVehicle::create([
+            'code' => 'MAI-MTR-003',
+            'name' => 'Motor Delivery 03',
+            'vehicle_type' => DeliveryVehicle::TYPE_MOTORCYCLE,
+            'plate_number' => 'B 1003 KMG',
+            'status' => DeliveryVehicle::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $firstOrder = $this->createOrder(Order::STATUS_READY, 'KMGVEH0003');
+        $secondOrder = $this->createOrder(Order::STATUS_READY, 'KMGVEH0004');
+
+        Delivery::create([
+            'order_id' => $firstOrder->id,
+            'delivery_method' => Delivery::METHOD_INTERNAL,
+            'kurir_id' => $kurir->id,
+            'delivery_vehicle_id' => $vehicle->id,
+            'status' => Delivery::STATUS_ASSIGNED,
+            'assigned_at' => now(),
+            'shipping_cost_status' => Delivery::COST_NOT_APPLICABLE,
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('deliveries.create'))
+            ->post(route('deliveries.store'), [
+                'order_id' => $secondOrder->id,
+                'delivery_method' => Delivery::METHOD_INTERNAL,
+                'kurir_id' => $kurir->id,
+                'delivery_vehicle_id' => $vehicle->id,
+            ])
+            ->assertRedirect(route('deliveries.create'))
+            ->assertSessionHas('error', fn ($message) => str_contains($message, 'sudah dijadwalkan'));
+
+        $this->assertDatabaseMissing('deliveries', [
+            'order_id' => $secondOrder->id,
+            'delivery_vehicle_id' => $vehicle->id,
+        ]);
+    }
+
+    public function test_internal_delivery_allows_same_vehicle_on_non_overlapping_schedule(): void
+    {
+        $admin = $this->superAdmin('vehicle-next-slot-admin@example.test');
+        $kurir = $this->userWithRole('kurir', 'vehicle-next-slot-kurir@example.test');
+        $vehicle = DeliveryVehicle::create([
+            'code' => 'MAI-MTR-004',
+            'name' => 'Motor Delivery 04',
+            'vehicle_type' => DeliveryVehicle::TYPE_MOTORCYCLE,
+            'plate_number' => 'B 1004 KMG',
+            'status' => DeliveryVehicle::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $firstOrder = $this->createOrder(Order::STATUS_READY, 'KMGVEH0005');
+        $secondOrder = $this->createOrder(Order::STATUS_READY, 'KMGVEH0006');
+        $secondOrder->update(['delivery_time_slot' => '09:00-12:00']);
+
+        Delivery::create([
+            'order_id' => $firstOrder->id,
+            'delivery_method' => Delivery::METHOD_INTERNAL,
+            'kurir_id' => $kurir->id,
+            'delivery_vehicle_id' => $vehicle->id,
+            'status' => Delivery::STATUS_ASSIGNED,
+            'assigned_at' => now(),
+            'shipping_cost_status' => Delivery::COST_NOT_APPLICABLE,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('deliveries.store'), [
+                'order_id' => $secondOrder->id,
+                'delivery_method' => Delivery::METHOD_INTERNAL,
+                'kurir_id' => $kurir->id,
+                'delivery_vehicle_id' => $vehicle->id,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('deliveries', [
+            'order_id' => $secondOrder->id,
+            'delivery_vehicle_id' => $vehicle->id,
+        ]);
+    }
+
+    public function test_internal_delivery_automatically_uses_driver_primary_vehicle(): void
+    {
+        $admin = $this->superAdmin('driver-primary-admin@example.test');
+        $driver = $this->userWithRole('kurir', 'driver-primary@example.test');
+        $order = $this->createOrder(Order::STATUS_READY, 'KMGDRV0001');
+        $vehicle = DeliveryVehicle::create([
+            'code' => 'MAI-MTR-010',
+            'name' => 'Motor Utama Driver',
+            'vehicle_type' => DeliveryVehicle::TYPE_MOTORCYCLE,
+            'plate_number' => 'B 1010 KMG',
+            'status' => DeliveryVehicle::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        DriverVehicleAssignment::create([
+            'driver_id' => $driver->id,
+            'delivery_vehicle_id' => $vehicle->id,
+            'started_at' => now(),
+            'assigned_by' => $admin->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('deliveries.store'), [
+                'order_id' => $order->id,
+                'delivery_method' => Delivery::METHOD_INTERNAL,
+                'kurir_id' => $driver->id,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('deliveries', [
+            'order_id' => $order->id,
+            'kurir_id' => $driver->id,
+            'delivery_vehicle_id' => $vehicle->id,
+            'vehicle_override_reason' => null,
+        ]);
+    }
+
+    public function test_internal_delivery_requires_reason_when_overriding_primary_vehicle(): void
+    {
+        $admin = $this->superAdmin('driver-override-admin@example.test');
+        $driver = $this->userWithRole('kurir', 'driver-override@example.test');
+        $order = $this->createOrder(Order::STATUS_READY, 'KMGDRV0002');
+        $primaryVehicle = DeliveryVehicle::create([
+            'code' => 'MAI-MTR-011',
+            'name' => 'Motor Utama 11',
+            'vehicle_type' => DeliveryVehicle::TYPE_MOTORCYCLE,
+            'status' => DeliveryVehicle::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $backupVehicle = DeliveryVehicle::create([
+            'code' => 'MAI-MTR-012',
+            'name' => 'Motor Backup 12',
+            'vehicle_type' => DeliveryVehicle::TYPE_MOTORCYCLE,
+            'status' => DeliveryVehicle::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        DriverVehicleAssignment::create([
+            'driver_id' => $driver->id,
+            'delivery_vehicle_id' => $primaryVehicle->id,
+            'started_at' => now(),
+            'assigned_by' => $admin->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('deliveries.create'))
+            ->post(route('deliveries.store'), [
+                'order_id' => $order->id,
+                'delivery_method' => Delivery::METHOD_INTERNAL,
+                'kurir_id' => $driver->id,
+                'delivery_vehicle_id' => $backupVehicle->id,
+            ])
+            ->assertRedirect(route('deliveries.create'))
+            ->assertSessionHas('error', fn ($message) => str_contains($message, 'Alasan penggantian armada'));
+
+        $this->actingAs($admin)
+            ->post(route('deliveries.store'), [
+                'order_id' => $order->id,
+                'delivery_method' => Delivery::METHOD_INTERNAL,
+                'kurir_id' => $driver->id,
+                'delivery_vehicle_id' => $backupVehicle->id,
+                'vehicle_override_reason' => 'Armada utama maintenance',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('deliveries', [
+            'order_id' => $order->id,
+            'delivery_vehicle_id' => $backupVehicle->id,
+            'vehicle_override_reason' => 'Armada utama maintenance',
+        ]);
+
+        $this->assertDatabaseHas('activity_log', [
+            'log_name' => 'deliveries',
+            'event' => 'vehicle_overridden',
+        ]);
+    }
+
+    public function test_vehicle_master_can_assign_primary_driver_and_close_previous_assignment(): void
+    {
+        $admin = $this->superAdmin('vehicle-driver-master@example.test');
+        $firstDriver = $this->userWithRole('kurir', 'vehicle-first-driver@example.test');
+        $secondDriver = $this->userWithRole('kurir', 'vehicle-second-driver@example.test');
+        $vehicle = DeliveryVehicle::create([
+            'code' => 'MAI-MTR-013',
+            'name' => 'Motor Assignment 13',
+            'vehicle_type' => DeliveryVehicle::TYPE_MOTORCYCLE,
+            'status' => DeliveryVehicle::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->put(route('delivery-vehicles.update', $vehicle), [
+                'code' => $vehicle->code,
+                'name' => $vehicle->name,
+                'vehicle_type' => $vehicle->vehicle_type,
+                'status' => $vehicle->status,
+                'is_active' => 1,
+                'primary_driver_id' => $firstDriver->id,
+            ])
+            ->assertRedirect(route('delivery-vehicles.index'));
+
+        $firstAssignment = DriverVehicleAssignment::active()->where('driver_id', $firstDriver->id)->firstOrFail();
+
+        $this->actingAs($admin)
+            ->put(route('delivery-vehicles.update', $vehicle), [
+                'code' => $vehicle->code,
+                'name' => $vehicle->name,
+                'vehicle_type' => $vehicle->vehicle_type,
+                'status' => $vehicle->status,
+                'is_active' => 1,
+                'primary_driver_id' => $secondDriver->id,
+            ])
+            ->assertRedirect(route('delivery-vehicles.index'));
+
+        $this->assertNotNull($firstAssignment->fresh()->ended_at);
+        $this->assertDatabaseHas('driver_vehicle_assignments', [
+            'driver_id' => $secondDriver->id,
+            'delivery_vehicle_id' => $vehicle->id,
+            'ended_at' => null,
+        ]);
+    }
+
+    public function test_internal_delivery_reassignment_requires_reason_and_is_audited(): void
+    {
+        $admin = $this->superAdmin('delivery-reassignment-admin@example.test');
+        $firstDriver = $this->userWithRole('kurir', 'delivery-reassignment-first@example.test');
+        $secondDriver = $this->userWithRole('kurir', 'delivery-reassignment-second@example.test');
+        $order = $this->createOrder(Order::STATUS_READY, 'KMGREA0001');
+        $firstVehicle = DeliveryVehicle::create([
+            'code' => 'MAI-MTR-020',
+            'name' => 'Motor Driver Pertama',
+            'vehicle_type' => DeliveryVehicle::TYPE_MOTORCYCLE,
+            'status' => DeliveryVehicle::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $secondVehicle = DeliveryVehicle::create([
+            'code' => 'MAI-MTR-021',
+            'name' => 'Motor Driver Kedua',
+            'vehicle_type' => DeliveryVehicle::TYPE_MOTORCYCLE,
+            'status' => DeliveryVehicle::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        DriverVehicleAssignment::create([
+            'driver_id' => $firstDriver->id,
+            'delivery_vehicle_id' => $firstVehicle->id,
+            'started_at' => now(),
+        ]);
+        DriverVehicleAssignment::create([
+            'driver_id' => $secondDriver->id,
+            'delivery_vehicle_id' => $secondVehicle->id,
+            'started_at' => now(),
+        ]);
+        $delivery = Delivery::create([
+            'order_id' => $order->id,
+            'delivery_method' => Delivery::METHOD_INTERNAL,
+            'kurir_id' => $firstDriver->id,
+            'delivery_vehicle_id' => $firstVehicle->id,
+            'status' => Delivery::STATUS_ASSIGNED,
+            'assigned_at' => now(),
+            'shipping_cost_status' => Delivery::COST_NOT_APPLICABLE,
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('deliveries.edit', $delivery))
+            ->put(route('deliveries.update', $delivery), [
+                'kurir_id' => $secondDriver->id,
+                'delivery_vehicle_id' => $secondVehicle->id,
+            ])
+            ->assertRedirect(route('deliveries.edit', $delivery))
+            ->assertSessionHas('error', fn ($message) => str_contains($message, 'Alasan perubahan penugasan'));
+
+        $this->actingAs($admin)
+            ->put(route('deliveries.update', $delivery), [
+                'kurir_id' => $secondDriver->id,
+                'delivery_vehicle_id' => $secondVehicle->id,
+                'vehicle_override_reason' => 'Driver pertama berhalangan',
+            ])
+            ->assertRedirect(route('deliveries.show', $delivery));
+
+        $delivery->refresh();
+        $this->assertSame($secondDriver->id, $delivery->kurir_id);
+        $this->assertSame($secondVehicle->id, $delivery->delivery_vehicle_id);
+        $this->assertDatabaseHas('activity_log', [
+            'log_name' => 'deliveries',
+            'event' => 'assignment_changed',
+        ]);
+    }
+
+    public function test_internal_delivery_reassignment_is_locked_after_pickup(): void
+    {
+        $admin = $this->superAdmin('delivery-reassignment-lock-admin@example.test');
+        $firstDriver = $this->userWithRole('kurir', 'delivery-reassignment-lock-first@example.test');
+        $secondDriver = $this->userWithRole('kurir', 'delivery-reassignment-lock-second@example.test');
+        $order = $this->createOrder(Order::STATUS_SHIPPED, 'KMGREA0002');
+        $firstVehicle = DeliveryVehicle::create([
+            'code' => 'MAI-MTR-022',
+            'name' => 'Motor Lock Pertama',
+            'vehicle_type' => DeliveryVehicle::TYPE_MOTORCYCLE,
+            'status' => DeliveryVehicle::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $secondVehicle = DeliveryVehicle::create([
+            'code' => 'MAI-MTR-023',
+            'name' => 'Motor Lock Kedua',
+            'vehicle_type' => DeliveryVehicle::TYPE_MOTORCYCLE,
+            'status' => DeliveryVehicle::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        DriverVehicleAssignment::create([
+            'driver_id' => $secondDriver->id,
+            'delivery_vehicle_id' => $secondVehicle->id,
+            'started_at' => now(),
+        ]);
+        $delivery = Delivery::create([
+            'order_id' => $order->id,
+            'delivery_method' => Delivery::METHOD_INTERNAL,
+            'kurir_id' => $firstDriver->id,
+            'delivery_vehicle_id' => $firstVehicle->id,
+            'status' => Delivery::STATUS_PICKED_UP,
+            'assigned_at' => now(),
+            'picked_up_at' => now(),
+            'shipping_cost_status' => Delivery::COST_NOT_APPLICABLE,
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('deliveries.edit', $delivery))
+            ->put(route('deliveries.update', $delivery), [
+                'kurir_id' => $secondDriver->id,
+                'delivery_vehicle_id' => $secondVehicle->id,
+                'vehicle_override_reason' => 'Pergantian setelah pickup',
+            ])
+            ->assertRedirect(route('deliveries.edit', $delivery))
+            ->assertSessionHas('error', fn ($message) => str_contains($message, 'hanya dapat diubah sebelum barang diambil'));
+
+        $delivery->refresh();
+        $this->assertSame($firstDriver->id, $delivery->kurir_id);
+        $this->assertSame($firstVehicle->id, $delivery->delivery_vehicle_id);
+    }
+
+    public function test_delivery_time_slots_render_and_feed_order_form(): void
+    {
+        $user = $this->superAdmin('delivery-slot-admin@example.test');
+
+        DeliveryTimeSlot::create([
+            'name' => 'Malam',
+            'start_time' => '18:00',
+            'end_time' => '21:00',
+            'period_label' => 'Malam',
+            'is_active' => true,
+            'sort_order' => 9,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('delivery-time-slots.index'))
+            ->assertOk()
+            ->assertSee('Slot Waktu Pengiriman')
+            ->assertSee('18:00 - 21:00 (Malam)');
+
+        $response = $this->actingAs($user)
+            ->get(route('orders.create'))
+            ->assertOk()
+            ->assertSee('18:00 - 21:00 (Malam)')
+            ->assertSee('Kelola slot waktu');
+
+        $this->assertStringContainsString('>Kelola slot waktu</a>', $response->getContent());
+        $this->assertStringNotContainsString('delivery-time-slots" target="_blank"', $response->getContent());
     }
 
     public function test_all_registered_controller_methods_exist(): void
@@ -364,6 +869,51 @@ class InventoryQaRegressionTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_assignment_edit_action_is_only_visible_before_goods_are_picked_up(): void
+    {
+        $user = $this->superAdmin('delivery-assignment-action@example.test');
+        $driver = $this->userWithRole('kurir', 'delivery-assignment-driver@example.test');
+        $vehicle = DeliveryVehicle::create([
+            'code' => 'EDIT-01',
+            'name' => 'Armada Edit Test',
+            'vehicle_type' => DeliveryVehicle::TYPE_BOX_CAR,
+            'plate_number' => 'B 1001 TST',
+            'status' => DeliveryVehicle::STATUS_AVAILABLE,
+            'is_active' => true,
+        ]);
+        $delivery = Delivery::create([
+            'order_id' => $this->createOrder(Order::STATUS_READY, 'KMGASSIGNEDIT')->id,
+            'delivery_method' => Delivery::METHOD_INTERNAL,
+            'kurir_id' => $driver->id,
+            'delivery_vehicle_id' => $vehicle->id,
+            'status' => Delivery::STATUS_ASSIGNED,
+            'assigned_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('deliveries.show', $delivery))
+            ->assertOk()
+            ->assertSee('Ubah Penugasan')
+            ->assertSee(route('deliveries.edit', $delivery), false);
+
+        $this->actingAs($user)
+            ->get(route('deliveries.edit', $delivery))
+            ->assertOk()
+            ->assertSee('Alasan Perubahan Penugasan')
+            ->assertSee('Armada Edit Test');
+
+        $delivery->update([
+            'status' => Delivery::STATUS_PICKED_UP,
+            'picked_up_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('deliveries.show', $delivery->fresh()))
+            ->assertOk()
+            ->assertDontSee('Ubah Penugasan')
+            ->assertDontSee(route('deliveries.edit', $delivery), false);
+    }
+
     public function test_kurir_delivery_index_only_shows_own_deliveries(): void
     {
         $kurirA = $this->userWithRole('kurir', 'kurir-index-a@example.test');
@@ -386,6 +936,24 @@ class InventoryQaRegressionTest extends TestCase
             ->assertOk()
             ->assertSee(route('deliveries.show', $ownDelivery), false)
             ->assertDontSee(route('deliveries.show', $otherDelivery), false);
+    }
+
+    public function test_kurir_today_delivery_page_renders_own_deliveries(): void
+    {
+        $kurir = $this->userWithRole('kurir', 'kurir-today@example.test');
+        $delivery = Delivery::create([
+            'order_id' => $this->createOrder(Order::STATUS_READY, 'KMGTODAY0001')->id,
+            'kurir_id' => $kurir->id,
+            'status' => Delivery::STATUS_ASSIGNED,
+            'assigned_at' => now(),
+        ]);
+
+        $this->actingAs($kurir)
+            ->get(route('deliveries.kurir.today'))
+            ->assertOk()
+            ->assertSee('Pengiriman Hari Ini')
+            ->assertSee($delivery->order->order_number)
+            ->assertSee(route('deliveries.show', $delivery), false);
     }
 
     public function test_kurir_delivery_search_does_not_escape_own_scope(): void

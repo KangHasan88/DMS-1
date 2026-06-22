@@ -60,6 +60,17 @@
                 <button type="submit" class="dms-btn dms-btn-primary">Cari</button>
             </form>
         <div class="dms-toolbar-actions">
+            @if(!$branchScopeId)
+            <select name="company_branch_id" onchange="window.location.href = this.value" class="form-control">
+                <option value="{{ route('customers.index', array_merge(request()->except('company_branch_id'), ['company_branch_id' => null])) }}">Semua Cabang</option>
+                @foreach($companyBranches as $branch)
+                <option value="{{ route('customers.index', array_merge(request()->except('company_branch_id'), ['company_branch_id' => $branch->id])) }}" {{ request('company_branch_id') == $branch->id ? 'selected' : '' }}>
+                    {{ $branch->name }}{{ $branch->code ? ' - '.$branch->code : '' }}
+                </option>
+                @endforeach
+            </select>
+            @endif
+
             <!-- Filter Type -->
             <select name="customer_type" onchange="window.location.href = this.value" class="form-control">
                 <option value="{{ route('customers.index', array_merge(request()->except('customer_type'), ['customer_type' => null])) }}">Semua Tipe</option>
@@ -108,6 +119,7 @@
                     <th style="width: 60px;">#</th>
                     <th>Nama</th>
                     <th>Kontak</th>
+                    <th>Cabang</th>
                     <th>Tipe</th>
                     <th>Kredit</th>
                     <th>Total Order</th>
@@ -139,6 +151,14 @@
                             @if($customer->address)
                                 <span style="font-size: 0.65rem; color: var(--k-gray-500);">{{ Str::limit($customer->address, 30) }}</span>
                             @endif
+                        </div>
+                    </td>
+                    <td>
+                        <span class="dms-badge dms-badge-secondary">
+                            {{ $customer->companyBranch?->code ?? '-' }}
+                        </span>
+                        <div style="font-size: 0.65rem; color: var(--k-gray-500); margin-top: 0.2rem;">
+                            {{ $customer->companyBranch?->name ?? 'Belum diset' }}
                         </div>
                     </td>
                     <td>
@@ -189,7 +209,7 @@
                   </tr>
                 @empty
                   <tr>
-                    <td colspan="9" style="text-align: center; padding: 3rem;">
+                    <td colspan="10" style="text-align: center; padding: 3rem;">
                         <i class="bi bi-people" style="font-size: 3rem; color: var(--k-gray-300);"></i>
                         <p style="margin-top: 1rem; color: var(--k-gray-500);">Tidak ada data pelanggan</p>
                         @can('create customers')

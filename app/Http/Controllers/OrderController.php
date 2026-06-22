@@ -10,18 +10,28 @@ use App\Models\StockMovement;
 use App\Models\User;
 use App\Models\Customer;
 use App\Models\CustomerAddress;
+use App\Models\CompanyBranch;
+use App\Models\CompanyProfile;
+use App\Models\DeliveryTimeSlot;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class OrderController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Order::with('user', 'delivery');
+        $branchScopeId = $this->currentBranchScopeId();
+        $companyBranches = $this->availableCompanyBranches();
+        $query = Order::with('user', 'delivery', 'salesperson', 'createdBy');
 
         if ($this->isCustomerOnly()) {
             $query->where('user_id', Auth::id());
+        } elseif ($branchScopeId) {
+            $query->where('company_branch_id', $branchScopeId);
+        } elseif ($request->filled('company_branch_id')) {
+            $query->where('company_branch_id', $request->company_branch_id);
         }
         
         if ($request->filled('search')) {
@@ -43,9 +53,17 @@ class OrderController extends Controller
         if ($request->filled('order_source')) {
             $query->where('order_source', $request->order_source);
         }
+
+        if ($request->filled('salesperson_id')) {
+            $query->where('salesperson_id', $request->salesperson_id);
+        }
         
         if ($request->filled('fulfillment_type')) {
             $query->where('fulfillment_type', $request->fulfillment_type);
+        }
+
+        if ($request->filled('payment_timing')) {
+            $query->where('payment_timing', $request->payment_timing);
         }
         
         if ($request->filled('delivery_date')) {
@@ -63,24 +81,34 @@ class OrderController extends Controller
         $orders = $query->orderBy('created_at', 'desc')->paginate($perPage);
         
         $statuses = Order::STATUS_LIST;
-        $orderSources = [
-            Order::ORDER_SOURCE_APP => 'Aplikasi',
-            Order::ORDER_SOURCE_ADMIN => 'Admin',
-        ];
+        $canFilterBranches = !$this->isCustomerOnly() && !$branchScopeId;
+        $orderSources = Order::ORDER_SOURCE_LIST;
+        $salespeople = $this->availableSalesOwnersQuery()->with('companyBranch')->orderBy('name')->get();
         $fulfillmentTypes = [
             Order::FULFILLMENT_JIT => 'BLJ (Beli langsung jual)',
             Order::FULFILLMENT_STOCK => 'Stock (Ambil dari Gudang)',
         ];
+        $paymentTimings = Order::PAYMENT_TIMING_LIST;
         
-        return view('orders.index', compact('orders', 'statuses', 'orderSources', 'fulfillmentTypes'));
+        return view('orders.index', compact('orders', 'statuses', 'orderSources', 'fulfillmentTypes', 'paymentTimings', 'companyBranches', 'branchScopeId', 'canFilterBranches', 'salespeople'));
     }
 
     public function create(Request $request)
     {
         $products = Product::active()->orderBy('name')->get();
-        $customers = $this->isCustomerOnly()
-            ? User::with('customer.activeAddresses')->whereKey(Auth::id())->get()
-            : User::with('customer.activeAddresses')->role('customer')->active()->orderBy('name')->get();
+        $companyProfile = CompanyProfile::defaultProfile();
+        $companyBranches = $this->availableCompanyBranches($companyProfile);
+        $defaultCompanyBranchId = $this->defaultCompanyBranchId($companyProfile);
+        $branchLocked = (bool) $this->currentBranchScopeId();
+        $customers = $this->availableCustomerUsersQuery()
+            ->with('customer.activeAddresses', 'customer.activeSalesAssignment.salesperson', 'customer.activeSalesAssignment.salesTerritory')
+            ->orderBy('name')
+            ->get();
+        $salespeople = $this->availableSalesOwnersQuery()
+            ->with('companyBranch')
+            ->orderBy('name')
+            ->get();
+        $deliveryTimeSlots = $this->availableDeliveryTimeSlots($defaultCompanyBranchId);
         
         $productsWithStock = [];
         foreach ($products as $product) {
@@ -95,6 +123,7 @@ class OrderController extends Controller
         $defaultDeliveryDate = now()->addDay()->format('Y-m-d');
         $defaultFulfillmentType = $request->get('fulfillment_type', Order::FULFILLMENT_STOCK);
         $defaultPaymentTiming = $request->get('payment_timing', Order::PAYMENT_TIMING_POST_PAID);
+        $orderRequestToken = old('order_request_token', (string) Str::uuid());
         
         return view('orders.create', compact(
             'products', 
@@ -102,12 +131,22 @@ class OrderController extends Controller
             'productsWithStock',
             'defaultDeliveryDate',
             'defaultFulfillmentType',
-            'defaultPaymentTiming'
+            'defaultPaymentTiming',
+            'companyBranches',
+            'defaultCompanyBranchId',
+            'branchLocked',
+            'orderRequestToken',
+            'salespeople',
+            'deliveryTimeSlots'
         ));
     }
 
     public function store(Request $request)
     {
+        if (!$request->filled('order_request_token')) {
+            $request->merge(['order_request_token' => (string) Str::uuid()]);
+        }
+
         if ($this->isCustomerOnly()) {
             $request->merge([
                 'user_id' => Auth::id(),
@@ -120,10 +159,14 @@ class OrderController extends Controller
                 'shipping_rate' => 0,
                 'include_ppn' => false,
             ]);
+        } else {
+            $request->merge(['order_source' => Order::ORDER_SOURCE_ADMIN]);
         }
 
         $validated = $request->validate([
+            'order_request_token' => 'required|string|max:64',
             'user_id' => 'required|exists:users,id',
+            'company_branch_id' => 'nullable|exists:company_branches,id',
             'delivery_date' => 'required|date|after_or_equal:today',
             'delivery_time_slot' => 'required|string',
             'address' => 'required|string',
@@ -131,13 +174,14 @@ class OrderController extends Controller
             'longitude' => 'nullable|string',
             'invoice_address_id' => 'nullable|exists:customer_addresses,id',
             'shipping_address_id' => 'nullable|exists:customer_addresses,id',
+            'salesperson_id' => 'nullable|exists:users,id',
             'shipping_same_as_invoice' => 'boolean',
             'requires_packing' => 'nullable|boolean',
             'packing_fee' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
-            'order_source' => 'required|in:' . Order::ORDER_SOURCE_APP . ',' . Order::ORDER_SOURCE_ADMIN,
+            'order_source' => 'required|in:' . implode(',', array_keys(Order::ORDER_SOURCE_LIST)),
             'fulfillment_type' => 'required|in:' . Order::FULFILLMENT_STOCK . ',' . Order::FULFILLMENT_JIT,
-            'payment_timing' => 'required|in:' . Order::PAYMENT_TIMING_PRE_PAID . ',' . Order::PAYMENT_TIMING_POST_PAID,
+            'payment_timing' => 'nullable|in:' . Order::PAYMENT_TIMING_PRE_PAID . ',' . Order::PAYMENT_TIMING_POST_PAID,
             'payment_method' => 'nullable|in:gateway,manual,wallet',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
@@ -153,6 +197,12 @@ class OrderController extends Controller
             'include_ppn' => 'boolean',
             'ppn_rate' => 'nullable|numeric|min:0|max:100',
         ]);
+
+        $existingOrder = Order::where('request_token', $validated['order_request_token'])->first();
+        if ($existingOrder) {
+            return redirect()->route('orders.show', $existingOrder)
+                ->with('success', "Order sudah tersimpan. Nomor order: {$existingOrder->order_number}");
+        }
         
         DB::beginTransaction();
         
@@ -198,8 +248,15 @@ class OrderController extends Controller
             
             // Hitung diskon order
             $shippingType = $request->shipping_type ?: Order::SHIPPING_NONE;
+            $shippingRate = (float) ($request->shipping_rate ?? 0);
+            $shippingWeight = $request->shipping_weight;
+            $shippingDistance = $request->shipping_distance;
+            if ($shippingType === Order::SHIPPING_NONE) {
+                $shippingRate = 0;
+                $shippingWeight = null;
+                $shippingDistance = null;
+            }
             $shippingTypeForStorage = $shippingType === Order::SHIPPING_NONE ? Order::SHIPPING_FLAT : $shippingType;
-            $shippingRate = $request->shipping_rate ?? 0;
             $requiresPacking = $request->boolean('requires_packing');
             $packingFee = $requiresPacking ? ($request->packing_fee ?? 0) : 0;
             $totals = Order::calculateTotals(
@@ -207,8 +264,8 @@ class OrderController extends Controller
                 $request->discount_type,
                 $request->discount_value ?? 0,
                 $shippingType,
-                $request->shipping_weight,
-                $request->shipping_distance,
+                $shippingWeight,
+                $shippingDistance,
                 $shippingRate,
                 $packingFee,
                 $request->boolean('include_ppn'),
@@ -217,15 +274,24 @@ class OrderController extends Controller
             
             $paymentTiming = $request->payment_timing ?: Order::PAYMENT_TIMING_POST_PAID;
             $paymentMethod = $request->payment_method;
-            if ($request->order_source === Order::ORDER_SOURCE_ADMIN && !$paymentMethod) {
+            if ($request->order_source !== Order::ORDER_SOURCE_APP && !$paymentMethod) {
                 $paymentMethod = Order::PAYMENT_MANUAL;
             }
 
             $customerUser = User::with('customer')->findOrFail($request->user_id);
             $customer = $customerUser->customer;
+            $companyBranchId = $this->resolveCompanyBranchId($request->company_branch_id);
+            $this->ensureCustomerMatchesBranch($customer, $companyBranchId);
+            $salespersonId = $this->resolveSalespersonId(
+                $request->filled('salesperson_id')
+                    ? (int) $request->salesperson_id
+                    : $customer?->activeSalesAssignment?->salesperson_id,
+                $request->order_source,
+                $companyBranchId
+            );
             [$invoiceAddress, $shippingAddress] = $this->resolveOrderAddresses($customer, $request);
             $shippingSameAsInvoice = $request->boolean('shipping_same_as_invoice');
-            $shippingSnapshot = $shippingAddress?->address ?? $request->address;
+            $shippingSnapshot = $shippingAddress ? $shippingAddress->address : $request->address;
             $creditWarning = null;
             $stockWarning = null;
 
@@ -243,19 +309,23 @@ class OrderController extends Controller
             
             $order = Order::create([
                 'user_id' => $request->user_id,
+                'created_by' => Auth::id(),
+                'salesperson_id' => $salespersonId,
+                'company_branch_id' => $companyBranchId,
                 'order_number' => Order::generateOrderNumber(),
+                'request_token' => $validated['order_request_token'],
                 'delivery_date' => $request->delivery_date,
                 'delivery_time_slot' => $request->delivery_time_slot,
                 'address' => $shippingSnapshot,
-                'invoice_address_id' => $invoiceAddress?->id,
-                'shipping_address_id' => $shippingAddress?->id,
-                'invoice_address_snapshot' => $invoiceAddress?->address,
+                'invoice_address_id' => $invoiceAddress ? $invoiceAddress->id : null,
+                'shipping_address_id' => $shippingAddress ? $shippingAddress->id : null,
+                'invoice_address_snapshot' => $invoiceAddress ? $invoiceAddress->address : null,
                 'shipping_address_snapshot' => $shippingSnapshot,
-                'shipping_recipient_name' => $shippingAddress?->recipient_name,
-                'shipping_recipient_phone' => $shippingAddress?->recipient_phone,
+                'shipping_recipient_name' => $shippingAddress ? $shippingAddress->recipient_name : null,
+                'shipping_recipient_phone' => $shippingAddress ? $shippingAddress->recipient_phone : null,
                 'shipping_same_as_invoice' => $shippingSameAsInvoice,
-                'latitude' => $shippingAddress?->latitude ?? $request->latitude,
-                'longitude' => $shippingAddress?->longitude ?? $request->longitude,
+                'latitude' => $shippingAddress && $shippingAddress->latitude ? $shippingAddress->latitude : $request->latitude,
+                'longitude' => $shippingAddress && $shippingAddress->longitude ? $shippingAddress->longitude : $request->longitude,
                 'delivery_fee' => $totals['shipping_cost'],
                 'packing_fee' => $packingFee,
                 'requires_packing' => $requiresPacking,
@@ -265,8 +335,8 @@ class OrderController extends Controller
                 'discount_value' => $request->discount_value ?? 0,
                 'discount_amount' => $totals['discount_amount'],
                 'shipping_type' => $shippingTypeForStorage,
-                'shipping_weight' => $request->shipping_weight,
-                'shipping_distance' => $request->shipping_distance,
+                'shipping_weight' => $shippingWeight,
+                'shipping_distance' => $shippingDistance,
                 'shipping_rate' => $shippingRate,
                 'include_ppn' => $request->boolean('include_ppn'),
                 'ppn_rate' => $totals['ppn_rate'],
@@ -288,15 +358,15 @@ class OrderController extends Controller
 
             if ($paymentTiming === Order::PAYMENT_TIMING_POST_PAID && $order->useStockMode()) {
                 $order->load('items.product.stock');
-                $order->updateStatus(Order::STATUS_CHECKING_STOCK, 'Memeriksa ketersediaan stock');
+                $order->updateStatus(Order::STATUS_CHECKING_STOCK, 'Mengalokasikan stok');
                 $allAvailable = $order->processStockReduction();
 
                 if (!$allAvailable) {
                     $stockWarning = 'Beberapa item tidak tersedia di stock dan telah ditandai untuk refund.';
                 }
 
-                if ($allAvailable && !$order->requiresPacking()) {
-                    $order->updateStatus(Order::STATUS_READY, 'Barang siap dikirim tanpa repack');
+                if ($allAvailable) {
+                    $order->updateStatus(Order::STATUS_PICKING, 'Stok dialokasikan, picking dimulai');
                 }
             }
             
@@ -334,7 +404,7 @@ class OrderController extends Controller
     {
         $this->authorizeCustomerOrder($order);
 
-        $order->load('user', 'items.product', 'delivery');
+        $order->load('user', 'items.product', 'delivery', 'companyBranch', 'salesperson', 'createdBy');
         
         return view('orders.show', compact('order'));
     }
@@ -343,13 +413,18 @@ class OrderController extends Controller
     {
         $this->authorizeCustomerOrder($order);
 
-        if (!$order->canUpdateStatus()) {
+        if (!$order->canEditOrder()) {
             return redirect()->route('orders.show', $order)
                 ->with('error', 'Order tidak dapat diubah karena sudah selesai/dibatalkan');
         }
         
         $products = Product::active()->orderBy('name')->get();
-        $customers = User::role('customer')->active()->orderBy('name')->get();
+        $companyProfile = CompanyProfile::defaultProfile();
+        $companyBranches = $this->availableCompanyBranches($companyProfile);
+        $defaultCompanyBranchId = $order->company_branch_id ?: $this->defaultCompanyBranchId($companyProfile);
+        $branchLocked = (bool) $this->currentBranchScopeId();
+        $customers = $this->availableCustomerUsersQuery()->orderBy('name')->get();
+        $deliveryTimeSlots = $this->availableDeliveryTimeSlots($defaultCompanyBranchId);
         
         $productsWithStock = [];
         foreach ($products as $product) {
@@ -361,18 +436,19 @@ class OrderController extends Controller
             ];
         }
         
-        return view('orders.edit', compact('order', 'products', 'customers', 'productsWithStock'));
+        return view('orders.edit', compact('order', 'products', 'customers', 'productsWithStock', 'companyBranches', 'defaultCompanyBranchId', 'branchLocked', 'deliveryTimeSlots'));
     }
 
     public function update(Request $request, Order $order)
     {
         $this->authorizeCustomerOrder($order);
 
-        if (!$order->canUpdateStatus()) {
+        if (!$order->canEditOrder()) {
             return back()->with('error', 'Order tidak dapat diubah karena sudah selesai/dibatalkan');
         }
         
         $validated = $request->validate([
+            'company_branch_id' => 'nullable|exists:company_branches,id',
             'delivery_date' => 'required|date',
             'delivery_time_slot' => 'required|string',
             'address' => 'required|string',
@@ -443,8 +519,15 @@ class OrderController extends Controller
             
             $editDeliveryFee = $request->delivery_fee;
             $shippingType = $request->shipping_type ?: ($editDeliveryFee !== null ? ((float) $editDeliveryFee > 0 ? Order::SHIPPING_FLAT : Order::SHIPPING_NONE) : ($order->shipping_type ?: Order::SHIPPING_NONE));
+            $shippingRate = (float) ($request->shipping_rate ?? $editDeliveryFee ?? $order->shipping_rate ?? 0);
+            $shippingWeight = $request->shipping_weight;
+            $shippingDistance = $request->shipping_distance;
+            if ($shippingType === Order::SHIPPING_NONE) {
+                $shippingRate = 0;
+                $shippingWeight = null;
+                $shippingDistance = null;
+            }
             $shippingTypeForStorage = $shippingType === Order::SHIPPING_NONE ? Order::SHIPPING_FLAT : $shippingType;
-            $shippingRate = $request->shipping_rate ?? $editDeliveryFee ?? $order->shipping_rate ?? 0;
             $requiresPacking = $request->boolean('requires_packing');
             $packingFee = $requiresPacking ? ($request->packing_fee ?? $order->packing_fee ?? 0) : 0;
             $totals = Order::calculateTotals(
@@ -452,15 +535,20 @@ class OrderController extends Controller
                 $request->discount_type,
                 $request->discount_value ?? 0,
                 $shippingType,
-                $request->shipping_weight,
-                $request->shipping_distance,
+                $shippingWeight,
+                $shippingDistance,
                 $shippingRate,
                 $packingFee,
                 $request->boolean('include_ppn'),
                 $request->ppn_rate ?? 11
             );
             
+            $order->loadMissing('user.customer');
+            $companyBranchId = $this->resolveCompanyBranchId($request->company_branch_id);
+            $this->ensureCustomerMatchesBranch($order->user?->customer, $companyBranchId);
+
             $order->update([
+                'company_branch_id' => $companyBranchId,
                 'delivery_date' => $request->delivery_date,
                 'delivery_time_slot' => $request->delivery_time_slot,
                 'address' => $request->address,
@@ -473,8 +561,8 @@ class OrderController extends Controller
                 'discount_value' => $request->discount_value ?? 0,
                 'discount_amount' => $totals['discount_amount'],
                 'shipping_type' => $shippingTypeForStorage,
-                'shipping_weight' => $request->shipping_weight,
-                'shipping_distance' => $request->shipping_distance,
+                'shipping_weight' => $shippingWeight,
+                'shipping_distance' => $shippingDistance,
                 'shipping_rate' => $shippingRate,
                 'requires_packing' => $requiresPacking,
                 'include_ppn' => $request->boolean('include_ppn'),
@@ -498,7 +586,7 @@ class OrderController extends Controller
     {
         $this->authorizeCustomerOrder($order);
 
-        if ($order->status !== Order::STATUS_PENDING_PAYMENT && $order->status !== Order::STATUS_CANCELLED) {
+        if (!$order->canDeleteOrder()) {
             return back()->with('error', 'Order tidak dapat dihapus karena sudah diproses');
         }
         
@@ -526,6 +614,8 @@ class OrderController extends Controller
         }
 
         if ($validated['status'] === Order::STATUS_CANCELLED) {
+            $this->authorizeOrderProcessor();
+
             DB::transaction(function () use ($order, $validated) {
                 $order->restoreAllocatedStock($validated['notes'] ?? null);
                 $order->updateStatus(Order::STATUS_CANCELLED, $validated['notes'] ?? 'Order dibatalkan');
@@ -537,6 +627,8 @@ class OrderController extends Controller
         
         // Handle status PAID
         if ($validated['status'] === Order::STATUS_PAID) {
+            $this->authorizeFinanceProcessor();
+
             $order->updateStatus(Order::STATUS_PAID, $validated['notes'] ?? 'Pembayaran dikonfirmasi');
             
             return redirect()->route('orders.show', $order)
@@ -544,6 +636,8 @@ class OrderController extends Controller
         }
 
         if ($validated['status'] === Order::STATUS_CHECKING_STOCK) {
+            $this->authorizeStockAllocator();
+
             DB::transaction(function () use ($order) {
                 $order->updateStatus(Order::STATUS_CHECKING_STOCK, 'Memeriksa ketersediaan stock');
                 $allAvailable = $order->processStockReduction();
@@ -552,32 +646,45 @@ class OrderController extends Controller
                     session()->flash('warning', 'Beberapa item tidak tersedia di stock dan telah ditandai untuk refund.');
                 }
 
-                if ($allAvailable && !$order->requiresPacking()) {
-                    $order->updateStatus(Order::STATUS_READY, 'Barang siap dikirim tanpa repack');
+                if ($allAvailable) {
+                    $order->updateStatus(Order::STATUS_PICKING, 'Stok dialokasikan, picking dimulai');
                 }
             });
 
             return redirect()->route('orders.show', $order)
-                ->with('success', 'Stock berhasil dicek dan dialokasikan.');
+                ->with('success', 'Stok berhasil dialokasikan.');
+        }
+
+        if ($validated['status'] === Order::STATUS_PICKING) {
+            $this->authorizePickingProcessor();
+
+            $order->updateStatus(Order::STATUS_PICKING, $validated['notes'] ?? 'Picking dimulai');
+
+            return redirect()->route('orders.show', $order)
+                ->with('success', 'Order masuk ke proses picking');
         }
 
         if ($validated['status'] === Order::STATUS_PROCURING) {
-            $order->updateStatus(Order::STATUS_PROCURING, $validated['notes'] ?? 'Menunggu input data belanja');
+            $this->authorizeProcurementProcessor();
+
+            $order->updateStatus(Order::STATUS_PROCURING, $validated['notes'] ?? 'Menunggu input data belanja BLJ');
 
             return redirect()->route('orders.show', $order)
-                ->with('success', 'Order masuk ke proses belanja');
+                ->with('success', 'Order masuk ke proses belanja BLJ');
         }
         
         // Handle status REPACKING (untuk mode stock yang sudah di-check)
         if ($validated['status'] === Order::STATUS_REPACKING) {
-            // Pastikan sudah melewati checking_stock untuk mode stock
-            if ($order->useStockMode() && $order->status !== Order::STATUS_CHECKING_STOCK) {
-                return back()->with('error', 'Order harus dalam status Cek Stock terlebih dahulu');
+            $this->authorizePackingProcessor();
+
+            // Pastikan sudah melewati picking untuk mode stock
+            if ($order->useStockMode() && $order->status !== Order::STATUS_PICKING) {
+                return back()->with('error', 'Order harus dalam status Picking terlebih dahulu');
             }
             
             // Untuk mode BLJ, pastikan sudah procuring
             if ($order->useJitMode() && $order->status !== Order::STATUS_PROCURING) {
-                return back()->with('error', 'Order harus dalam status Belanja terlebih dahulu');
+                return back()->with('error', 'Order harus dalam status Belanja BLJ terlebih dahulu');
             }
             
             $order->updateStatus(Order::STATUS_REPACKING, $validated['notes'] ?? 'Proses repack dimulai');
@@ -586,6 +693,8 @@ class OrderController extends Controller
         }
         
         // Untuk status lainnya
+        $this->authorizeOrderProcessor();
+
         if ($order->updateStatus($validated['status'], $validated['notes'] ?? null)) {
             return redirect()->route('orders.show', $order)
                 ->with('success', 'Status order berhasil diupdate menjadi ' . Order::STATUS_LIST[$validated['status']]);
@@ -593,13 +702,33 @@ class OrderController extends Controller
         
         return back()->with('error', 'Gagal mengupdate status order');
     }
+
+    public function confirmPayment(Request $request, Order $order)
+    {
+        $this->authorizeCustomerOrder($order);
+        $this->authorizeFinanceProcessor();
+
+        $validated = $request->validate([
+            'notes' => 'nullable|string',
+        ]);
+
+        if (!$order->canTransitionTo(Order::STATUS_PAID)) {
+            return back()->with('error', 'Pembayaran belum bisa dikonfirmasi pada status ' . $order->status_label);
+        }
+
+        $order->updateStatus(Order::STATUS_PAID, $validated['notes'] ?? 'Pembayaran diterima');
+
+        return redirect()->route('orders.show', $order)
+            ->with('success', 'Pembayaran dikonfirmasi.');
+    }
     
     public function processProcurement(Request $request, Order $order)
     {
         $this->authorizeCustomerOrder($order);
+        $this->authorizeProcurementProcessor();
 
         if ($order->status !== Order::STATUS_PROCURING) {
-            return back()->with('error', 'Order harus dalam status Belanja untuk input data');
+            return back()->with('error', 'Order harus dalam status Belanja BLJ untuk input data');
         }
         
         if (!$order->useJitMode()) {
@@ -643,7 +772,7 @@ class OrderController extends Controller
                     $order->updateStatus(Order::STATUS_READY, 'Semua barang telah dibeli dari pasar');
                 }
             } else {
-                $order->updateStatus(Order::STATUS_PROCURING, 'Proses belanja berjalan');
+                $order->updateStatus(Order::STATUS_PROCURING, 'Proses belanja BLJ berjalan');
             }
             
             DB::commit();
@@ -660,39 +789,86 @@ class OrderController extends Controller
     public function processRepack(Order $order)
     {
         $this->authorizeCustomerOrder($order);
+        $this->authorizePackingProcessor();
 
         if (!$order->requiresPacking()) {
-            $order->updateStatus(Order::STATUS_READY, 'Barang siap dikirim tanpa repack');
+            $order->updateStatus(Order::STATUS_READY, 'Barang siap dikirim tanpa packing/repack');
             return redirect()->route('orders.show', $order)
                 ->with('success', 'Order langsung lanjut ke siap kirim');
         }
 
-        // Cek status yang valid untuk proses repack
+        // Mode stock lanjut ke packing/repack lewat proses picking.
         if ($order->useStockMode()) {
-            if ($order->status !== Order::STATUS_CHECKING_STOCK) {
-                return back()->with('error', 'Order harus dalam status Cek Stock untuk diproses repack');
+            if ($order->status !== Order::STATUS_PICKING) {
+                return back()->with('error', 'Order harus dalam status Picking untuk diproses packing/repack');
             }
         } elseif ($order->useJitMode()) {
             if ($order->status !== Order::STATUS_PROCURING) {
-                return back()->with('error', 'Order harus dalam status Belanja untuk diproses repack');
+                return back()->with('error', 'Order harus dalam status Belanja BLJ untuk diproses packing/repack');
             }
         }
         
-        $order->updateStatus(Order::STATUS_REPACKING, 'Tim mulai repack barang');
+        $order->updateStatus(Order::STATUS_REPACKING, 'Tim mulai packing/repack barang');
         
         return redirect()->route('orders.show', $order)
-            ->with('success', 'Order masuk ke proses repack');
+            ->with('success', 'Order masuk ke proses packing/repack');
+    }
+
+    public function startPicking(Order $order)
+    {
+        $this->authorizeCustomerOrder($order);
+        $this->authorizePickingProcessor();
+
+        if (!$order->useStockMode()) {
+            return back()->with('error', 'Picking hanya berlaku untuk mode stock');
+        }
+
+        if ($order->status !== Order::STATUS_CHECKING_STOCK) {
+            return back()->with('error', 'Order harus dalam status Alokasi Stok untuk mulai picking');
+        }
+
+        $order->updateStatus(Order::STATUS_PICKING, 'Picking dimulai');
+
+        return redirect()->route('orders.show', $order)
+            ->with('success', 'Order masuk ke proses picking');
+    }
+
+    public function markPicked(Order $order)
+    {
+        $this->authorizeCustomerOrder($order);
+        $this->authorizePickingProcessor();
+
+        if (!$order->useStockMode()) {
+            return back()->with('error', 'Picking hanya berlaku untuk mode stock');
+        }
+
+        if ($order->status !== Order::STATUS_PICKING) {
+            return back()->with('error', 'Order harus dalam status Picking');
+        }
+
+        if ($order->requiresPacking()) {
+            $order->updateStatus(Order::STATUS_REPACKING, 'Picking selesai, lanjut packing/repack');
+
+            return redirect()->route('orders.show', $order)
+                ->with('success', 'Picking selesai. Order masuk ke proses packing/repack');
+        }
+
+        $order->updateStatus(Order::STATUS_READY, 'Picking selesai, barang siap dikirim');
+
+        return redirect()->route('orders.show', $order)
+            ->with('success', 'Picking selesai. Order siap dikirim');
     }
     
     public function markReady(Order $order)
     {
         $this->authorizeCustomerOrder($order);
+        $this->authorizePackingProcessor();
 
         if ($order->requiresPacking()) {
             if ($order->status !== Order::STATUS_REPACKING) {
-                return back()->with('error', 'Order harus dalam status repacking untuk siap kirim');
+                return back()->with('error', 'Order harus dalam status Repack untuk siap kirim');
             }
-        } elseif (!in_array($order->status, [Order::STATUS_CHECKING_STOCK, Order::STATUS_PROCURING], true)) {
+        } elseif (!in_array($order->status, [Order::STATUS_PICKING, Order::STATUS_PROCURING], true)) {
             return back()->with('error', 'Order harus dalam proses sebelumnya untuk siap kirim');
         }
         
@@ -705,16 +881,18 @@ class OrderController extends Controller
     public function markShipped(Request $request, Order $order)
     {
         $this->authorizeCustomerOrder($order);
+        $this->authorizeDeliveryProcessor();
 
         if ($order->status !== Order::STATUS_READY) {
-            return back()->with('error', 'Order harus dalam status ready untuk dikirim');
+            return back()->with('error', 'Order harus dalam status Siap Kirim untuk dikirim');
         }
         
         $validated = $request->validate([
             'tracking_code' => 'nullable|string|max:100',
         ]);
         
-        $order->tracking_code = $validated['tracking_code'];
+        $trackingCode = trim((string) ($validated['tracking_code'] ?? ''));
+        $order->tracking_code = $trackingCode !== '' ? $trackingCode : null;
         $order->save();
         
         $order->updateStatus(Order::STATUS_SHIPPED, 'Barang dikirim ke customer');
@@ -726,6 +904,7 @@ class OrderController extends Controller
     public function markDelivered(Order $order)
     {
         $this->authorizeCustomerOrder($order);
+        $this->authorizeDeliveryProcessor();
 
         $isValidStatus = $order->payment_timing === Order::PAYMENT_TIMING_POST_PAID
             ? $order->status === Order::STATUS_PAID
@@ -734,7 +913,7 @@ class OrderController extends Controller
         if (!$isValidStatus) {
             return back()->with('error', $order->payment_timing === Order::PAYMENT_TIMING_POST_PAID
                 ? 'Order harus dalam status Sudah Bayar untuk diselesaikan'
-                : 'Order harus dalam status shipped untuk diselesaikan');
+                : 'Order harus dalam status Dalam Pengiriman untuk diselesaikan');
         }
         
         $order->updateStatus(Order::STATUS_DELIVERED, 'Barang sampai ke customer');
@@ -751,6 +930,7 @@ class OrderController extends Controller
     public function markItemUnavailable(Request $request, OrderItem $item)
     {
         $this->authorizeCustomerOrder($item->order);
+        $this->authorizeOrderProcessor();
 
         $item->markAsUnavailable();
         
@@ -764,11 +944,48 @@ class OrderController extends Controller
     
     public function invoice(Order $order)
     {
+        return $this->renderOrderDocument($order, config('invoice.document', []));
+    }
+
+    public function proformaInvoice(Order $order)
+    {
+        return $this->renderOrderDocument($order, [
+            'title' => 'Proforma Invoice',
+            'subtitle' => 'Dokumen estimasi tagihan sebelum invoice final',
+        ]);
+    }
+
+    public function deliveryOrder(Order $order)
+    {
+        if (!$order->canViewDeliveryOrderDocument()) {
+            return redirect()->route('orders.show', $order)
+                ->with('error', 'Delivery Order baru bisa dicetak saat order sudah siap kirim atau sudah masuk proses pengiriman.');
+        }
+
+        return $this->renderOrderDocument($order, [
+            'title' => 'Delivery Order',
+            'subtitle' => 'Dokumen serah terima pengiriman barang',
+        ]);
+    }
+
+    private function renderOrderDocument(Order $order, array $invoiceDocument)
+    {
         $this->authorizeCustomerOrder($order);
 
-        $order->load('user', 'items.product');
-        
-        return view('orders.invoice', compact('order'));
+        $order->load('user', 'items.product', 'companyBranch');
+
+        $companyProfile = CompanyProfile::query()->where('is_active', true)->with('invoiceBranch')->first();
+        $invoiceBranchModel = $order->companyBranch ?: ($companyProfile ? $companyProfile->defaultInvoiceBranch() : null);
+
+        $invoiceCompany = $companyProfile
+            ? $companyProfile->toInvoiceCompany()
+            : config('invoice.company', []);
+
+        $invoiceBranch = $invoiceBranchModel
+            ? $invoiceBranchModel->toInvoiceBranch()
+            : config('invoice.branch', []);
+
+        return view('orders.invoice', compact('order', 'invoiceCompany', 'invoiceBranch', 'invoiceDocument'));
     }
     
     public function getStockInfo($productId)
@@ -786,7 +1003,7 @@ class OrderController extends Controller
     {
         $user = Auth::user();
 
-        return $user?->hasRole('customer') && !$user->hasAnyRole(['super-admin', 'admin', 'manager', 'sales']);
+        return $user && $user->hasRole('customer') && !$user->hasAnyRole(['super-admin', 'admin', 'manager', 'sales']);
     }
 
     private function resolveOrderAddresses(?Customer $customer, Request $request): array
@@ -801,8 +1018,10 @@ class OrderController extends Controller
                 ->find($request->invoice_address_id)
             : null;
 
-        $invoiceAddress ??= $customer->invoiceAddresses()->where('is_default_invoice', true)->first()
-            ?? $customer->invoiceAddresses()->first();
+        if (!$invoiceAddress) {
+            $invoiceAddress = $customer->invoiceAddresses()->where('is_default_invoice', true)->first()
+                ?: $customer->invoiceAddresses()->first();
+        }
 
         if ($request->boolean('shipping_same_as_invoice')) {
             $shippingAddress = $invoiceAddress;
@@ -813,11 +1032,147 @@ class OrderController extends Controller
                     ->find($request->shipping_address_id)
                 : null;
 
-            $shippingAddress ??= $customer->shippingAddresses()->where('is_default_shipping', true)->first()
-                ?? $customer->shippingAddresses()->first();
+            if (!$shippingAddress) {
+                $shippingAddress = $customer->shippingAddresses()->where('is_default_shipping', true)->first()
+                    ?: $customer->shippingAddresses()->first();
+            }
         }
 
         return [$invoiceAddress, $shippingAddress];
+    }
+
+    private function resolveCompanyBranchId($requestedBranchId): ?int
+    {
+        if ($branchScopeId = $this->currentBranchScopeId()) {
+            return $branchScopeId;
+        }
+
+        if ($requestedBranchId && CompanyBranch::whereKey($requestedBranchId)->where('is_active', true)->exists()) {
+            return (int) $requestedBranchId;
+        }
+
+        return $this->defaultCompanyBranchId();
+    }
+
+    private function currentBranchScopeId(): ?int
+    {
+        return Auth::user()?->scopedCompanyBranchId();
+    }
+
+    private function availableCompanyBranches(?CompanyProfile $companyProfile = null)
+    {
+        $companyProfile = $companyProfile ?: CompanyProfile::defaultProfile();
+        $query = $companyProfile->activeBranches();
+        $branchScopeId = $this->currentBranchScopeId();
+
+        if ($branchScopeId) {
+            $query->whereKey($branchScopeId);
+        }
+
+        return $query->get();
+    }
+
+    private function defaultCompanyBranchId(?CompanyProfile $companyProfile = null): ?int
+    {
+        if ($branchScopeId = $this->currentBranchScopeId()) {
+            return $branchScopeId;
+        }
+
+        $companyProfile = $companyProfile ?: CompanyProfile::query()->where('is_active', true)->first();
+        if (!$companyProfile) {
+            return null;
+        }
+
+        $defaultBranch = $companyProfile->defaultInvoiceBranch();
+
+        return $defaultBranch ? $defaultBranch->id : null;
+    }
+
+    private function availableCustomerUsersQuery()
+    {
+        if ($this->isCustomerOnly()) {
+            return User::query()->whereKey(Auth::id());
+        }
+
+        $query = User::query()
+            ->role('customer')
+            ->active()
+            ->whereHas('customer');
+
+        if ($branchScopeId = $this->currentBranchScopeId()) {
+            $query->whereHas('customer', function ($customerQuery) use ($branchScopeId) {
+                $customerQuery->where('company_branch_id', $branchScopeId);
+            });
+        }
+
+        return $query;
+    }
+
+    private function availableSalesOwnersQuery()
+    {
+        $query = User::query()
+            ->active()
+            ->whereHas('roles', function ($roleQuery) {
+                $roleQuery->whereIn('name', ['sales', 'telesales']);
+            });
+
+        if ($branchScopeId = $this->currentBranchScopeId()) {
+            $query->where(function ($userQuery) use ($branchScopeId) {
+                $userQuery->whereNull('company_branch_id')
+                    ->orWhere('company_branch_id', $branchScopeId);
+            });
+        }
+
+        return $query;
+    }
+
+    private function availableDeliveryTimeSlots(?int $companyBranchId = null)
+    {
+        return DeliveryTimeSlot::active()
+            ->forCompanyBranch($companyBranchId ?: $this->currentBranchScopeId())
+            ->orderByRaw('company_branch_id is not null')
+            ->orderBy('sort_order')
+            ->orderBy('start_time')
+            ->get();
+    }
+
+    private function resolveSalespersonId(?int $salespersonId, string $orderSource, ?int $companyBranchId): ?int
+    {
+        if (!$salespersonId && in_array($orderSource, [Order::ORDER_SOURCE_SFA, Order::ORDER_SOURCE_TELESALES], true) && Auth::user()?->isSales()) {
+            $salespersonId = Auth::id();
+        }
+
+        if (!$salespersonId) {
+            return null;
+        }
+
+        $salesperson = User::query()
+            ->active()
+            ->whereHas('roles', function ($roleQuery) {
+                $roleQuery->whereIn('name', ['sales', 'telesales']);
+            })
+            ->findOrFail($salespersonId);
+
+        if (($branchScopeId = $this->currentBranchScopeId()) && $salesperson->company_branch_id && (int) $salesperson->company_branch_id !== $branchScopeId) {
+            throw new \Exception('Sales owner tidak terdaftar pada cabang user.');
+        }
+
+        if ($companyBranchId && $salesperson->company_branch_id && (int) $salesperson->company_branch_id !== (int) $companyBranchId) {
+            throw new \Exception('Sales owner harus berada pada cabang yang sama dengan order.');
+        }
+
+        return $salesperson->id;
+    }
+
+    private function ensureCustomerMatchesBranch(?Customer $customer, ?int $companyBranchId): void
+    {
+        if (!$customer || !$companyBranchId || !$customer->company_branch_id) {
+            return;
+        }
+
+        if ((int) $customer->company_branch_id !== (int) $companyBranchId) {
+            throw new \Exception('Pelanggan tidak terdaftar pada cabang pengirim yang dipilih.');
+        }
     }
 
     private function ensureCustomerCreditAllowsOrder(Customer $customer, int $grandTotal): void
@@ -851,6 +1206,73 @@ class OrderController extends Controller
     private function authorizeCustomerOrder(Order $order): void
     {
         if ($this->isCustomerOnly() && $order->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        if (!$this->isCustomerOnly() && ($branchScopeId = $this->currentBranchScopeId()) && (int) $order->company_branch_id !== $branchScopeId) {
+            abort(403);
+        }
+    }
+
+    private function authorizeOrderProcessor(): void
+    {
+        $user = Auth::user();
+
+        if (!$user || !$user->canProcessFulfillment()) {
+            abort(403);
+        }
+    }
+
+    private function authorizeDeliveryProcessor(): void
+    {
+        $user = Auth::user();
+
+        if (!$user || !$user->canProcessDeliveries()) {
+            abort(403);
+        }
+    }
+
+    private function authorizeStockAllocator(): void
+    {
+        $user = Auth::user();
+
+        if (!$user || !$user->canAllocateStock()) {
+            abort(403);
+        }
+    }
+
+    private function authorizePickingProcessor(): void
+    {
+        $user = Auth::user();
+
+        if (!$user || !$user->canPickOrders()) {
+            abort(403);
+        }
+    }
+
+    private function authorizePackingProcessor(): void
+    {
+        $user = Auth::user();
+
+        if (!$user || !$user->canPackOrders()) {
+            abort(403);
+        }
+    }
+
+    private function authorizeProcurementProcessor(): void
+    {
+        $user = Auth::user();
+
+        if (!$user || !$user->canProcessProcurement()) {
+            abort(403);
+        }
+    }
+
+    private function authorizeFinanceProcessor(): void
+    {
+        $user = Auth::user();
+
+        if (!$user || !$user->canProcessFinance()) {
             abort(403);
         }
     }

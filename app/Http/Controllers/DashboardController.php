@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\Order;
 use App\Models\Delivery;
 use App\Models\Product;
+use App\Models\Customer;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,18 +18,34 @@ class DashboardController extends Controller
      */
     public function index()
     {
+        $currentUser = request()->user();
+        $branchScope = $currentUser?->scopedCompanyBranchId();
+        $isKurirOnly = $currentUser?->hasRole('kurir')
+            && !$currentUser?->hasAnyRole(['super-admin', 'admin', 'manager', 'supervisor']);
+        $scopeOrders = fn ($query) => $query->when($branchScope, fn ($q) => $q->where('company_branch_id', $branchScope));
+        $scopeDeliveries = function ($query) use ($branchScope, $isKurirOnly, $currentUser) {
+            return $query
+                ->when($branchScope, fn ($q) => $q->whereHas('order', fn ($orderQuery) => $orderQuery->where('company_branch_id', $branchScope)))
+                ->when($isKurirOnly, fn ($q) => $q->where('kurir_id', $currentUser->id));
+        };
+
         // ========================================
         // DATA EXISTING (Tetap dipertahankan)
         // ========================================
         
         // Hitung total
-        $totalUsers = User::count();
-        $activeUsers = User::where('is_active', true)->count();
+        $totalUsers = User::query()
+            ->when($branchScope, fn ($query) => $query->where('company_branch_id', $branchScope))
+            ->count();
+        $activeUsers = User::where('is_active', true)
+            ->when($branchScope, fn ($query) => $query->where('company_branch_id', $branchScope))
+            ->count();
         $totalRoles = DB::table('roles')->count();
         $totalPermissions = DB::table('permissions')->count();
         
         // Recent users
         $recentUsers = User::with('roles')
+            ->when($branchScope, fn ($query) => $query->where('company_branch_id', $branchScope))
             ->latest()
             ->take(5)
             ->get();
@@ -45,33 +62,36 @@ class DashboardController extends Controller
         // ========================================
         
         // Total Customers (hanya yang role customer dan aktif)
-        $totalCustomers = User::role('customer')->active()->count();
+        $totalCustomers = Customer::query()
+            ->forCompanyBranch($branchScope)
+            ->where('is_active', true)
+            ->count();
         
         // Total Products (yang aktif)
         $totalProducts = Product::where('is_active', true)->count();
         
         // Total Orders
-        $totalOrders = Order::count();
+        $totalOrders = $scopeOrders(Order::query())->count();
         
         // Orders Today (yang dibuat hari ini)
-        $ordersToday = Order::whereDate('created_at', today())->count();
+        $ordersToday = $scopeOrders(Order::whereDate('created_at', today()))->count();
         
         // Orders for Delivery Today (yang akan dikirim hari ini)
-        $ordersDeliveryToday = Order::whereDate('delivery_date', today())
+        $ordersDeliveryToday = $scopeOrders(Order::whereDate('delivery_date', today()))
             ->whereNotIn('status', ['delivered', 'cancelled'])
             ->count();
         
         // Active Deliveries (belum completed)
-        $activeDeliveries = Delivery::where('status', '!=', 'completed')->count();
+        $activeDeliveries = $scopeDeliveries(Delivery::where('status', '!=', 'completed'))->count();
         
         // Pending Deliveries (assigned tapi belum diambil)
-        $pendingDeliveries = Delivery::where('status', 'assigned')->count();
+        $pendingDeliveries = $scopeDeliveries(Delivery::where('status', 'assigned'))->count();
         
         // Total Revenue (order yang sudah delivered)
-        $totalRevenue = Order::where('status', 'delivered')->sum('total');
+        $totalRevenue = $scopeOrders(Order::where('status', 'delivered'))->sum('total');
         
         // Revenue This Month
-        $revenueThisMonth = Order::where('status', 'delivered')
+        $revenueThisMonth = $scopeOrders(Order::where('status', 'delivered'))
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
             ->sum('total');
@@ -81,19 +101,20 @@ class DashboardController extends Controller
         // ========================================
         
         // New customers this month
-        $newUsersThisMonth = User::role('customer')
+        $newUsersThisMonth = Customer::query()
+            ->forCompanyBranch($branchScope)
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
             ->count();
         
         // New orders this week
-        $newOrdersThisWeek = Order::whereBetween('created_at', [
+        $newOrdersThisWeek = $scopeOrders(Order::whereBetween('created_at', [
             now()->startOfWeek(),
             now()->endOfWeek()
-        ])->count();
+        ]))->count();
         
         // New orders yesterday (untuk perbandingan)
-        $ordersYesterday = Order::whereDate('created_at', today()->subDay())->count();
+        $ordersYesterday = $scopeOrders(Order::whereDate('created_at', today()->subDay()))->count();
         
         // Percentage change for orders (compared to yesterday)
         $ordersChange = $ordersYesterday > 0 
@@ -105,6 +126,7 @@ class DashboardController extends Controller
         // ========================================
         
         $recentOrders = Order::with('user')
+            ->when($branchScope, fn ($query) => $query->where('company_branch_id', $branchScope))
             ->orderBy('created_at', 'desc')
             ->limit(10)
             ->get();
@@ -114,15 +136,15 @@ class DashboardController extends Controller
         // ========================================
         
         $orderStatusSummary = [
-            ['label' => 'Pending Payment', 'count' => Order::where('status', Order::STATUS_PENDING_PAYMENT)->count(), 'color' => 'warning'],
-            ['label' => 'Paid', 'count' => Order::where('status', Order::STATUS_PAID)->count(), 'color' => 'info'],
-            ['label' => 'Checking Stock', 'count' => Order::where('status', Order::STATUS_CHECKING_STOCK)->count(), 'color' => 'info'],
-            ['label' => 'Procuring', 'count' => Order::where('status', Order::STATUS_PROCURING)->count(), 'color' => 'info'],
-            ['label' => 'Repacking', 'count' => Order::where('status', Order::STATUS_REPACKING)->count(), 'color' => 'info'],
-            ['label' => 'Ready', 'count' => Order::where('status', Order::STATUS_READY)->count(), 'color' => 'success'],
-            ['label' => 'Shipped', 'count' => Order::where('status', Order::STATUS_SHIPPED)->count(), 'color' => 'success'],
-            ['label' => 'Delivered', 'count' => Order::where('status', Order::STATUS_DELIVERED)->count(), 'color' => 'success'],
-            ['label' => 'Cancelled', 'count' => Order::where('status', Order::STATUS_CANCELLED)->count(), 'color' => 'danger'],
+            ['label' => 'Pending Payment', 'count' => $scopeOrders(Order::where('status', Order::STATUS_PENDING_PAYMENT))->count(), 'color' => 'warning'],
+            ['label' => 'Paid', 'count' => $scopeOrders(Order::where('status', Order::STATUS_PAID))->count(), 'color' => 'info'],
+            ['label' => 'Checking Stock', 'count' => $scopeOrders(Order::where('status', Order::STATUS_CHECKING_STOCK))->count(), 'color' => 'info'],
+            ['label' => 'Procuring', 'count' => $scopeOrders(Order::where('status', Order::STATUS_PROCURING))->count(), 'color' => 'info'],
+            ['label' => 'Repacking', 'count' => $scopeOrders(Order::where('status', Order::STATUS_REPACKING))->count(), 'color' => 'info'],
+            ['label' => 'Ready', 'count' => $scopeOrders(Order::where('status', Order::STATUS_READY))->count(), 'color' => 'success'],
+            ['label' => 'Shipped', 'count' => $scopeOrders(Order::where('status', Order::STATUS_SHIPPED))->count(), 'color' => 'success'],
+            ['label' => 'Delivered', 'count' => $scopeOrders(Order::where('status', Order::STATUS_DELIVERED))->count(), 'color' => 'success'],
+            ['label' => 'Cancelled', 'count' => $scopeOrders(Order::where('status', Order::STATUS_CANCELLED))->count(), 'color' => 'danger'],
         ];
         
         // Filter yang count > 0
@@ -135,10 +157,10 @@ class DashboardController extends Controller
         // ========================================
         
         // Pending Orders (belum dibayar)
-        $pendingOrdersCount = Order::where('status', Order::STATUS_PENDING_PAYMENT)->count();
+        $pendingOrdersCount = $scopeOrders(Order::where('status', Order::STATUS_PENDING_PAYMENT))->count();
         
         // Completed Orders (delivered this month)
-        $completedOrdersCount = Order::where('status', Order::STATUS_DELIVERED)
+        $completedOrdersCount = $scopeOrders(Order::where('status', Order::STATUS_DELIVERED))
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
             ->count();
@@ -195,10 +217,10 @@ class DashboardController extends Controller
             $weeklySales[] = [
                 'date' => $date->format('D'),
                 'full_date' => $date->format('Y-m-d'),
-                'total' => Order::whereDate('created_at', $date)
+                'total' => $scopeOrders(Order::whereDate('created_at', $date))
                     ->where('status', Order::STATUS_DELIVERED)
                     ->sum('total'),
-                'count' => Order::whereDate('created_at', $date)->count(),
+                'count' => $scopeOrders(Order::whereDate('created_at', $date))->count(),
             ];
         }
         
@@ -269,23 +291,25 @@ class DashboardController extends Controller
      */
     public function getChartData()
     {
+        $branchScope = request()->user()?->scopedCompanyBranchId();
+        $scopeOrders = fn ($query) => $query->when($branchScope, fn ($q) => $q->where('company_branch_id', $branchScope));
         $weeklySales = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = now()->subDays($i);
             $weeklySales[] = [
                 'date' => $date->format('D'),
                 'full_date' => $date->format('Y-m-d'),
-                'total' => Order::whereDate('created_at', $date)
+                'total' => $scopeOrders(Order::whereDate('created_at', $date))
                     ->where('status', Order::STATUS_DELIVERED)
                     ->sum('total'),
-                'count' => Order::whereDate('created_at', $date)->count(),
+                'count' => $scopeOrders(Order::whereDate('created_at', $date))->count(),
             ];
         }
         
         return response()->json([
             'weekly_sales' => $weeklySales,
-            'total_orders_today' => Order::whereDate('created_at', today())->count(),
-            'revenue_today' => Order::whereDate('created_at', today())
+            'total_orders_today' => $scopeOrders(Order::whereDate('created_at', today()))->count(),
+            'revenue_today' => $scopeOrders(Order::whereDate('created_at', today()))
                 ->where('status', Order::STATUS_DELIVERED)
                 ->sum('total'),
         ]);

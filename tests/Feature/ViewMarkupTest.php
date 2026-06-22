@@ -204,11 +204,11 @@ class ViewMarkupTest extends TestCase
         $dashboard = file_get_contents(resource_path('views/dashboard.blade.php'));
         $layout = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));
 
-        foreach (['No. Pesanan', 'Pelanggan', 'Jumlah', 'Status', 'Tanggal', 'Aksi'] as $label) {
+        foreach (['No. Pesanan', 'Pelanggan', 'Jumlah', 'Status', 'Tanggal', 'Aksi', 'Alokasi Stok', 'Picking', 'Belanja BLJ', 'Dalam Pengiriman'] as $label) {
             $this->assertStringContainsString($label, $dashboard);
         }
 
-        foreach (['ORDER ID', 'CUSTOMER', 'AMOUNT', 'ACTION', 'Pesanan Pending', 'Produk Stok Menipis'] as $legacyLabel) {
+        foreach (['ORDER ID', 'CUSTOMER', 'AMOUNT', 'ACTION', 'Pesanan Pending', 'Produk Stok Menipis', 'Cek Stock', 'Cek Stok'] as $legacyLabel) {
             $this->assertStringNotContainsString($legacyLabel, $dashboard);
         }
 
@@ -218,6 +218,46 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('<th style="width: 88px; text-align: center;">{{ $isIndonesian ? \'Aksi\' : \'Action\' }}</th>', $dashboard);
         $this->assertStringContainsString('aria-label="{{ $isIndonesian ? \'Lihat Detail Pesanan\' : \'View Order Detail\' }}"', $dashboard);
         $this->assertStringNotContainsString('</i> Detail', $dashboard);
+    }
+
+    public function test_order_detail_uses_alokasi_stok_and_resi_labels(): void
+    {
+        $show = file_get_contents(resource_path('views/orders/show.blade.php'));
+        $routes = file_get_contents(base_path('routes/web.php'));
+        $controller = file_get_contents(app_path('Http/Controllers/OrderController.php'));
+        $invoice = file_get_contents(resource_path('views/orders/invoice.blade.php'));
+
+        $this->assertStringContainsString('Alokasi Stok', $show);
+        $this->assertStringContainsString('Picking', $show);
+        $this->assertStringContainsString('Belanja BLJ', $show);
+        $this->assertStringContainsString('No Resi', $show);
+        $this->assertStringContainsString("route('orders.delivery-order', \$order)", $show);
+        $this->assertStringContainsString('canViewDeliveryOrderDocument()', $show);
+        $this->assertStringContainsString("name('orders.delivery-order')", $routes);
+        $this->assertStringContainsString('function deliveryOrder', $controller);
+        $this->assertStringContainsString('Delivery Order baru bisa dicetak', $controller);
+        $this->assertStringContainsString('DELIVERY ORDER', $invoice);
+        $this->assertStringContainsString('No. DO', $invoice);
+        $this->assertStringContainsString('Driver / Pengirim', $invoice);
+        $this->assertStringContainsString('@if($order->requiresPacking())', $invoice);
+        $this->assertStringContainsString('bi-upc-scan', $show);
+        $this->assertStringContainsString("label' => 'Packing / Repack'", $show);
+        $this->assertStringContainsString('Dalam Pengiriman', $show);
+        $this->assertStringContainsString('Isi jika sudah ada nomor resi', $show);
+        $this->assertStringContainsString('canProcessFinance()', $show);
+        $this->assertStringContainsString('canAllocateStock()', $show);
+        $this->assertStringContainsString('canPickOrders()', $show);
+        $this->assertStringContainsString('canPackOrders()', $show);
+        $this->assertStringContainsString("route('orders.start-picking', \$order)", $show);
+        $this->assertStringContainsString("route('orders.mark-picked', \$order)", $show);
+        $this->assertStringNotContainsString('Cek Stock', $show);
+        $this->assertStringNotContainsString('Tracking', $show);
+        $this->assertStringNotContainsString('Nomor Resi (opsional)', $show);
+        $this->assertStringNotContainsString("label' => 'Repacking'", $show);
+        $this->assertStringContainsString('authorizeFinanceProcessor', $controller);
+        $this->assertStringContainsString('authorizeStockAllocator', $controller);
+        $this->assertStringContainsString('authorizePickingProcessor', $controller);
+        $this->assertStringContainsString('authorizePackingProcessor', $controller);
     }
 
     public function test_table_action_buttons_stay_in_one_row(): void
@@ -244,12 +284,24 @@ class ViewMarkupTest extends TestCase
         $this->assertStringNotContainsString('<h3 class="dms-form-title">Buat Order Baru</h3>', $create);
         $this->assertStringContainsString('class="dms-combobox js-searchable-dropdown"', $create);
         $this->assertSame(2, substr_count($create, 'class="dms-form-grid dms-order-form-grid"'));
+        $this->assertSame(3, substr_count($create, 'class="dms-order-section"'));
+        $this->assertStringContainsString('class="dms-order-section-title"', $create);
         $this->assertStringContainsString('.dms-order-form-grid', $create);
+        $this->assertStringContainsString('.dms-order-section', $create);
         $this->assertStringContainsString('data-select-id="customer-select"', $create);
         $this->assertStringContainsString('class="dms-combobox js-searchable-dropdown product-search"', $create);
         $this->assertStringContainsString('class="dms-combobox-search"', $create);
         $this->assertStringContainsString('initializeSearchableDropdowns(newRow);', $create);
         $this->assertStringContainsString('class="dms-products-table-wrap"', $create);
+        $this->assertStringContainsString('id="include_ppn" value="1" {{ old(\'include_ppn\', \'1\') ? \'checked\' : \'\' }}', $create);
+        $this->assertStringContainsString('<span>Include PPN 11%</span>', $create);
+        $this->assertStringNotContainsString('bi bi-percent"></i> Include PPN 11%', $create);
+        $this->assertStringContainsString('Pre-paid', $index);
+        $this->assertStringContainsString('Post-paid', $index);
+        $this->assertStringContainsString('Semua Skema', $index);
+        $this->assertStringContainsString('order-payment-attribute', $index);
+        $this->assertStringContainsString('background: #fff7ed;', $index);
+        $this->assertStringContainsString('background: #eff6ff;', $index);
         $this->assertStringContainsString("classList.toggle('dms-combobox-row-open', shouldOpen)", $create);
         $this->assertStringNotContainsString('padding-bottom: 14rem', $create);
         $this->assertStringContainsString('button.textContent = option.textContent.trim();', $create);
@@ -258,6 +310,9 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('User::with(\'customer\')', $controller);
         $this->assertStringContainsString('data-address="{{ e($customer->customer?->address ?? $customer->address ?? \'\') }}"', $create);
         $this->assertStringContainsString('id="delivery-address"', $create);
+        $this->assertStringContainsString('name="order_request_token"', $create);
+        $this->assertStringContainsString('id="save-order-button"', $create);
+        $this->assertStringContainsString('Menyimpan...', $create);
         $this->assertStringContainsString('name="payment_timing"', $create);
         $this->assertStringContainsString('value="pre_paid"', $create);
         $this->assertStringContainsString('value="post_paid"', $create);
@@ -278,14 +333,18 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('Centang bila order memang perlu packing/repack. Biaya boleh 0 jika free packing.', $create);
         $this->assertStringContainsString("'shipping_type' => 'nullable|in:none,flat,weight,distance'", $controller);
         $this->assertStringContainsString("'shipping_rate' => 'nullable|numeric|min:0'", $controller);
-        $this->assertStringContainsString("'payment_timing' => 'required|in:' . Order::PAYMENT_TIMING_PRE_PAID . ',' . Order::PAYMENT_TIMING_POST_PAID", $controller);
+        $this->assertStringContainsString("'payment_timing' => 'nullable|in:' . Order::PAYMENT_TIMING_PRE_PAID . ',' . Order::PAYMENT_TIMING_POST_PAID", $controller);
+        $this->assertStringContainsString("'order_request_token' => 'required|string|max:64'", $controller);
+        $this->assertStringContainsString("if (!\$request->filled('order_request_token'))", $controller);
+        $this->assertStringContainsString("Order::where('request_token'", $controller);
         $this->assertStringContainsString('$defaultPaymentTiming = $request->get(\'payment_timing\', Order::PAYMENT_TIMING_POST_PAID);', $controller);
         $this->assertStringContainsString('$packingFee = $requiresPacking ? ($request->packing_fee ?? 0) : 0;', $controller);
         $this->assertStringContainsString('$shippingTypeForStorage = $shippingType === Order::SHIPPING_NONE ? Order::SHIPPING_FLAT : $shippingType;', $controller);
         $this->assertStringContainsString("'shipping_type' => \$shippingTypeForStorage,", $controller);
         $this->assertStringContainsString("\$order->load('items.product.stock');", $controller);
         $this->assertStringContainsString('$allAvailable = $order->processStockReduction();', $controller);
-        $this->assertStringContainsString('if ($allAvailable && !$order->requiresPacking())', $controller);
+        $this->assertStringContainsString('if ($allAvailable) {', $controller);
+        $this->assertStringContainsString('Order::STATUS_PICKING', $controller);
         $this->assertStringNotContainsString("'packing_fee' => 1000", $controller);
         $this->assertStringNotContainsString('JIT (', $create);
         $this->assertStringNotContainsString('Mode JIT:', $create);
@@ -311,6 +370,7 @@ class ViewMarkupTest extends TestCase
         $customerShow = file_get_contents(resource_path('views/customers/show.blade.php'));
         $customerCreate = file_get_contents(resource_path('views/customers/create.blade.php'));
         $customerEdit = file_get_contents(resource_path('views/customers/edit.blade.php'));
+        $addressLookup = file_get_contents(resource_path('views/customers/partials/address-lookup.blade.php'));
         $orderCreate = file_get_contents(resource_path('views/orders/create.blade.php'));
         $orderEdit = file_get_contents(resource_path('views/orders/edit.blade.php'));
         $orderShow = file_get_contents(resource_path('views/orders/show.blade.php'));
@@ -326,6 +386,10 @@ class ViewMarkupTest extends TestCase
         $this->assertStringContainsString('Tambahkan alamat baru di sini sebelum dipakai saat membuat order.', $customerShow);
         $this->assertStringContainsString('Tambah Alamat Pengiriman / Invoice', $customerShow);
         $this->assertStringContainsString('Invoice & Pengiriman', $customerShow);
+        $this->assertStringNotContainsString('Buka koordinat', $addressLookup);
+        $this->assertStringNotContainsString('Salin koordinat', $addressLookup);
+        $this->assertStringContainsString('title="Buka Maps"', $customerShow);
+        $this->assertStringContainsString('bi bi-map', $customerShow);
         $this->assertStringContainsString('Alamat tambahan dapat ditambahkan di Detail Pelanggan', $customerCreate);
         $this->assertStringContainsString('Tambah alamat pengiriman/invoice lain', $customerEdit);
 

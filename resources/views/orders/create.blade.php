@@ -12,13 +12,13 @@
 
     <form id="order-form" action="{{ route('orders.store') }}" method="POST">
         @csrf
-        <input type="hidden" name="order_source" id="order_source" value="admin">
+        <input type="hidden" name="order_request_token" value="{{ $orderRequestToken }}">
         <input type="hidden" name="payment_method" id="payment_method" value="manual">
         
         <!-- Pelanggan & Order Type Section -->
-        <div style="margin-bottom: 1.5rem;">
-            <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--k-gray-200);">
-                <i class="bi bi-person" style="margin-right: 0.4rem; color: var(--k-green);"></i>
+        <div class="dms-order-section">
+            <h4 class="dms-order-section-title">
+                <i class="bi bi-person"></i>
                 Informasi Pelanggan & Mode Order
             </h4>
             
@@ -55,6 +55,9 @@
                                 data-address="{{ e($customer->customer?->address ?? $customer->address ?? '') }}"
                                 data-latitude="{{ e($customer->customer?->latitude ?? '') }}"
                                 data-longitude="{{ e($customer->customer?->longitude ?? '') }}"
+                                data-branch-id="{{ $profile?->company_branch_id ?? '' }}"
+                                data-salesperson-id="{{ $profile?->activeSalesAssignment?->salesperson_id ?? '' }}"
+                                data-sales-territory="{{ e($profile?->activeSalesAssignment?->salesTerritory?->name ?? '') }}"
                                 data-invoice-addresses='@json($invoiceAddresses->map($formatAddress)->values(), JSON_HEX_APOS | JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE)'
                                 data-shipping-addresses='@json($shippingAddresses->map($formatAddress)->values(), JSON_HEX_APOS | JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE)'
                                 data-address-url="{{ route('customers.show', $customer->customer?->id ?? 0) }}#customer-addresses"
@@ -71,6 +74,60 @@
                     </small>
                     @endcan
                     @error('user_id') <span class="dms-error">{{ $message }}</span> @enderror
+                </div>
+
+                <!-- Company Branch -->
+                <div>
+                    <label class="form-label">Cabang Pengirim</label>
+                    @if($branchLocked)
+                        <input type="hidden" name="company_branch_id" value="{{ $defaultCompanyBranchId }}">
+                    @endif
+                    <select name="company_branch_id" id="company_branch_id" class="form-control" {{ $branchLocked ? 'disabled' : '' }}>
+                        <option value="">Gunakan cabang default</option>
+                        @foreach($companyBranches as $branch)
+                            <option value="{{ $branch->id }}" {{ (string) old('company_branch_id', $defaultCompanyBranchId) === (string) $branch->id ? 'selected' : '' }}>
+                                {{ $branch->name }}{{ $branch->code ? ' - '.$branch->code : '' }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <small class="dms-form-help">
+                        Dipakai sebagai cabang pengirim pada invoice/dokumen dan filter pelanggan.
+                        @can('edit company profile')
+                            <a href="{{ route('company-profile.index') }}" target="_blank" style="color: var(--k-green);">Kelola cabang</a>
+                        @endcan
+                    </small>
+                    @error('company_branch_id') <span class="dms-error">{{ $message }}</span> @enderror
+                </div>
+
+                <!-- Order Source -->
+                <div>
+                    <label class="form-label">Sumber Order</label>
+                    <input type="hidden" name="order_source" id="order_source" value="{{ \App\Models\Order::ORDER_SOURCE_ADMIN }}">
+                    <div class="form-control dms-readonly-field" aria-readonly="true">
+                        <i class="bi bi-laptop"></i>
+                        <span>Admin</span>
+                    </div>
+                    <small class="dms-form-help">Otomatis dari modul input order. SFA dan Telesales akan tercatat dari modulnya masing-masing.</small>
+                    @error('order_source') <span class="dms-error">{{ $message }}</span> @enderror
+                </div>
+
+                <!-- Sales Owner -->
+                <div>
+                    <label class="form-label">Sales Owner</label>
+                    <select name="salesperson_id" id="salesperson_id" class="form-control">
+                        <option value="">Tanpa sales owner / House account</option>
+                        @foreach($salespeople as $salesperson)
+                            <option
+                                value="{{ $salesperson->id }}"
+                                data-branch-id="{{ $salesperson->company_branch_id ?? '' }}"
+                                {{ old('salesperson_id') == $salesperson->id ? 'selected' : '' }}
+                            >
+                                {{ $salesperson->name }}{{ $salesperson->companyBranch?->code ? ' - '.$salesperson->companyBranch->code : '' }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <small class="dms-form-help">Otomatis mengikuti assignment aktif customer. Bisa diubah jika order dialihkan ke sales lain.</small>
+                    @error('salesperson_id') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
                 
                 <!-- Fulfillment Type -->
@@ -117,10 +174,10 @@
         </div>
         
         <!-- Products Section -->
-        <div style="margin-bottom: 1.5rem;">
+        <div class="dms-order-section">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--k-gray-800);">
-                    <i class="bi bi-box-seam" style="margin-right: 0.4rem; color: var(--k-green);"></i>
+                <h4 class="dms-order-section-title" style="margin-bottom: 0;">
+                    <i class="bi bi-box-seam"></i>
                     Daftar Produk
                 </h4>
                 <button type="button" class="dms-btn dms-btn-outline" onclick="addProductRow()" style="padding: 0.3rem 0.8rem; font-size: 0.7rem;">
@@ -177,7 +234,6 @@
                     </tbody>
                  </table>
             </div>
-        </div>
         
         <!-- Discount, Shipping & Packing Section -->
         <div class="dms-fee-grid">
@@ -254,11 +310,11 @@
         </div>
         
         <!-- PPN Section -->
-        <div style="margin-bottom: 1.5rem;">
+        <div class="dms-ppn-row">
             <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
                 <label class="dms-check">
-                    <input type="checkbox" name="include_ppn" id="include_ppn" value="1" onchange="togglePPN()">
-                    <span><i class="bi bi-percent"></i> Include PPN 11%</span>
+                    <input type="checkbox" name="include_ppn" id="include_ppn" value="1" {{ old('include_ppn', '1') ? 'checked' : '' }} onchange="togglePPN()">
+                    <span>Include PPN 11%</span>
                 </label>
                 <div id="ppn_rate_container" style="display: none;">
                     <label class="form-label">Rate PPN (%)</label>
@@ -268,7 +324,7 @@
         </div>
         
         <!-- Calculation Summary -->
-        <div style="margin-bottom: 1.5rem; background: var(--k-gray-50); border-radius: 8px; padding: 0.75rem;">
+        <div style="background: var(--k-gray-50); border-radius: 8px; padding: 0.75rem;">
             <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span style="font-size: 0.75rem; color: var(--k-gray-600);">Subtotal Produk:</span>
@@ -303,11 +359,12 @@
                 </div>
             </div>
         </div>
+        </div>
         
         <!-- Delivery Information -->
-        <div style="margin-bottom: 1.5rem;">
-            <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--k-gray-200);">
-                <i class="bi bi-geo-alt" style="margin-right: 0.4rem; color: var(--k-green);"></i>
+        <div class="dms-order-section">
+            <h4 class="dms-order-section-title">
+                <i class="bi bi-geo-alt"></i>
                 Informasi Pengiriman
             </h4>
             
@@ -321,10 +378,17 @@
                 <div>
                     <label class="form-label">Waktu Pengiriman <span class="dms-required">*</span></label>
                     <select name="delivery_time_slot" class="form-control" required>
-                        <option value="06:00-09:00">06:00 - 09:00 (Pagi)</option>
-                        <option value="09:00-12:00">09:00 - 12:00 (Siang)</option>
-                        <option value="12:00-15:00">12:00 - 15:00 (Sore)</option>
+                        @forelse($deliveryTimeSlots as $slot)
+                            <option value="{{ $slot->value }}" {{ old('delivery_time_slot', '06:00-09:00') === $slot->value ? 'selected' : '' }}>{{ $slot->display_label }}</option>
+                        @empty
+                            <option value="06:00-09:00" {{ old('delivery_time_slot', '06:00-09:00') === '06:00-09:00' ? 'selected' : '' }}>06:00 - 09:00 (Pagi)</option>
+                            <option value="09:00-12:00" {{ old('delivery_time_slot') === '09:00-12:00' ? 'selected' : '' }}>09:00 - 12:00 (Siang)</option>
+                            <option value="12:00-15:00" {{ old('delivery_time_slot') === '12:00-15:00' ? 'selected' : '' }}>12:00 - 15:00 (Sore)</option>
+                        @endforelse
                     </select>
+                    <small class="dms-form-help">
+                        <a href="{{ route('delivery-time-slots.index') }}">Kelola slot waktu</a>
+                    </small>
                     @error('delivery_time_slot') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
 
@@ -371,7 +435,7 @@
             <a href="{{ route('orders.index') }}" class="dms-btn dms-btn-outline" style="padding: 0.5rem 1rem; font-size: 0.75rem;">
                 <i class="bi bi-arrow-left"></i> Batal
             </a>
-            <button type="submit" class="dms-btn dms-btn-primary" style="padding: 0.5rem 1rem; font-size: 0.75rem;">
+            <button type="submit" id="save-order-button" class="dms-btn dms-btn-primary" style="padding: 0.5rem 1rem; font-size: 0.75rem;">
                 <i class="bi bi-save"></i> Simpan Order
             </button>
         </div>
@@ -380,6 +444,15 @@
 
 <script>
 let productIndex = 1;
+
+const orderForm = document.getElementById('order-form');
+const saveOrderButton = document.getElementById('save-order-button');
+if (orderForm && saveOrderButton) {
+    orderForm.addEventListener('submit', () => {
+        saveOrderButton.disabled = true;
+        saveOrderButton.innerHTML = '<i class="bi bi-hourglass-split"></i> Menyimpan...';
+    });
+}
 
 function buildSearchableDropdown(dropdown) {
     const select = document.getElementById(dropdown.dataset.selectId);
@@ -422,7 +495,7 @@ function buildSearchableDropdown(dropdown) {
 
     const renderOptions = () => {
         const query = search.value.trim().toLowerCase();
-        const options = Array.from(select.options).filter(option => option.value);
+        const options = Array.from(select.options).filter(option => option.value && !option.disabled);
         const matches = options.filter(option => option.textContent.toLowerCase().includes(query));
 
         optionsWrap.innerHTML = '';
@@ -483,7 +556,10 @@ function buildSearchableDropdown(dropdown) {
 
     select.addEventListener('change', updateLabel);
     if (select.id === 'customer-select') {
-        select.addEventListener('change', () => fillDeliveryAddressFromCustomer(true));
+        select.addEventListener('change', () => {
+            fillDeliveryAddressFromCustomer(true);
+            applySalesOwnerFromCustomer(true);
+        });
     }
     updateLabel();
     renderOptions();
@@ -491,6 +567,97 @@ function buildSearchableDropdown(dropdown) {
 
 function initializeSearchableDropdowns(scope = document) {
     scope.querySelectorAll('.js-searchable-dropdown').forEach(buildSearchableDropdown);
+}
+
+function filterCustomersByBranch() {
+    const branchSelect = document.getElementById('company_branch_id');
+    const customerSelect = document.getElementById('customer-select');
+
+    if (!branchSelect || !customerSelect) {
+        return;
+    }
+
+    const branchId = branchSelect.value;
+    let selectedStillAllowed = true;
+
+    Array.from(customerSelect.options).forEach(option => {
+        if (!option.value) {
+            option.disabled = false;
+            option.hidden = false;
+            return;
+        }
+
+        const optionBranchId = option.dataset.branchId || '';
+        const allowed = !branchId || optionBranchId === branchId;
+        option.disabled = !allowed;
+        option.hidden = !allowed;
+
+        if (option.selected && !allowed) {
+            selectedStillAllowed = false;
+        }
+    });
+
+    if (!selectedStillAllowed) {
+        customerSelect.value = '';
+        customerSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+}
+
+function filterSalesOwnersByBranch() {
+    const branchSelect = document.getElementById('company_branch_id');
+    const salespersonSelect = document.getElementById('salesperson_id');
+
+    if (!branchSelect || !salespersonSelect) {
+        return;
+    }
+
+    const branchId = branchSelect.value;
+    let selectedStillAllowed = true;
+
+    Array.from(salespersonSelect.options).forEach(option => {
+        if (!option.value) {
+            option.disabled = false;
+            option.hidden = false;
+            return;
+        }
+
+        const optionBranchId = option.dataset.branchId || '';
+        const allowed = !branchId || !optionBranchId || optionBranchId === branchId;
+        option.disabled = !allowed;
+        option.hidden = !allowed;
+
+        if (option.selected && !allowed) {
+            selectedStillAllowed = false;
+        }
+    });
+
+    if (!selectedStillAllowed) {
+        salespersonSelect.value = '';
+    }
+}
+
+function applySalesOwnerFromCustomer(force = false) {
+    const customerSelect = document.getElementById('customer-select');
+    const salespersonSelect = document.getElementById('salesperson_id');
+
+    if (!customerSelect || !salespersonSelect) {
+        return;
+    }
+
+    const selected = customerSelect.options[customerSelect.selectedIndex];
+    const assignedSalespersonId = selected?.dataset.salespersonId || '';
+
+    if (!force && salespersonSelect.value) {
+        return;
+    }
+
+    if (assignedSalespersonId && salespersonSelect.querySelector(`option[value="${assignedSalespersonId}"]`)) {
+        salespersonSelect.value = assignedSalespersonId;
+        salespersonSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    } else if (force) {
+        salespersonSelect.value = '';
+        salespersonSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    }
 }
 
 function fillDeliveryAddressFromCustomer(force = false) {
@@ -642,10 +809,20 @@ function toggleShippingType() {
     const weightContainer = document.getElementById('shipping_weight_container');
     const distanceContainer = document.getElementById('shipping_distance_container');
     const rateContainer = document.getElementById('shipping_rate_container');
+    const rateInput = document.getElementById('shipping_rate');
+    const weightInput = document.getElementById('shipping_weight');
+    const distanceInput = document.getElementById('shipping_distance');
     
     weightContainer.style.display = shippingType === 'weight' ? 'block' : 'none';
     distanceContainer.style.display = shippingType === 'distance' ? 'block' : 'none';
     rateContainer.style.display = shippingType === 'none' ? 'none' : 'block';
+
+    if (shippingType === 'none') {
+        rateInput.value = 0;
+        weightInput.value = 0;
+        distanceInput.value = 0;
+    }
+
     calculateGrandTotal();
 }
 
@@ -893,11 +1070,19 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('shipping_distance').addEventListener('input', calculateGrandTotal);
     document.getElementById('packing_fee').addEventListener('input', calculateGrandTotal);
     document.getElementById('requires_packing').addEventListener('change', togglePackingRequirement);
+    document.getElementById('company_branch_id')?.addEventListener('change', () => {
+        filterCustomersByBranch();
+        filterSalesOwnersByBranch();
+        applySalesOwnerFromCustomer(true);
+    });
     document.getElementById('invoice-address-select').addEventListener('change', () => updateDeliveryAddressSnapshot(true));
     document.getElementById('shipping-address-select').addEventListener('change', () => updateDeliveryAddressSnapshot(true));
     document.getElementById('shipping_same_as_invoice').addEventListener('change', () => updateDeliveryAddressSnapshot(true));
     document.getElementById('include_ppn').addEventListener('change', calculateGrandTotal);
     document.getElementById('ppn_rate').addEventListener('input', calculateGrandTotal);
+    filterCustomersByBranch();
+    filterSalesOwnersByBranch();
+    applySalesOwnerFromCustomer(false);
 });
 
 document.addEventListener('click', function(event) {
@@ -936,15 +1121,45 @@ document.addEventListener('click', function(event) {
     border-color: var(--k-green);
     box-shadow: 0 0 0 2px var(--k-green-light);
 }
+.dms-readonly-field {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: var(--k-gray-50);
+    color: var(--k-gray-700);
+    font-weight: 600;
+}
+.dms-readonly-field i {
+    color: var(--k-blue);
+}
 textarea.form-control {
     resize: vertical;
+}
+.dms-order-section {
+    margin-bottom: 1.2rem;
+    padding: 1rem;
+    border: 1px solid #dbe6f3;
+    border-radius: 8px;
+    background: #ffffff;
+}
+.dms-order-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0 0 0.85rem;
+    color: var(--k-gray-800);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+.dms-order-section-title i {
+    color: var(--k-green);
 }
 .dms-fee-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: start;
     gap: 1.75rem;
-    margin-bottom: 1.5rem;
+    margin: 1rem 0;
 }
 .dms-order-form-grid {
     gap: 1.75rem;
@@ -980,6 +1195,11 @@ textarea.form-control {
 .dms-products-table-wrap {
     overflow: visible;
     position: relative;
+}
+.dms-ppn-row {
+    margin: 0 0 1rem;
+    padding-top: 0.9rem;
+    border-top: 1px dashed var(--k-gray-200);
 }
 .dms-native-select {
     position: absolute;

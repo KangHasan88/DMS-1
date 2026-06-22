@@ -16,8 +16,21 @@
             </p>
         </div>
         <div style="display: flex; gap: 0.5rem;">
+            @can('view invoice')
+            <a href="{{ route('orders.proforma-invoice', $order) }}" class="dms-btn dms-btn-outline">
+                <i class="bi bi-file-earmark-text"></i> Proforma
+            </a>
+            <a href="{{ route('orders.invoice', $order) }}" class="dms-btn dms-btn-outline">
+                <i class="bi bi-receipt"></i> Invoice
+            </a>
+            @if($order->canViewDeliveryOrderDocument())
+            <a href="{{ route('orders.delivery-order', $order) }}" class="dms-btn dms-btn-outline">
+                <i class="bi bi-truck"></i> DO
+            </a>
+            @endif
+            @endcan
             @can('edit sales order')
-            @if($order->canUpdateStatus())
+            @if($order->canEditOrder())
             <a href="{{ route('orders.edit', $order) }}" class="dms-btn dms-btn-primary">
                 <i class="bi bi-pencil"></i> Edit
             </a>
@@ -39,8 +52,8 @@
             </div>
             <div>
                 <span class="dms-badge dms-badge-info">
-                    <i class="bi bi-{{ $order->order_source == 'app' ? 'phone' : 'laptop' }}"></i>
-                    {{ $order->order_source == 'app' ? 'Dari Aplikasi' : 'Dari Admin' }}
+                    <i class="bi bi-{{ $order->order_source == 'sfa' ? 'phone' : ($order->order_source == 'telesales' ? 'headset' : 'laptop') }}"></i>
+                    {{ $order->order_source_label }}
                 </span>
                 <span class="dms-badge dms-badge-{{ $order->fulfillment_type == 'stock' ? 'warning' : 'info' }}">
                     <i class="bi bi-{{ $order->fulfillment_type == 'stock' ? 'archive' : 'truck' }}"></i>
@@ -62,28 +75,31 @@
             @php
                 $statusSteps = [];
 
-                if ($order->payment_timing == 'pre_paid') {
-                    $statusSteps['pending_payment'] = ['label' => 'Menunggu Bayar', 'icon' => 'bi-clock', 'color' => 'warning'];
-                    $statusSteps['paid'] = ['label' => 'Sudah Bayar', 'icon' => 'bi-credit-card', 'color' => 'info'];
-                }
-
                 if ($order->useStockMode()) {
-                    $statusSteps['checking_stock'] = ['label' => 'Cek Stock', 'icon' => 'bi-box-seam', 'color' => 'info'];
+                    $statusSteps['checking_stock'] = ['label' => 'Alokasi Stok', 'icon' => 'bi-box-seam', 'color' => 'info'];
+                    $statusSteps['picking'] = ['label' => 'Picking', 'icon' => 'bi-hand-index-thumb', 'color' => 'info'];
                 } else {
-                    $statusSteps['procuring'] = ['label' => 'Belanja', 'icon' => 'bi-cart', 'color' => 'info'];
+                    $statusSteps['procuring'] = ['label' => 'Belanja BLJ', 'icon' => 'bi-cart', 'color' => 'info'];
                 }
 
                 if ($order->requiresPacking()) {
-                    $statusSteps['repacking'] = ['label' => 'Repacking', 'icon' => 'bi-box', 'color' => 'info'];
+                    $statusSteps['repacking'] = ['label' => 'Packing / Repack', 'icon' => 'bi-box', 'color' => 'info'];
                 }
                 $statusSteps['ready'] = ['label' => 'Siap Kirim', 'icon' => 'bi-check-circle', 'color' => 'success'];
-                $statusSteps['shipped'] = ['label' => 'Dikirim', 'icon' => 'bi-truck', 'color' => 'success'];
+                $statusSteps['shipped'] = ['label' => 'Dalam Pengiriman', 'icon' => 'bi-truck', 'color' => 'success'];
 
                 if ($order->payment_timing == 'post_paid') {
                     $statusSteps['paid'] = ['label' => 'Sudah Bayar', 'icon' => 'bi-credit-card', 'color' => 'info'];
                 }
 
                 $statusSteps['delivered'] = ['label' => 'Selesai', 'icon' => 'bi-flag', 'color' => 'success'];
+
+                if ($order->payment_timing == 'pre_paid') {
+                    $statusSteps = array_merge([
+                        'pending_payment' => ['label' => 'Menunggu Bayar', 'icon' => 'bi-clock', 'color' => 'warning'],
+                        'paid' => ['label' => 'Sudah Bayar', 'icon' => 'bi-credit-card', 'color' => 'info'],
+                    ], $statusSteps);
+                }
 
                 $statusKeys = array_keys($statusSteps);
                 $currentStatusIndex = array_search($order->status, $statusKeys);
@@ -157,18 +173,44 @@
                     
                     <div style="font-weight: 600; color: var(--k-gray-600);">Tanggal Order</div>
                     <div>{{ $order->created_at->format('d M Y H:i') }}</div>
+
+                    <div style="font-weight: 600; color: var(--k-gray-600);">Sumber Order</div>
+                    <div>{{ $order->order_source_label }}</div>
+
+                    <div style="font-weight: 600; color: var(--k-gray-600);">Sales Owner</div>
+                    <div>{{ $order->salesperson->name ?? 'House Account' }}</div>
+
+                    @if($order->createdBy)
+                    <div style="font-weight: 600; color: var(--k-gray-600);">Input Oleh</div>
+                    <div>{{ $order->createdBy->name }}</div>
+                    @endif
                     
                     <div style="font-weight: 600; color: var(--k-gray-600);">Pengiriman</div>
                     <div>{{ \Carbon\Carbon::parse($order->delivery_date)->format('d M Y') }} ({{ $order->delivery_time_slot }})</div>
                     
-                    <div style="font-weight: 600; color: var(--k-gray-600);">Tracking</div>
+                    <div style="font-weight: 600; color: var(--k-gray-600); display: flex; align-items: center; gap: 0.25rem;">
+                        <i class="bi bi-upc-scan" style="color: var(--k-green);"></i>
+                        No Resi
+                    </div>
                     <div>{{ $order->tracking_code ?? '-' }}</div>
+
+                    @if($order->companyBranch)
+                    <div style="font-weight: 600; color: var(--k-gray-600);">Cabang Pengirim</div>
+                    <div>
+                        {{ $order->companyBranch->name }}
+                        @if($order->companyBranch->code)
+                            <span class="dms-badge dms-badge-info">{{ $order->companyBranch->code }}</span>
+                        @endif
+                    </div>
+                    @endif
 
                     <div style="font-weight: 600; color: var(--k-gray-600);">Skema Pembayaran</div>
                     <div>{{ $order->payment_timing == 'pre_paid' ? 'Pre-paid' : 'Post-paid' }}</div>
 
+                    @if($order->requiresPacking())
                     <div style="font-weight: 600; color: var(--k-gray-600);">Packing / Repack</div>
-                    <div>{{ $order->requiresPacking() ? 'Ya' : 'Tidak' }}</div>
+                    <div>Ya</div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -346,43 +388,58 @@
 <div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: flex-end; flex-wrap: wrap;">
     
     {{-- Konfirmasi Pembayaran --}}
-    @can('process orders')
-    @if(($order->payment_timing == 'pre_paid' && $order->status == 'pending_payment') || ($order->payment_timing == 'post_paid' && $order->status == 'shipped'))
-    <form action="{{ route('orders.update-status', $order) }}" method="POST">
+    @if(auth()->user()?->canProcessFinance() && (($order->payment_timing == 'pre_paid' && $order->status == 'pending_payment') || ($order->payment_timing == 'post_paid' && $order->status == 'shipped')))
+    <form action="{{ route('orders.confirm-payment', $order) }}" method="POST">
         @csrf
-        <input type="hidden" name="status" value="paid">
         <input type="hidden" name="notes" value="Pembayaran diterima">
         <button type="submit" class="dms-btn dms-btn-primary">
             <i class="bi bi-check-circle"></i> Konfirmasi Pembayaran
         </button>
     </form>
     @endif
-    @endcan
+
+    {{-- Mulai proses setelah pre-paid dibayar --}}
+    @if($order->payment_timing == 'pre_paid' && $order->status == 'paid' && (($order->useStockMode() && auth()->user()?->canAllocateStock()) || ($order->useJitMode() && auth()->user()?->canProcessProcurement())))
+    <form action="{{ route('orders.update-status', $order) }}" method="POST">
+        @csrf
+        <input type="hidden" name="status" value="{{ $order->useStockMode() ? 'checking_stock' : 'procuring' }}">
+        <input type="hidden" name="notes" value="{{ $order->useStockMode() ? 'Mulai alokasi stok' : 'Mulai belanja BLJ' }}">
+        <button type="submit" class="dms-btn dms-btn-primary">
+            <i class="bi {{ $order->useStockMode() ? 'bi-box-seam' : 'bi-cart' }}"></i>
+            {{ $order->useStockMode() ? 'Alokasi Stok' : 'Belanja BLJ' }}
+        </button>
+    </form>
+    @endif
     
     {{-- HANYA untuk mode BLJ: Input Data Belanja --}}
-    @can('process orders')
-    @if($order->status == 'procuring' && $order->useJitMode())
+    @if(auth()->user()?->canProcessProcurement() && $order->status == 'procuring' && $order->useJitMode())
     <button onclick="openProcurementModal()" class="dms-btn dms-btn-primary">
         <i class="bi bi-cart"></i> Input Data Belanja
     </button>
     @endif
-    @endcan
     
-    {{-- Proses Repack (untuk mode stock setelah checking_stock) --}}
-    @can('process orders')
-    @if($order->requiresPacking() && $order->status == 'checking_stock' && $order->useStockMode())
-    <form action="{{ route('orders.process-repack', $order) }}" method="POST">
+    {{-- Mulai Picking (untuk mode stock setelah alokasi stok) --}}
+    @if(auth()->user()?->canPickOrders() && $order->status == 'checking_stock' && $order->useStockMode())
+    <form action="{{ route('orders.start-picking', $order) }}" method="POST">
         @csrf
         <button type="submit" class="dms-btn dms-btn-primary">
-            <i class="bi bi-box"></i> Proses Repack
+            <i class="bi bi-hand-index-thumb"></i> Mulai Picking
         </button>
     </form>
     @endif
-    @endcan
+
+    {{-- Selesai Picking --}}
+    @if(auth()->user()?->canPickOrders() && $order->status == 'picking' && $order->useStockMode())
+    <form action="{{ route('orders.mark-picked', $order) }}" method="POST">
+        @csrf
+        <button type="submit" class="dms-btn dms-btn-primary">
+            <i class="bi bi-check2-square"></i> Selesai Picking
+        </button>
+    </form>
+    @endif
     
     {{-- Proses Repack (untuk mode BLJ setelah procurement selesai) --}}
-    @can('process orders')
-    @if($order->requiresPacking() && $order->status == 'procuring' && $order->useJitMode() && $order->items()->where('fulfillment_status', 'pending')->count() == 0)
+    @if(auth()->user()?->canPackOrders() && $order->requiresPacking() && $order->status == 'procuring' && $order->useJitMode() && $order->items()->where('fulfillment_status', 'pending')->count() == 0)
     <form action="{{ route('orders.process-repack', $order) }}" method="POST">
         @csrf
         <button type="submit" class="dms-btn dms-btn-primary">
@@ -390,11 +447,9 @@
         </button>
     </form>
     @endif
-    @endcan
     
     {{-- Siap Kirim --}}
-    @can('process orders')
-    @if((!$order->requiresPacking() && in_array($order->status, ['checking_stock', 'procuring'], true)) || $order->status == 'repacking')
+    @if(auth()->user()?->canPackOrders() && ((!$order->requiresPacking() && $order->status == 'procuring') || $order->status == 'repacking'))
     <form action="{{ route('orders.mark-ready', $order) }}" method="POST">
         @csrf
         <button type="submit" class="dms-btn dms-btn-primary">
@@ -402,7 +457,6 @@
         </button>
     </form>
     @endif
-    @endcan
     
     {{-- Kirim Order --}}
     @can('process deliveries')
@@ -428,7 +482,7 @@
 @endif
 
 <!-- Procurement Modal (untuk BLJ) -->
-@can('process orders')
+@if(auth()->user()?->canProcessProcurement())
 <div id="procurementModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
     <div style="background: white; border-radius: 12px; padding: 1.5rem; width: 600px; max-width: 90%;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
@@ -468,7 +522,7 @@
         </form>
     </div>
 </div>
-@endcan
+@endif
 
 <!-- Shipping Modal -->
 @can('process deliveries')
@@ -483,8 +537,8 @@
         <form action="{{ route('orders.mark-shipped', $order) }}" method="POST">
             @csrf
             <div class="form-group">
-                <label class="form-label" style="font-size: 0.7rem;">Nomor Resi (opsional)</label>
-                <input type="text" name="tracking_code" class="form-control" placeholder="Nomor resi pengiriman" style="padding: 0.5rem;">
+                <label class="form-label" style="font-size: 0.7rem;">No Resi (opsional)</label>
+                <input type="text" name="tracking_code" class="form-control" placeholder="Isi jika sudah ada nomor resi" style="padding: 0.5rem;">
             </div>
             <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem;">
                 <button type="button" onclick="closeShippingModal()" class="dms-btn dms-btn-outline" style="padding: 0.4rem 0.8rem;">Batal</button>

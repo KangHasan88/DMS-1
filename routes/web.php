@@ -11,10 +11,18 @@ use App\Http\Controllers\UnitCategoryController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\CustomerAddressController;
 use App\Http\Controllers\CustomerTypeController;
+use App\Http\Controllers\SalesCoverageController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierCategoryController;
+use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\DeliveryController;
+use App\Http\Controllers\DeliveryVendorController;
+use App\Http\Controllers\DeliveryTimeSlotController;
+use App\Http\Controllers\DeliveryVehicleController;
+use App\Http\Controllers\DeliveryCoverageController;
+use App\Http\Controllers\DeliveryDriverController;
+use App\Http\Controllers\DeliveryRouteSessionController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\StockController;
@@ -59,9 +67,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
     
     // ============= USER MANAGEMENT =============
-    Route::middleware(['role:super-admin,admin'])->prefix('admin')->name('admin.')->group(function () {
-        Route::resource('users', UserController::class);
-        Route::post('users/{user}/toggle-status', [UserController::class, 'toggleActive'])->name('users.toggle-status');
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::resource('users', UserController::class)->only(['create', 'store'])->middleware('permission:create users');
+        Route::resource('users', UserController::class)->only(['index', 'show'])->middleware('permission:view users');
+        Route::resource('users', UserController::class)->only(['edit', 'update'])->middleware('permission:edit users');
+        Route::resource('users', UserController::class)->only(['destroy'])->middleware('permission:delete users');
+        Route::post('users/{user}/toggle-status', [UserController::class, 'toggleActive'])->middleware('permission:activate users')->name('users.toggle-status');
     });
     
     // ============= ROLE & PERMISSION MANAGEMENT =============
@@ -80,6 +91,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/{role}/permissions', [RoleController::class, 'permissions'])->name('permissions');
             Route::put('/{role}/permissions', [RoleController::class, 'updatePermissions'])->name('permissions.update');
         });
+    });
+
+    // ============= COMPANY PROFILE =============
+    Route::prefix('company-profile')->name('company-profile.')->group(function () {
+        Route::get('/', [CompanyProfileController::class, 'index'])->middleware('permission:view company profile')->name('index');
+        Route::put('/company', [CompanyProfileController::class, 'updateCompany'])->middleware('permission:edit company profile')->name('update-company');
+        Route::post('/branches', [CompanyProfileController::class, 'storeBranch'])->middleware('permission:edit company profile')->name('branches.store');
+        Route::put('/branches/{branch}', [CompanyProfileController::class, 'updateBranch'])->middleware('permission:edit company profile')->name('branches.update');
+        Route::post('/branches/{branch}/toggle', [CompanyProfileController::class, 'toggleBranch'])->middleware('permission:edit company profile')->name('branches.toggle');
+        Route::post('/branches/{branch}/default', [CompanyProfileController::class, 'setDefaultBranch'])->middleware('permission:edit company profile')->name('branches.default');
     });
     
     // ============= UNIT MANAGEMENT =============
@@ -127,6 +148,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('customer-types/{customerType}/toggle-status', [CustomerTypeController::class, 'toggleStatus'])->middleware('permission:edit customers')->name('customer-types.toggle-status');
 
     // ============= CUSTOMER MANAGEMENT =============
+    Route::get('customers/maps/reverse-geocode', [CustomerAddressController::class, 'reverseGeocode'])->name('customers.maps.reverse-geocode');
     Route::resource('customers', CustomerController::class)->only(['create', 'store'])->middleware('permission:create customers');
     Route::resource('customers', CustomerController::class)->only(['index', 'show'])->middleware('permission:view customers');
     Route::resource('customers', CustomerController::class)->only(['edit', 'update'])->middleware('permission:edit customers');
@@ -137,6 +159,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('customers/{customer}/addresses', [CustomerAddressController::class, 'store'])->middleware('permission:edit customers')->name('customers.addresses.store');
     Route::put('customers/{customer}/addresses/{address}', [CustomerAddressController::class, 'update'])->middleware('permission:edit customers')->name('customers.addresses.update');
     Route::delete('customers/{customer}/addresses/{address}', [CustomerAddressController::class, 'destroy'])->middleware('permission:edit customers')->name('customers.addresses.destroy');
+
+    // ============= SALES COVERAGE MANAGEMENT =============
+    Route::get('sales-coverage', [SalesCoverageController::class, 'index'])->middleware('permission:view sales team')->name('sales-coverage.index');
+    Route::post('sales-coverage/territories', [SalesCoverageController::class, 'storeTerritory'])->middleware('permission:manage sales team')->name('sales-coverage.territories.store');
+    Route::post('sales-coverage/assignments', [SalesCoverageController::class, 'assignCustomer'])->middleware('permission:manage sales team')->name('sales-coverage.assignments.store');
+    Route::put('sales-coverage/assignments/{assignment}', [SalesCoverageController::class, 'updateAssignment'])->middleware('permission:manage sales team')->name('sales-coverage.assignments.update');
+    Route::delete('sales-coverage/assignments/{assignment}', [SalesCoverageController::class, 'endAssignment'])->middleware('permission:manage sales team')->name('sales-coverage.assignments.destroy');
 
     // ============= SUPPLIER CATEGORY MANAGEMENT =============
     Route::get('supplier-categories', [SupplierCategoryController::class, 'index'])->middleware('permission:view suppliers')->name('supplier-categories.index');
@@ -202,12 +231,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('orders', OrderController::class)->only(['edit', 'update'])->middleware('permission:edit sales order');
     Route::resource('orders', OrderController::class)->only(['destroy'])->middleware('permission:delete sales order');
     Route::post('orders/{order}/update-status', [OrderController::class, 'updateStatus'])->middleware('permission:process orders')->name('orders.update-status');
+    Route::post('orders/{order}/confirm-payment', [OrderController::class, 'confirmPayment'])->middleware('permission:process payment')->name('orders.confirm-payment');
     Route::post('orders/{order}/process-procurement', [OrderController::class, 'processProcurement'])->middleware('permission:process orders')->name('orders.process-procurement');
     Route::post('orders/{order}/process-repack', [OrderController::class, 'processRepack'])->middleware('permission:process orders')->name('orders.process-repack');
+    Route::post('orders/{order}/start-picking', [OrderController::class, 'startPicking'])->middleware('permission:process orders')->name('orders.start-picking');
+    Route::post('orders/{order}/mark-picked', [OrderController::class, 'markPicked'])->middleware('permission:process orders')->name('orders.mark-picked');
     Route::post('orders/{order}/mark-ready', [OrderController::class, 'markReady'])->middleware('permission:process orders')->name('orders.mark-ready');
     Route::post('orders/{order}/mark-shipped', [OrderController::class, 'markShipped'])->middleware('permission:process deliveries')->name('orders.mark-shipped');
     Route::post('orders/{order}/mark-delivered', [OrderController::class, 'markDelivered'])->middleware('permission:process deliveries')->name('orders.mark-delivered');
     Route::get('orders/{order}/invoice', [OrderController::class, 'invoice'])->middleware('permission:view invoice')->name('orders.invoice');
+    Route::get('orders/{order}/proforma-invoice', [OrderController::class, 'proformaInvoice'])->middleware('permission:view invoice')->name('orders.proforma-invoice');
+    Route::get('orders/{order}/delivery-order', [OrderController::class, 'deliveryOrder'])->middleware('permission:view invoice')->name('orders.delivery-order');
     Route::post('order-items/{item}/unavailable', [OrderController::class, 'markItemUnavailable'])->middleware('permission:process orders')->name('order-items.unavailable');
     
     // ============= DELIVERY MANAGEMENT =============
@@ -218,6 +252,28 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('deliveries', DeliveryController::class)->only(['destroy'])->middleware('permission:delete deliveries');
     Route::post('deliveries/{delivery}/update-status', [DeliveryController::class, 'updateStatus'])->middleware('permission:process deliveries')->name('deliveries.update-status');
     Route::post('deliveries/{delivery}/update-location', [DeliveryController::class, 'updateLocation'])->middleware('permission:process deliveries')->name('deliveries.update-location');
+    Route::resource('delivery-route-sessions', DeliveryRouteSessionController::class)->only(['index'])->middleware('permission:view deliveries');
+    Route::resource('delivery-route-sessions', DeliveryRouteSessionController::class)->only(['create', 'store'])->middleware('permission:create deliveries');
+    Route::resource('delivery-route-sessions', DeliveryRouteSessionController::class)->only(['edit', 'update'])->middleware('permission:edit deliveries');
+    Route::resource('delivery-route-sessions', DeliveryRouteSessionController::class)->only(['show'])->middleware('permission:view deliveries');
+    Route::resource('delivery-vendors', DeliveryVendorController::class)->only(['index'])->middleware('permission:view deliveries');
+    Route::resource('delivery-vendors', DeliveryVendorController::class)->only(['create', 'store'])->middleware('permission:create deliveries');
+    Route::resource('delivery-vendors', DeliveryVendorController::class)->only(['edit', 'update'])->middleware('permission:edit deliveries');
+    Route::resource('delivery-vehicles', DeliveryVehicleController::class)->only(['index'])->middleware('permission:view deliveries');
+    Route::resource('delivery-vehicles', DeliveryVehicleController::class)->only(['create', 'store'])->middleware('permission:create deliveries');
+    Route::resource('delivery-vehicles', DeliveryVehicleController::class)->only(['edit', 'update'])->middleware('permission:edit deliveries');
+    Route::get('delivery-drivers', [DeliveryDriverController::class, 'index'])
+        ->middleware('permission:view deliveries')
+        ->name('delivery-drivers.index');
+    Route::resource('delivery-time-slots', DeliveryTimeSlotController::class)->only(['index'])->middleware('permission:view deliveries');
+    Route::resource('delivery-time-slots', DeliveryTimeSlotController::class)->only(['create', 'store'])->middleware('permission:create deliveries');
+    Route::resource('delivery-time-slots', DeliveryTimeSlotController::class)->only(['edit', 'update'])->middleware('permission:edit deliveries');
+    Route::resource('delivery-coverage', DeliveryCoverageController::class)
+        ->only(['index'])
+        ->middleware('permission:view deliveries');
+    Route::resource('delivery-coverage', DeliveryCoverageController::class)
+        ->only(['create', 'store', 'edit', 'update'])
+        ->middleware('permission:edit deliveries');
     
     // ============= OUTBOUND FOC (HADIAH) =============
     Route::resource('outbound-focs', OutboundFocController::class)->only(['create', 'store'])->middleware('permission:create outbound foc');
@@ -237,7 +293,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
     
     // ============= ACTIVITY LOGS =============
-    Route::prefix('activity-logs')->name('activity-logs.')->middleware(['role:super-admin,admin'])->group(function () {
+    Route::prefix('activity-logs')->name('activity-logs.')->middleware('permission:view logs')->group(function () {
         Route::get('/export', [ActivityLogController::class, 'export'])->name('export');
         Route::post('/clear', [ActivityLogController::class, 'clear'])->name('clear');
         Route::get('/', [ActivityLogController::class, 'index'])->name('index');

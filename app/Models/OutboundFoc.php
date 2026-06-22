@@ -13,6 +13,7 @@ class OutboundFoc extends Model
 
     protected $fillable = [
         'foc_number',
+        'company_branch_id',
         'customer_name',
         'customer_phone',
         'address',
@@ -60,6 +61,11 @@ class OutboundFoc extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function companyBranch(): BelongsTo
+    {
+        return $this->belongsTo(CompanyBranch::class);
+    }
+
     // ===================== HELPER METHODS =====================
     
     public static function generateFocNumber(): string
@@ -85,5 +91,10 @@ class OutboundFoc extends Model
     public function scopeByReason($query, $reason)
     {
         return $query->where('reason', $reason);
+    }
+
+    public function scopeForCompanyBranch($query, ?int $companyBranchId)
+    {
+        return $companyBranchId ? $query->where('company_branch_id', $companyBranchId) : $query;
     }
 }
