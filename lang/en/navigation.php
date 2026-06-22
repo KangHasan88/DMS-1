@@ -29,6 +29,7 @@ return [
     'products' => 'Products',
     'reports' => 'Reports',
     'ar_invoices' => 'AR Invoices',
+    'ap_invoices' => 'AP Invoices',
     'customer_payments' => 'Customer Payments',
     'ar_aging' => 'AR Aging',
     'sales_report' => 'Sales Report',

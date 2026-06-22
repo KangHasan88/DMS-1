@@ -71,6 +71,11 @@ class PurchaseOrder extends Model
         return $this->hasMany(PurchaseOrderItem::class);
     }
 
+    public function apInvoice()
+    {
+        return $this->hasOne(ApInvoice::class);
+    }
+
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -103,6 +108,11 @@ class PurchaseOrder extends Model
     public function canReceive(): bool
     {
         return in_array($this->status, [self::STATUS_PENDING, self::STATUS_PARTIALLY_RECEIVED]);
+    }
+
+    public function isInvoiceableForAp(): bool
+    {
+        return !$this->apInvoice && $this->status === self::STATUS_RECEIVED;
     }
 
     public function canApprove(): bool

@@ -1400,6 +1400,12 @@
                                 <span>{{ __('navigation.ar_invoices') }}</span>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{ route('ap-invoices.index') }}" class="nav-link {{ request()->routeIs('ap-invoices.*') ? 'active' : '' }}">
+                                <i class="bi bi-journal-text"></i>
+                                <span>{{ __('navigation.ap_invoices') }}</span>
+                            </a>
+                        </li>
                         @endcan
                         @can('view payment')
                         <li class="nav-item">

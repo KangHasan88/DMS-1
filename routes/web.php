@@ -16,6 +16,7 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierCategoryController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\ArInvoiceController;
+use App\Http\Controllers\ApInvoiceController;
 use App\Http\Controllers\CustomerPaymentController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\DeliveryController;
@@ -253,6 +254,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('ar-invoices', [ArInvoiceController::class, 'store'])
         ->middleware('permission:create invoice')
         ->name('ar-invoices.store');
+
+    // ============= AP INVOICE MANAGEMENT =============
+    Route::resource('ap-invoices', ApInvoiceController::class)
+        ->only(['index', 'show'])
+        ->middleware('permission:view invoice');
+    Route::post('ap-invoices', [ApInvoiceController::class, 'store'])
+        ->middleware('permission:create invoice')
+        ->name('ap-invoices.store');
 
     // ============= CUSTOMER PAYMENT MANAGEMENT =============
     Route::resource('customer-payments', CustomerPaymentController::class)
