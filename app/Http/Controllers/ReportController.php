@@ -133,70 +133,10 @@ class ReportController extends Controller
     public function financial(Request $request)
     {
         [$startDate, $endDate] = $this->dateRange($request);
-        $branchScopeId = auth()->user()?->scopedCompanyBranchId();
-        $selectedBranchId = $branchScopeId ?: ($request->filled('company_branch_id') ? $request->company_branch_id : null);
-        $canFilterBranches = !$branchScopeId;
+        $selectedBranchId = $this->selectedReportBranchId($request);
+        $canFilterBranches = !auth()->user()?->scopedCompanyBranchId();
         $companyBranches = CompanyBranch::where('is_active', true)->orderBy('name')->get();
-
-        $profitLossRows = $this->financialAccountRows(
-            [ChartAccount::TYPE_REVENUE, ChartAccount::TYPE_COGS, ChartAccount::TYPE_EXPENSE],
-            $selectedBranchId,
-            fn ($journal) => $journal->whereBetween('journal_date', [$startDate->toDateString(), $endDate->toDateString()])
-        );
-
-        $balanceSheetRows = $this->financialAccountRows(
-            [ChartAccount::TYPE_ASSET, ChartAccount::TYPE_LIABILITY, ChartAccount::TYPE_EQUITY],
-            $selectedBranchId,
-            fn ($journal) => $journal->where('journal_date', '<=', $endDate->toDateString())
-        );
-
-        $incomeToDateRows = $this->financialAccountRows(
-            [ChartAccount::TYPE_REVENUE, ChartAccount::TYPE_COGS, ChartAccount::TYPE_EXPENSE],
-            $selectedBranchId,
-            fn ($journal) => $journal->where('journal_date', '<=', $endDate->toDateString())
-        );
-
-        $revenueTotal = $profitLossRows->where('account_type', ChartAccount::TYPE_REVENUE)->sum('amount');
-        $cogsTotal = $profitLossRows->where('account_type', ChartAccount::TYPE_COGS)->sum('amount');
-        $expenseTotal = $profitLossRows->where('account_type', ChartAccount::TYPE_EXPENSE)->sum('amount');
-        $grossProfit = $revenueTotal - $cogsTotal;
-        $netIncome = $grossProfit - $expenseTotal;
-
-        $incomeToDate = $incomeToDateRows->where('account_type', ChartAccount::TYPE_REVENUE)->sum('amount')
-            - $incomeToDateRows->where('account_type', ChartAccount::TYPE_COGS)->sum('amount')
-            - $incomeToDateRows->where('account_type', ChartAccount::TYPE_EXPENSE)->sum('amount');
-
-        $assetRows = $balanceSheetRows->where('account_type', ChartAccount::TYPE_ASSET)->values();
-        $liabilityRows = $balanceSheetRows->where('account_type', ChartAccount::TYPE_LIABILITY)->values();
-        $equityRows = $balanceSheetRows->where('account_type', ChartAccount::TYPE_EQUITY)->values();
-        $equityRows->push([
-            'code' => '-',
-            'name' => 'Laba Berjalan',
-            'account_type' => ChartAccount::TYPE_EQUITY,
-            'amount' => $incomeToDate,
-        ]);
-
-        $balanceSheet = [
-            'assets' => $assetRows,
-            'liabilities' => $liabilityRows,
-            'equity' => $equityRows,
-            'total_assets' => $assetRows->sum('amount'),
-            'total_liabilities' => $liabilityRows->sum('amount'),
-            'total_equity' => $equityRows->sum('amount'),
-        ];
-        $balanceSheet['total_liabilities_equity'] = $balanceSheet['total_liabilities'] + $balanceSheet['total_equity'];
-        $balanceSheet['is_balanced'] = $balanceSheet['total_assets'] === $balanceSheet['total_liabilities_equity'];
-
-        $profitLoss = [
-            'revenue' => $profitLossRows->where('account_type', ChartAccount::TYPE_REVENUE)->values(),
-            'cogs' => $profitLossRows->where('account_type', ChartAccount::TYPE_COGS)->values(),
-            'expenses' => $profitLossRows->where('account_type', ChartAccount::TYPE_EXPENSE)->values(),
-            'revenue_total' => $revenueTotal,
-            'cogs_total' => $cogsTotal,
-            'gross_profit' => $grossProfit,
-            'expense_total' => $expenseTotal,
-            'net_income' => $netIncome,
-        ];
+        ['profitLoss' => $profitLoss, 'balanceSheet' => $balanceSheet] = $this->financialStatements($startDate, $endDate, $selectedBranchId);
 
         return view('reports.financial', compact(
             'profitLoss',
@@ -352,6 +292,10 @@ class ReportController extends Controller
 
         [$startDate, $endDate] = $this->dateRange($request);
 
+        if ($type === 'financial') {
+            return $this->exportFinancial($request, $startDate, $endDate);
+        }
+
         return response()->streamDownload(function () use ($type, $startDate, $endDate) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, ['Report', ucfirst($type)]);
@@ -360,6 +304,41 @@ class ReportController extends Controller
             fputcsv($handle, ['End Date', $endDate->toDateString()]);
             fclose($handle);
         }, $type . '-report-' . now()->format('Ymd-His') . '.csv');
+    }
+
+    private function exportFinancial(Request $request, $startDate, $endDate): StreamedResponse
+    {
+        $selectedBranchId = $this->selectedReportBranchId($request);
+        ['profitLoss' => $profitLoss, 'balanceSheet' => $balanceSheet] = $this->financialStatements($startDate, $endDate, $selectedBranchId);
+
+        return response()->streamDownload(function () use ($profitLoss, $balanceSheet, $startDate, $endDate, $selectedBranchId) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Report', 'Laporan Keuangan']);
+            fputcsv($handle, ['Generated At', now()->toDateTimeString()]);
+            fputcsv($handle, ['Start Date', $startDate->toDateString()]);
+            fputcsv($handle, ['End Date', $endDate->toDateString()]);
+            fputcsv($handle, ['Branch Scope', $selectedBranchId ?: 'Semua Cabang']);
+            fputcsv($handle, []);
+            fputcsv($handle, ['Laba Rugi']);
+            fputcsv($handle, ['Section', 'Code', 'Account', 'Amount']);
+            $this->writeFinancialRows($handle, 'Pendapatan', $profitLoss['revenue']);
+            fputcsv($handle, ['Total Pendapatan', '', '', $profitLoss['revenue_total']]);
+            $this->writeFinancialRows($handle, 'Harga Pokok Penjualan', $profitLoss['cogs']);
+            fputcsv($handle, ['Laba Kotor', '', '', $profitLoss['gross_profit']]);
+            $this->writeFinancialRows($handle, 'Beban Operasional', $profitLoss['expenses']);
+            fputcsv($handle, ['Laba Bersih', '', '', $profitLoss['net_income']]);
+            fputcsv($handle, []);
+            fputcsv($handle, ['Neraca']);
+            fputcsv($handle, ['Section', 'Code', 'Account', 'Amount']);
+            $this->writeFinancialRows($handle, 'Aset', $balanceSheet['assets']);
+            fputcsv($handle, ['Total Aset', '', '', $balanceSheet['total_assets']]);
+            $this->writeFinancialRows($handle, 'Kewajiban', $balanceSheet['liabilities']);
+            fputcsv($handle, ['Total Kewajiban', '', '', $balanceSheet['total_liabilities']]);
+            $this->writeFinancialRows($handle, 'Ekuitas', $balanceSheet['equity']);
+            fputcsv($handle, ['Total Kewajiban + Ekuitas', '', '', $balanceSheet['total_liabilities_equity']]);
+            fputcsv($handle, ['Balance Status', '', '', $balanceSheet['is_balanced'] ? 'Balance' : 'Tidak Balance']);
+            fclose($handle);
+        }, 'financial-report-' . now()->format('Ymd-His') . '.csv');
     }
 
     private function dateRange(Request $request): array
@@ -378,6 +357,84 @@ class ReportController extends Controller
             : now()->endOfDay();
 
         return [$startDate, $endDate];
+    }
+
+    private function selectedReportBranchId(Request $request): mixed
+    {
+        return auth()->user()?->scopedCompanyBranchId()
+            ?: ($request->filled('company_branch_id') ? $request->company_branch_id : null);
+    }
+
+    private function financialStatements($startDate, $endDate, mixed $selectedBranchId): array
+    {
+        $profitLossRows = $this->financialAccountRows(
+            [ChartAccount::TYPE_REVENUE, ChartAccount::TYPE_COGS, ChartAccount::TYPE_EXPENSE],
+            $selectedBranchId,
+            fn ($journal) => $journal->whereBetween('journal_date', [$startDate->toDateString(), $endDate->toDateString()])
+        );
+
+        $balanceSheetRows = $this->financialAccountRows(
+            [ChartAccount::TYPE_ASSET, ChartAccount::TYPE_LIABILITY, ChartAccount::TYPE_EQUITY],
+            $selectedBranchId,
+            fn ($journal) => $journal->where('journal_date', '<=', $endDate->toDateString())
+        );
+
+        $incomeToDateRows = $this->financialAccountRows(
+            [ChartAccount::TYPE_REVENUE, ChartAccount::TYPE_COGS, ChartAccount::TYPE_EXPENSE],
+            $selectedBranchId,
+            fn ($journal) => $journal->where('journal_date', '<=', $endDate->toDateString())
+        );
+
+        $revenueTotal = $profitLossRows->where('account_type', ChartAccount::TYPE_REVENUE)->sum('amount');
+        $cogsTotal = $profitLossRows->where('account_type', ChartAccount::TYPE_COGS)->sum('amount');
+        $expenseTotal = $profitLossRows->where('account_type', ChartAccount::TYPE_EXPENSE)->sum('amount');
+        $grossProfit = $revenueTotal - $cogsTotal;
+        $netIncome = $grossProfit - $expenseTotal;
+        $incomeToDate = $incomeToDateRows->where('account_type', ChartAccount::TYPE_REVENUE)->sum('amount')
+            - $incomeToDateRows->where('account_type', ChartAccount::TYPE_COGS)->sum('amount')
+            - $incomeToDateRows->where('account_type', ChartAccount::TYPE_EXPENSE)->sum('amount');
+
+        $assetRows = $balanceSheetRows->where('account_type', ChartAccount::TYPE_ASSET)->values();
+        $liabilityRows = $balanceSheetRows->where('account_type', ChartAccount::TYPE_LIABILITY)->values();
+        $equityRows = $balanceSheetRows->where('account_type', ChartAccount::TYPE_EQUITY)->values();
+        $equityRows->push([
+            'code' => '-',
+            'name' => 'Laba Berjalan',
+            'account_type' => ChartAccount::TYPE_EQUITY,
+            'amount' => $incomeToDate,
+        ]);
+
+        $balanceSheet = [
+            'assets' => $assetRows,
+            'liabilities' => $liabilityRows,
+            'equity' => $equityRows,
+            'total_assets' => $assetRows->sum('amount'),
+            'total_liabilities' => $liabilityRows->sum('amount'),
+            'total_equity' => $equityRows->sum('amount'),
+        ];
+        $balanceSheet['total_liabilities_equity'] = $balanceSheet['total_liabilities'] + $balanceSheet['total_equity'];
+        $balanceSheet['is_balanced'] = $balanceSheet['total_assets'] === $balanceSheet['total_liabilities_equity'];
+
+        return [
+            'profitLoss' => [
+                'revenue' => $profitLossRows->where('account_type', ChartAccount::TYPE_REVENUE)->values(),
+                'cogs' => $profitLossRows->where('account_type', ChartAccount::TYPE_COGS)->values(),
+                'expenses' => $profitLossRows->where('account_type', ChartAccount::TYPE_EXPENSE)->values(),
+                'revenue_total' => $revenueTotal,
+                'cogs_total' => $cogsTotal,
+                'gross_profit' => $grossProfit,
+                'expense_total' => $expenseTotal,
+                'net_income' => $netIncome,
+            ],
+            'balanceSheet' => $balanceSheet,
+        ];
+    }
+
+    private function writeFinancialRows($handle, string $section, $rows): void
+    {
+        foreach ($rows as $row) {
+            fputcsv($handle, [$section, $row['code'], $row['name'], $row['amount']]);
+        }
     }
 
     private function financialAccountRows(array $accountTypes, mixed $selectedBranchId, callable $journalDateScope)

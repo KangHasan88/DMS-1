@@ -229,6 +229,32 @@ class ReportDateRangeTest extends TestCase
             ]));
     }
 
+    public function test_financial_export_contains_profit_loss_and_balance_sheet_rows(): void
+    {
+        $user = $this->superAdmin();
+        $cash = $this->account('1110', 'Kas dan Bank', ChartAccount::TYPE_ASSET);
+        $revenue = $this->account('4101', 'Pendapatan Penjualan', ChartAccount::TYPE_REVENUE);
+
+        $this->postJournal('2026-06-10', [
+            [$cash, 150000, 0],
+            [$revenue, 0, 150000],
+        ]);
+
+        $response = $this->actingAs($user)
+            ->get('/reports/export/financial?start_date=2026-06-01&end_date=2026-06-30');
+
+        $response->assertOk();
+        $response->assertHeader('content-disposition');
+        $content = $response->streamedContent();
+
+        $this->assertStringContainsString('Laporan Keuangan', $content);
+        $this->assertStringContainsString('Laba Rugi', $content);
+        $this->assertStringContainsString('Neraca', $content);
+        $this->assertStringContainsString('Pendapatan Penjualan', $content);
+        $this->assertStringContainsString('Kas dan Bank', $content);
+        $this->assertStringContainsString('150000', $content);
+    }
+
     private function superAdmin(): User
     {
         $user = User::factory()->create();
