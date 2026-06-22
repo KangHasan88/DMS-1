@@ -6,10 +6,15 @@ check_url() {
   local url="$2"
   local expected="$3"
   local insecure="${4:-false}"
+  local follow_redirects="${5:-false}"
   local curl_args=(-sS -o /dev/null -w "%{http_code}")
 
   if [[ "$insecure" == "true" ]]; then
     curl_args=(-k "${curl_args[@]}")
+  fi
+
+  if [[ "$follow_redirects" == "true" ]]; then
+    curl_args=(-L --max-redirs 10 "${curl_args[@]}")
   fi
 
   local status
@@ -23,7 +28,7 @@ check_url() {
   printf 'OK   %-18s %s\n' "$label" "$status"
 }
 
-check_url "central" "https://31.97.106.123/central" "302" "true"
+check_url "central" "https://31.97.106.123/central" "200" "true" "true"
 check_url "bmp_auth" "https://31.97.106.123/dev/bmp/bmp_report/Auth" "200" "true"
 check_url "dms_login" "https://dms.kurmigo.id/login" "200"
 check_url "dms_health" "https://dms.kurmigo.id/health" "200"

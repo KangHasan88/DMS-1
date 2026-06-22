@@ -15,9 +15,9 @@ Jangan ubah Apache global, `/var/www/html`, `/var/www/kurmigo-usahaup`, atau pro
 bash deploy/smoke-production.sh
 ```
 
-Expected:
+Expected final status:
 
-- Central: `302`
+- Central login chain: `200`
 - BMP report auth: `200`
 - DMS login: `200`
 - DMS health: `200`
