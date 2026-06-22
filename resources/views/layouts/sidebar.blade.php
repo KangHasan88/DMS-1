@@ -1414,6 +1414,12 @@
                                 <span>{{ __('navigation.customer_payments') }}</span>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{ route('supplier-payments.index') }}" class="nav-link {{ request()->routeIs('supplier-payments.*') ? 'active' : '' }}">
+                                <i class="bi bi-bank"></i>
+                                <span>{{ __('navigation.supplier_payments') }}</span>
+                            </a>
+                        </li>
                         @endcan
                     </ul>
                 </div>

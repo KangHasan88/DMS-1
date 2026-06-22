@@ -84,6 +84,11 @@ class ApInvoice extends Model
         return $this->hasMany(ApInvoiceItem::class);
     }
 
+    public function paymentAllocations(): HasMany
+    {
+        return $this->hasMany(SupplierPaymentAllocation::class);
+    }
+
     public function getStatusLabelAttribute(): string
     {
         return self::STATUS_LIST[$this->status] ?? str($this->status)->headline()->toString();
@@ -99,6 +104,25 @@ class ApInvoice extends Model
         return !in_array($this->status, [self::STATUS_PAID, self::STATUS_VOID], true)
             && $this->due_date
             && $this->due_date->isPast();
+    }
+
+    public function refreshPaymentStatus(): void
+    {
+        $outstanding = max(0, (int) $this->total_amount - (int) $this->paid_amount);
+        $status = self::STATUS_ISSUED;
+
+        if ($outstanding <= 0) {
+            $status = self::STATUS_PAID;
+        } elseif ($this->paid_amount > 0) {
+            $status = self::STATUS_PARTIALLY_PAID;
+        } elseif ($this->due_date && $this->due_date->isPast()) {
+            $status = self::STATUS_OVERDUE;
+        }
+
+        $this->forceFill([
+            'outstanding_amount' => $outstanding,
+            'status' => $status,
+        ])->save();
     }
 
     public static function nextInvoiceNumber(): string

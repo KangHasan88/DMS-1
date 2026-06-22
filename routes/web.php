@@ -18,6 +18,7 @@ use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\ArInvoiceController;
 use App\Http\Controllers\ApInvoiceController;
 use App\Http\Controllers\CustomerPaymentController;
+use App\Http\Controllers\SupplierPaymentController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\DeliveryVendorController;
@@ -270,6 +271,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('customer-payments', [CustomerPaymentController::class, 'store'])
         ->middleware('permission:process payment')
         ->name('customer-payments.store');
+
+    // ============= SUPPLIER PAYMENT MANAGEMENT =============
+    Route::resource('supplier-payments', SupplierPaymentController::class)
+        ->only(['index', 'show'])
+        ->middleware('permission:view payment');
+    Route::post('supplier-payments', [SupplierPaymentController::class, 'store'])
+        ->middleware('permission:process payment')
+        ->name('supplier-payments.store');
     
     // ============= DELIVERY MANAGEMENT =============
     Route::get('deliveries/kurir/today', [DeliveryController::class, 'kurirToday'])->middleware('permission:view deliveries')->name('deliveries.kurir.today');

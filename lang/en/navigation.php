@@ -32,6 +32,7 @@ return [
     'ar_invoices' => 'AR Invoices',
     'ap_invoices' => 'AP Invoices',
     'customer_payments' => 'Customer Payments',
+    'supplier_payments' => 'Supplier Payments',
     'ar_aging' => 'AR Aging',
     'sales_report' => 'Sales Report',
     'inventory_report' => 'Inventory Report',

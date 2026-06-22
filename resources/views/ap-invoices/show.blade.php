@@ -81,4 +81,101 @@
         </div>
     </div>
 </div>
+
+@can('process payment')
+    @if($apInvoice->outstanding_amount > 0 && $apInvoice->status !== \App\Models\ApInvoice::STATUS_VOID)
+        <div class="dms-card" style="margin-top: 1rem;">
+            <div class="dms-section-header">
+                <div>
+                    <h3 class="dms-section-title">Catat Pembayaran Supplier</h3>
+                    <p class="dms-section-subtitle">Input pembayaran supplier dan alokasikan langsung ke invoice ini.</p>
+                </div>
+            </div>
+
+            <form action="{{ route('supplier-payments.store') }}" method="POST">
+                @csrf
+                <input type="hidden" name="ap_invoice_id" value="{{ $apInvoice->id }}">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
+                    <div>
+                        <label class="form-label">Tanggal Bayar</label>
+                        <input type="date" name="payment_date" value="{{ old('payment_date', now()->toDateString()) }}" class="form-control" required>
+                    </div>
+                    <div>
+                        <label class="form-label">Metode</label>
+                        <select name="payment_method" class="form-control" required>
+                            @foreach(\App\Models\SupplierPayment::METHOD_LIST as $key => $label)
+                                <option value="{{ $key }}" {{ old('payment_method', \App\Models\SupplierPayment::METHOD_TRANSFER) === $key ? 'selected' : '' }}>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Nominal</label>
+                        <input type="number" name="amount" min="1" max="{{ $apInvoice->outstanding_amount }}" value="{{ old('amount', $apInvoice->outstanding_amount) }}" class="form-control" required>
+                    </div>
+                    <div>
+                        <label class="form-label">No. Referensi</label>
+                        <input type="text" name="reference_number" value="{{ old('reference_number') }}" class="form-control" placeholder="Opsional">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.75rem; align-items: end; margin-top: 0.75rem;">
+                    <div style="flex: 1;">
+                        <label class="form-label">Catatan</label>
+                        <input type="text" name="notes" value="{{ old('notes') }}" class="form-control" placeholder="Opsional">
+                    </div>
+                    <button type="submit" class="dms-btn dms-btn-primary">
+                        <i class="bi bi-bank"></i>
+                        Simpan Pembayaran
+                    </button>
+                </div>
+            </form>
+        </div>
+    @endif
+@endcan
+
+<div class="dms-card" style="margin-top: 1rem;">
+    <div class="dms-section-header">
+        <div>
+            <h3 class="dms-section-title">Riwayat Pembayaran Supplier</h3>
+            <p class="dms-section-subtitle">Daftar payment yang sudah dialokasikan ke invoice AP ini.</p>
+        </div>
+    </div>
+
+    <div class="dms-table-wrap">
+        <table class="dms-table">
+            <thead>
+                <tr>
+                    <th>No. Payment</th>
+                    <th>Tanggal</th>
+                    <th>Metode</th>
+                    <th>Referensi</th>
+                    <th>Dicatat Oleh</th>
+                    <th>Nominal</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($apInvoice->paymentAllocations as $allocation)
+                    <tr>
+                        <td>
+                            <a href="{{ route('supplier-payments.show', $allocation->supplierPayment) }}">
+                                <strong>{{ $allocation->supplierPayment?->payment_number ?? '-' }}</strong>
+                            </a>
+                        </td>
+                        <td>{{ $allocation->supplierPayment?->payment_date?->format('d M Y') ?? '-' }}</td>
+                        <td>{{ $allocation->supplierPayment?->method_label ?? '-' }}</td>
+                        <td>{{ $allocation->supplierPayment?->reference_number ?? '-' }}</td>
+                        <td>{{ $allocation->supplierPayment?->paidBy?->name ?? '-' }}</td>
+                        <td class="dms-money">Rp {{ number_format($allocation->amount, 0, ',', '.') }}</td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="6" class="dms-empty">
+                            <i class="bi bi-bank"></i>
+                            <p>Belum ada pembayaran supplier</p>
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
 @endsection

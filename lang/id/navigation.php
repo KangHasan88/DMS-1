@@ -32,6 +32,7 @@ return [
     'ar_invoices' => 'Invoice AR',
     'ap_invoices' => 'Invoice AP',
     'customer_payments' => 'Pembayaran Customer',
+    'supplier_payments' => 'Pembayaran Supplier',
     'ar_aging' => 'Umur Piutang',
     'sales_report' => 'Laporan Penjualan',
     'inventory_report' => 'Laporan Inventori',

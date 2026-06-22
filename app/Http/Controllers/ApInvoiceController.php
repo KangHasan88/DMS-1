@@ -70,7 +70,13 @@ class ApInvoiceController extends Controller
 
     public function show(ApInvoice $apInvoice)
     {
-        $apInvoice->load(['items.product', 'purchaseOrder.items', 'supplier', 'issuedBy']);
+        $apInvoice->load([
+            'items.product',
+            'purchaseOrder.items',
+            'supplier',
+            'issuedBy',
+            'paymentAllocations.supplierPayment.paidBy',
+        ]);
 
         return view('ap-invoices.show', compact('apInvoice'));
     }

@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\Supplier;
+use App\Models\SupplierPayment;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -70,7 +71,82 @@ class ApInvoiceFlowTest extends TestCase
         $this->actingAs($finance)
             ->get('/dashboard')
             ->assertOk()
-            ->assertSee('Invoice AP');
+            ->assertSee('Invoice AP')
+            ->assertSee('Pembayaran Supplier');
+    }
+
+    public function test_finance_can_record_partial_supplier_payment_for_ap_invoice(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ap-payment-partial@example.test');
+        [$purchaseOrder] = $this->receivedPurchaseOrder();
+        $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, $finance);
+
+        $this->actingAs($finance)
+            ->post(route('supplier-payments.store'), [
+                'ap_invoice_id' => $invoice->id,
+                'payment_date' => now()->toDateString(),
+                'payment_method' => SupplierPayment::METHOD_TRANSFER,
+                'amount' => 25000,
+                'reference_number' => 'PAY-SUP-001',
+                'notes' => 'Bayar sebagian',
+            ])
+            ->assertRedirect(route('ap-invoices.show', $invoice->fresh()));
+
+        $invoice->refresh();
+        $payment = SupplierPayment::with('allocations')->firstOrFail();
+
+        $this->assertSame(25000, $payment->amount);
+        $this->assertSame(0, $payment->unallocated_amount);
+        $this->assertCount(1, $payment->allocations);
+        $this->assertSame(25000, $invoice->paid_amount);
+        $this->assertSame(35000, $invoice->outstanding_amount);
+        $this->assertSame(ApInvoice::STATUS_PARTIALLY_PAID, $invoice->status);
+    }
+
+    public function test_full_supplier_payment_marks_ap_invoice_paid(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ap-payment-full@example.test');
+        [$purchaseOrder] = $this->receivedPurchaseOrder();
+        $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, $finance);
+
+        $this->actingAs($finance)
+            ->post(route('supplier-payments.store'), [
+                'ap_invoice_id' => $invoice->id,
+                'payment_date' => now()->toDateString(),
+                'payment_method' => SupplierPayment::METHOD_CASH,
+                'amount' => 60000,
+            ])
+            ->assertRedirect(route('ap-invoices.show', $invoice->fresh()));
+
+        $invoice->refresh();
+
+        $this->assertSame(60000, $invoice->paid_amount);
+        $this->assertSame(0, $invoice->outstanding_amount);
+        $this->assertSame(ApInvoice::STATUS_PAID, $invoice->status);
+    }
+
+    public function test_supplier_payment_cannot_exceed_ap_invoice_outstanding(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ap-payment-over@example.test');
+        [$purchaseOrder] = $this->receivedPurchaseOrder();
+        $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, $finance);
+
+        $this->actingAs($finance)
+            ->from(route('ap-invoices.show', $invoice))
+            ->post(route('supplier-payments.store'), [
+                'ap_invoice_id' => $invoice->id,
+                'payment_date' => now()->toDateString(),
+                'payment_method' => SupplierPayment::METHOD_TRANSFER,
+                'amount' => 70000,
+            ])
+            ->assertRedirect(route('ap-invoices.show', $invoice))
+            ->assertSessionHas('error');
+
+        $invoice->refresh();
+
+        $this->assertDatabaseCount('supplier_payments', 0);
+        $this->assertSame(0, $invoice->paid_amount);
+        $this->assertSame(60000, $invoice->outstanding_amount);
     }
 
     private function receivedPurchaseOrder(
