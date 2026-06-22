@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\ArInvoice;
 use App\Models\ApInvoice;
+use App\Models\ChartAccount;
 use App\Models\CompanyBranch;
 use App\Models\Delivery;
+use App\Models\JournalEntry;
+use App\Models\JournalEntryLine;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -130,33 +133,80 @@ class ReportController extends Controller
     public function financial(Request $request)
     {
         [$startDate, $endDate] = $this->dateRange($request);
+        $branchScopeId = auth()->user()?->scopedCompanyBranchId();
+        $selectedBranchId = $branchScopeId ?: ($request->filled('company_branch_id') ? $request->company_branch_id : null);
+        $canFilterBranches = !$branchScopeId;
+        $companyBranches = CompanyBranch::where('is_active', true)->orderBy('name')->get();
 
-        $orders = Order::whereBetween('created_at', [$startDate, $endDate]);
-        $delivered = (clone $orders)->where('status', Order::STATUS_DELIVERED);
-        $deliveredOrderIds = (clone $delivered)->pluck('id');
-        $actualShippingCost = Delivery::whereIn('order_id', $deliveredOrderIds)->sum('actual_shipping_cost');
-        $customerShippingRevenue = (clone $delivered)->sum('delivery_fee');
+        $profitLossRows = $this->financialAccountRows(
+            [ChartAccount::TYPE_REVENUE, ChartAccount::TYPE_COGS, ChartAccount::TYPE_EXPENSE],
+            $selectedBranchId,
+            fn ($journal) => $journal->whereBetween('journal_date', [$startDate->toDateString(), $endDate->toDateString()])
+        );
 
-        $summary = [
-            'revenue' => (clone $delivered)->sum('grand_total'),
-            'subtotal' => (clone $delivered)->sum('subtotal'),
-            'discount' => (clone $delivered)->sum('discount_amount'),
-            'delivery_fee' => $customerShippingRevenue,
-            'actual_shipping_cost' => $actualShippingCost,
-            'shipping_margin' => $customerShippingRevenue - $actualShippingCost,
-            'packing_fee' => (clone $delivered)->sum('packing_fee'),
-            'tax' => (clone $delivered)->sum('ppn_amount'),
-            'paid_orders' => (clone $orders)->whereNotNull('paid_at')->count(),
-            'unpaid_orders' => (clone $orders)->whereNull('paid_at')->where('status', '!=', Order::STATUS_CANCELLED)->count(),
+        $balanceSheetRows = $this->financialAccountRows(
+            [ChartAccount::TYPE_ASSET, ChartAccount::TYPE_LIABILITY, ChartAccount::TYPE_EQUITY],
+            $selectedBranchId,
+            fn ($journal) => $journal->where('journal_date', '<=', $endDate->toDateString())
+        );
+
+        $incomeToDateRows = $this->financialAccountRows(
+            [ChartAccount::TYPE_REVENUE, ChartAccount::TYPE_COGS, ChartAccount::TYPE_EXPENSE],
+            $selectedBranchId,
+            fn ($journal) => $journal->where('journal_date', '<=', $endDate->toDateString())
+        );
+
+        $revenueTotal = $profitLossRows->where('account_type', ChartAccount::TYPE_REVENUE)->sum('amount');
+        $cogsTotal = $profitLossRows->where('account_type', ChartAccount::TYPE_COGS)->sum('amount');
+        $expenseTotal = $profitLossRows->where('account_type', ChartAccount::TYPE_EXPENSE)->sum('amount');
+        $grossProfit = $revenueTotal - $cogsTotal;
+        $netIncome = $grossProfit - $expenseTotal;
+
+        $incomeToDate = $incomeToDateRows->where('account_type', ChartAccount::TYPE_REVENUE)->sum('amount')
+            - $incomeToDateRows->where('account_type', ChartAccount::TYPE_COGS)->sum('amount')
+            - $incomeToDateRows->where('account_type', ChartAccount::TYPE_EXPENSE)->sum('amount');
+
+        $assetRows = $balanceSheetRows->where('account_type', ChartAccount::TYPE_ASSET)->values();
+        $liabilityRows = $balanceSheetRows->where('account_type', ChartAccount::TYPE_LIABILITY)->values();
+        $equityRows = $balanceSheetRows->where('account_type', ChartAccount::TYPE_EQUITY)->values();
+        $equityRows->push([
+            'code' => '-',
+            'name' => 'Laba Berjalan',
+            'account_type' => ChartAccount::TYPE_EQUITY,
+            'amount' => $incomeToDate,
+        ]);
+
+        $balanceSheet = [
+            'assets' => $assetRows,
+            'liabilities' => $liabilityRows,
+            'equity' => $equityRows,
+            'total_assets' => $assetRows->sum('amount'),
+            'total_liabilities' => $liabilityRows->sum('amount'),
+            'total_equity' => $equityRows->sum('amount'),
+        ];
+        $balanceSheet['total_liabilities_equity'] = $balanceSheet['total_liabilities'] + $balanceSheet['total_equity'];
+        $balanceSheet['is_balanced'] = $balanceSheet['total_assets'] === $balanceSheet['total_liabilities_equity'];
+
+        $profitLoss = [
+            'revenue' => $profitLossRows->where('account_type', ChartAccount::TYPE_REVENUE)->values(),
+            'cogs' => $profitLossRows->where('account_type', ChartAccount::TYPE_COGS)->values(),
+            'expenses' => $profitLossRows->where('account_type', ChartAccount::TYPE_EXPENSE)->values(),
+            'revenue_total' => $revenueTotal,
+            'cogs_total' => $cogsTotal,
+            'gross_profit' => $grossProfit,
+            'expense_total' => $expenseTotal,
+            'net_income' => $netIncome,
         ];
 
-        $byPaymentMethod = (clone $delivered)
-            ->select('payment_method', DB::raw('COUNT(*) as total_orders'), DB::raw('SUM(grand_total) as total_amount'))
-            ->groupBy('payment_method')
-            ->orderByDesc('total_amount')
-            ->get();
-
-        return view('reports.financial', compact('summary', 'byPaymentMethod', 'startDate', 'endDate'));
+        return view('reports.financial', compact(
+            'profitLoss',
+            'balanceSheet',
+            'startDate',
+            'endDate',
+            'companyBranches',
+            'selectedBranchId',
+            'canFilterBranches'
+        ));
     }
 
     public function arAging(Request $request)
@@ -328,6 +378,71 @@ class ReportController extends Controller
             : now()->endOfDay();
 
         return [$startDate, $endDate];
+    }
+
+    private function financialAccountRows(array $accountTypes, mixed $selectedBranchId, callable $journalDateScope)
+    {
+        return ChartAccount::query()
+            ->where('is_active', true)
+            ->whereIn('account_type', $accountTypes)
+            ->when($branchScopeId = auth()->user()?->scopedCompanyBranchId(), function ($accountQuery) use ($branchScopeId) {
+                $accountQuery->where(function ($scopeQuery) use ($branchScopeId) {
+                    $scopeQuery->whereNull('company_branch_id')
+                        ->orWhere('company_branch_id', $branchScopeId);
+                });
+            })
+            ->when(!auth()->user()?->scopedCompanyBranchId() && $selectedBranchId, function ($accountQuery) use ($selectedBranchId) {
+                $selectedBranchId === 'global'
+                    ? $accountQuery->whereNull('company_branch_id')
+                    : $accountQuery->where(function ($scopeQuery) use ($selectedBranchId) {
+                        $scopeQuery->whereNull('company_branch_id')
+                            ->orWhere('company_branch_id', $selectedBranchId);
+                    });
+            })
+            ->orderBy('code')
+            ->get()
+            ->map(function (ChartAccount $account) use ($selectedBranchId, $journalDateScope) {
+                $debit = $this->financialLineSum($account, $selectedBranchId, $journalDateScope, 'debit_amount');
+                $credit = $this->financialLineSum($account, $selectedBranchId, $journalDateScope, 'credit_amount');
+
+                return [
+                    'code' => $account->code,
+                    'name' => $account->name,
+                    'account_type' => $account->account_type,
+                    'amount' => $this->signedFinancialBalance($account, (int) $debit, (int) $credit),
+                ];
+            })
+            ->filter(fn (array $row) => $row['amount'] !== 0)
+            ->values();
+    }
+
+    private function financialLineSum(ChartAccount $account, mixed $selectedBranchId, callable $journalDateScope, string $column): int
+    {
+        return (int) JournalEntryLine::query()
+            ->where('chart_account_id', $account->id)
+            ->whereHas('journalEntry', function ($journal) use ($selectedBranchId, $journalDateScope) {
+                $journal->where('status', JournalEntry::STATUS_POSTED);
+                $journalDateScope($journal);
+
+                if ($branchScopeId = auth()->user()?->scopedCompanyBranchId()) {
+                    $journal->where(function ($scopeQuery) use ($branchScopeId) {
+                        $scopeQuery->whereNull('company_branch_id')
+                            ->orWhere('company_branch_id', $branchScopeId);
+                    });
+                } elseif ($selectedBranchId) {
+                    $selectedBranchId === 'global'
+                        ? $journal->whereNull('company_branch_id')
+                        : $journal->where('company_branch_id', $selectedBranchId);
+                }
+            })
+            ->sum($column);
+    }
+
+    private function signedFinancialBalance(ChartAccount $account, int $debit, int $credit): int
+    {
+        return $account->normal_balance === ChartAccount::BALANCE_DEBIT
+            ? $debit - $credit
+            : $credit - $debit;
     }
 
     private function inventorySignal(int $quantity, int $soldLast30Days, ?float $weekCover): array

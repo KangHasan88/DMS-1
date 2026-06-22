@@ -1,42 +1,175 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Financial Report')
-@section('breadcrumb', 'Reports / Financial')
+@section('page-title', 'Laporan Keuangan')
+@section('breadcrumb', 'Laporan / Laporan Keuangan')
 
 @section('content')
+@php
+    $formatMoney = fn ($value) => 'Rp ' . number_format((int) $value, 0, ',', '.');
+@endphp
+
 <div class="dms-card">
-    <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.35rem;">Financial Report</h3>
-    <p style="font-size: 0.85rem; color: var(--k-gray-500); margin-bottom: 1.25rem;">Ringkasan pendapatan, biaya, pajak, dan metode pembayaran.</p>
+    <div class="dms-section-header">
+        <div>
+            <h3 class="dms-section-title">Laporan Keuangan</h3>
+            <p class="dms-section-subtitle">Ringkasan laba rugi dan posisi keuangan berdasarkan jurnal yang sudah posted.</p>
+        </div>
+        <span class="dms-badge {{ $balanceSheet['is_balanced'] ? 'status-paid' : 'status-cancelled' }}">
+            {{ $balanceSheet['is_balanced'] ? 'Balance' : 'Tidak Balance' }}
+        </span>
+    </div>
 
-    @include('reports._filters', ['exportType' => 'financial'])
-    @include('reports._summary', ['items' => [
-        ['label' => 'Revenue', 'value' => 'Rp ' . number_format($summary['revenue'] ?? 0, 0, ',', '.'), 'icon' => 'bi-cash-stack'],
-        ['label' => 'Discount', 'value' => 'Rp ' . number_format($summary['discount'] ?? 0, 0, ',', '.'), 'icon' => 'bi-percent', 'bg' => '#fee2e2', 'color' => '#dc2626'],
-        ['label' => 'Tax', 'value' => 'Rp ' . number_format($summary['tax'] ?? 0, 0, ',', '.'), 'icon' => 'bi-receipt'],
-        ['label' => 'Unpaid Orders', 'value' => number_format($summary['unpaid_orders']), 'icon' => 'bi-clock', 'bg' => '#fef3c7', 'color' => '#f59e0b'],
-    ]])
+    <form method="GET" class="dms-toolbar">
+        <div class="dms-toolbar-actions" style="width: 100%;">
+            <input type="date" name="start_date" value="{{ $startDate->toDateString() }}" class="form-control">
+            <input type="date" name="end_date" value="{{ $endDate->toDateString() }}" class="form-control">
+            @if($canFilterBranches)
+                <select name="company_branch_id" class="form-control">
+                    <option value="">Semua Cabang</option>
+                    <option value="global" {{ $selectedBranchId === 'global' ? 'selected' : '' }}>Global</option>
+                    @foreach($companyBranches as $branch)
+                        <option value="{{ $branch->id }}" {{ (string) $selectedBranchId === (string) $branch->id ? 'selected' : '' }}>
+                            {{ $branch->name }}
+                        </option>
+                    @endforeach
+                </select>
+            @endif
+            <button class="dms-btn dms-btn-primary" type="submit">
+                <i class="bi bi-filter"></i> Terapkan
+            </button>
+            <a class="dms-btn dms-btn-outline" href="{{ route('reports.export', array_merge(['type' => 'financial'], request()->only(['start_date', 'end_date', 'company_branch_id']))) }}">
+                <i class="bi bi-download"></i> Export CSV
+            </a>
+        </div>
+    </form>
 
-    <div style="overflow-x: auto;">
-        <table class="dms-table">
-            <thead>
-                <tr>
-                    <th>Payment Method</th>
-                    <th>Orders</th>
-                    <th>Total Amount</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($byPaymentMethod as $row)
+    <div class="stats-grid" style="grid-template-columns: repeat(4, minmax(0, 1fr));">
+        <div class="stat-card">
+            <div class="stat-label">Pendapatan</div>
+            <div class="stat-value" style="font-size: 1rem;">{{ $formatMoney($profitLoss['revenue_total']) }}</div>
+            <div class="dms-muted">{{ $startDate->format('d M Y') }} - {{ $endDate->format('d M Y') }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Laba Kotor</div>
+            <div class="stat-value" style="font-size: 1rem;">{{ $formatMoney($profitLoss['gross_profit']) }}</div>
+            <div class="dms-muted">Pendapatan - HPP</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Laba Bersih</div>
+            <div class="stat-value" style="font-size: 1rem;">{{ $formatMoney($profitLoss['net_income']) }}</div>
+            <div class="dms-muted">Setelah beban periode</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total Aset</div>
+            <div class="stat-value" style="font-size: 1rem;">{{ $formatMoney($balanceSheet['total_assets']) }}</div>
+            <div class="dms-muted">Per {{ $endDate->format('d M Y') }}</div>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; align-items: start;">
+        <div style="background: #fff; border: 1px solid var(--k-border); border-radius: 8px; padding: 1rem;">
+            <div class="dms-section-header">
+                <div>
+                    <h4 class="dms-section-title" style="font-size: 1.05rem;">Laba Rugi</h4>
+                    <p class="dms-section-subtitle">Periode {{ $startDate->format('d M Y') }} - {{ $endDate->format('d M Y') }}</p>
+                </div>
+            </div>
+            <table class="dms-table">
+                <tbody>
+                    <tr><th colspan="2">Pendapatan</th></tr>
+                    @forelse($profitLoss['revenue'] as $row)
+                        <tr>
+                            <td>{{ $row['code'] }} - {{ $row['name'] }}</td>
+                            <td class="dms-money">{{ $formatMoney($row['amount']) }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="2" class="dms-muted">Belum ada pendapatan posted.</td></tr>
+                    @endforelse
                     <tr>
-                        <td>{{ $row->payment_method ? ucfirst($row->payment_method) : 'Unspecified' }}</td>
-                        <td>{{ number_format($row->total_orders) }}</td>
-                        <td>Rp {{ number_format($row->total_amount ?? 0, 0, ',', '.') }}</td>
+                        <th>Total Pendapatan</th>
+                        <th class="dms-money">{{ $formatMoney($profitLoss['revenue_total']) }}</th>
                     </tr>
-                @empty
-                    <tr><td colspan="3" style="text-align: center; color: var(--k-gray-500);">Belum ada transaksi delivered pada periode ini.</td></tr>
-                @endforelse
-            </tbody>
-        </table>
+                    <tr><th colspan="2">Harga Pokok Penjualan</th></tr>
+                    @forelse($profitLoss['cogs'] as $row)
+                        <tr>
+                            <td>{{ $row['code'] }} - {{ $row['name'] }}</td>
+                            <td class="dms-money">{{ $formatMoney($row['amount']) }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="2" class="dms-muted">Belum ada HPP posted.</td></tr>
+                    @endforelse
+                    <tr>
+                        <th>Laba Kotor</th>
+                        <th class="dms-money">{{ $formatMoney($profitLoss['gross_profit']) }}</th>
+                    </tr>
+                    <tr><th colspan="2">Beban Operasional</th></tr>
+                    @forelse($profitLoss['expenses'] as $row)
+                        <tr>
+                            <td>{{ $row['code'] }} - {{ $row['name'] }}</td>
+                            <td class="dms-money">{{ $formatMoney($row['amount']) }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="2" class="dms-muted">Belum ada beban posted.</td></tr>
+                    @endforelse
+                    <tr>
+                        <th>Laba Bersih</th>
+                        <th class="dms-money">{{ $formatMoney($profitLoss['net_income']) }}</th>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div style="background: #fff; border: 1px solid var(--k-border); border-radius: 8px; padding: 1rem;">
+            <div class="dms-section-header">
+                <div>
+                    <h4 class="dms-section-title" style="font-size: 1.05rem;">Neraca</h4>
+                    <p class="dms-section-subtitle">Posisi keuangan per {{ $endDate->format('d M Y') }}</p>
+                </div>
+            </div>
+            <table class="dms-table">
+                <tbody>
+                    <tr><th colspan="2">Aset</th></tr>
+                    @forelse($balanceSheet['assets'] as $row)
+                        <tr>
+                            <td>{{ $row['code'] }} - {{ $row['name'] }}</td>
+                            <td class="dms-money">{{ $formatMoney($row['amount']) }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="2" class="dms-muted">Belum ada aset posted.</td></tr>
+                    @endforelse
+                    <tr>
+                        <th>Total Aset</th>
+                        <th class="dms-money">{{ $formatMoney($balanceSheet['total_assets']) }}</th>
+                    </tr>
+                    <tr><th colspan="2">Kewajiban</th></tr>
+                    @forelse($balanceSheet['liabilities'] as $row)
+                        <tr>
+                            <td>{{ $row['code'] }} - {{ $row['name'] }}</td>
+                            <td class="dms-money">{{ $formatMoney($row['amount']) }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="2" class="dms-muted">Belum ada kewajiban posted.</td></tr>
+                    @endforelse
+                    <tr>
+                        <th>Total Kewajiban</th>
+                        <th class="dms-money">{{ $formatMoney($balanceSheet['total_liabilities']) }}</th>
+                    </tr>
+                    <tr><th colspan="2">Ekuitas</th></tr>
+                    @forelse($balanceSheet['equity'] as $row)
+                        <tr>
+                            <td>{{ $row['code'] }} - {{ $row['name'] }}</td>
+                            <td class="dms-money">{{ $formatMoney($row['amount']) }}</td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="2" class="dms-muted">Belum ada ekuitas posted.</td></tr>
+                    @endforelse
+                    <tr>
+                        <th>Total Kewajiban + Ekuitas</th>
+                        <th class="dms-money">{{ $formatMoney($balanceSheet['total_liabilities_equity']) }}</th>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 @endsection

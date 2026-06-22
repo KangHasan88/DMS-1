@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\ArInvoice;
 use App\Models\ApInvoice;
+use App\Models\ChartAccount;
+use App\Models\JournalEntry;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -186,6 +188,37 @@ class ReportDateRangeTest extends TestCase
             ->assertDontSee('AP-VOID');
     }
 
+    public function test_financial_report_uses_posted_journals_for_profit_loss_and_balance_sheet(): void
+    {
+        $user = $this->superAdmin();
+        $cash = $this->account('1110', 'Kas dan Bank', ChartAccount::TYPE_ASSET);
+        $revenue = $this->account('4101', 'Pendapatan Penjualan', ChartAccount::TYPE_REVENUE);
+        $expense = $this->account('6101', 'Beban Operasional', ChartAccount::TYPE_EXPENSE);
+
+        $this->postJournal('2026-06-10', [
+            [$cash, 150000, 0],
+            [$revenue, 0, 150000],
+        ]);
+        $this->postJournal('2026-06-12', [
+            [$expense, 40000, 0],
+            [$cash, 0, 40000],
+        ]);
+
+        $this->actingAs($user)
+            ->get('/reports/financial?start_date=2026-06-01&end_date=2026-06-30')
+            ->assertOk()
+            ->assertSee('Laporan Keuangan')
+            ->assertSee('Laba Rugi')
+            ->assertSee('Neraca')
+            ->assertSee('Pendapatan Penjualan')
+            ->assertSee('Beban Operasional')
+            ->assertSee('Kas dan Bank')
+            ->assertSee('Rp 150.000')
+            ->assertSee('Rp 40.000')
+            ->assertSee('Rp 110.000')
+            ->assertSee('Balance');
+    }
+
     private function superAdmin(): User
     {
         $user = User::factory()->create();
@@ -273,5 +306,41 @@ class ReportDateRangeTest extends TestCase
             'issued_by' => $user->id,
             'issued_at' => now(),
         ]);
+    }
+
+    private function account(string $code, string $name, string $type): ChartAccount
+    {
+        return ChartAccount::create([
+            'code' => $code,
+            'name' => $name,
+            'account_type' => $type,
+            'normal_balance' => ChartAccount::defaultNormalBalance($type),
+            'is_active' => true,
+        ]);
+    }
+
+    private function postJournal(string $date, array $lines): JournalEntry
+    {
+        $debitTotal = collect($lines)->sum(fn ($line) => (int) $line[1]);
+        $creditTotal = collect($lines)->sum(fn ($line) => (int) $line[2]);
+
+        $journal = JournalEntry::create([
+            'journal_number' => 'JRN-' . uniqid(),
+            'journal_date' => $date,
+            'description' => 'Financial report test',
+            'status' => JournalEntry::STATUS_POSTED,
+            'debit_total' => $debitTotal,
+            'credit_total' => $creditTotal,
+        ]);
+
+        foreach ($lines as [$account, $debit, $credit]) {
+            $journal->lines()->create([
+                'chart_account_id' => $account->id,
+                'debit_amount' => $debit,
+                'credit_amount' => $credit,
+            ]);
+        }
+
+        return $journal;
     }
 }
