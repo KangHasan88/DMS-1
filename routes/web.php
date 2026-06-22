@@ -39,6 +39,7 @@ use App\Http\Controllers\OutboundReturnController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\Saas\RemoteModuleHealthController;
 use App\Http\Controllers\Saas\RemoteModuleLaunchController;
+use App\Http\Controllers\Saas\RemoteModuleProvisioningController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -54,6 +55,9 @@ Route::get('/', function () {
 
 Route::get('/health', RemoteModuleHealthController::class)->name('remote-module.health');
 Route::get('/sso/launch', RemoteModuleLaunchController::class)->name('remote-module.launch');
+Route::post('/module-provisioning', RemoteModuleProvisioningController::class)
+    ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+    ->name('remote-module.provisioning');
 
 // Authenticated routes
 Route::middleware(['auth', 'verified'])->group(function () {
