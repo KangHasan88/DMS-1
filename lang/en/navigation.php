@@ -28,6 +28,8 @@ return [
     'suppliers' => 'Suppliers',
     'products' => 'Products',
     'finance' => 'Finance',
+    'accounting' => 'Accounting',
+    'chart_accounts' => 'Chart of Accounts',
     'reports' => 'Reports',
     'ar_invoices' => 'AR Invoices',
     'ap_invoices' => 'AP Invoices',

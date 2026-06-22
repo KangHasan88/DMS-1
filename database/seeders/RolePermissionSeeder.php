@@ -115,6 +115,13 @@ class RolePermissionSeeder extends Seeder
             'process payment',
             'view piutang',
             'manage piutang',
+
+            // ACCOUNTING
+            'view chart of accounts',
+            'manage chart of accounts',
+            'view journal entries',
+            'manage journal entries',
+            'view general ledger',
             
             // REPORTS
             'view sales report',
@@ -177,6 +184,9 @@ class RolePermissionSeeder extends Seeder
             'view invoice', 'create invoice', 'edit invoice',
             'view payment', 'process payment',
             'view piutang', 'manage piutang',
+            'view chart of accounts', 'manage chart of accounts',
+            'view journal entries', 'manage journal entries',
+            'view general ledger',
             'view sales report', 'view inventory report', 'view delivery report', 'view financial report', 'export reports',
             'download apk', 'view sync status',
             'view company profile', 'edit company profile',
@@ -225,6 +235,9 @@ class RolePermissionSeeder extends Seeder
             'view invoice',
             'view payment',
             'view piutang',
+            'view chart of accounts',
+            'view journal entries',
+            'view general ledger',
             'view sales report', 'view inventory report', 'view delivery report', 'view financial report', 'export reports',
             'download apk', 'view sync status',
         ]);
@@ -245,6 +258,7 @@ class RolePermissionSeeder extends Seeder
             'view stock movement',
             'view invoice',
             'view payment',
+            'view chart of accounts',
             'view sales report', 'view inventory report', 'view delivery report',
             'download apk',
             'view sync status',
@@ -299,6 +313,9 @@ class RolePermissionSeeder extends Seeder
             'view invoice', 'create invoice', 'edit invoice',
             'view payment', 'process payment',
             'view piutang', 'manage piutang',
+            'view chart of accounts', 'manage chart of accounts',
+            'view journal entries', 'manage journal entries',
+            'view general ledger',
             'view delivery report', 'view financial report', 'export reports',
             'download apk',
             'view sync status',

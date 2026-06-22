@@ -28,6 +28,8 @@ return [
     'suppliers' => 'Pemasok',
     'products' => 'Produk',
     'finance' => 'Keuangan',
+    'accounting' => 'Akuntansi',
+    'chart_accounts' => 'Daftar Akun',
     'reports' => 'Laporan',
     'ar_invoices' => 'Invoice AR',
     'ap_invoices' => 'Invoice AP',

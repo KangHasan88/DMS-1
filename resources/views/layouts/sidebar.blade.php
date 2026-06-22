@@ -1424,6 +1424,21 @@
                     </ul>
                 </div>
 
+                <!-- SECTION: ACCOUNTING -->
+                <div class="nav-section">
+                    <div class="nav-section-title">{{ __('navigation.accounting') }}</div>
+                    <ul style="list-style: none; padding: 0;">
+                        @can('view chart of accounts')
+                        <li class="nav-item">
+                            <a href="{{ route('chart-accounts.index') }}" class="nav-link {{ request()->routeIs('chart-accounts.*') ? 'active' : '' }}">
+                                <i class="bi bi-diagram-3"></i>
+                                <span>{{ __('navigation.chart_accounts') }}</span>
+                            </a>
+                        </li>
+                        @endcan
+                    </ul>
+                </div>
+
                 <!-- SECTION: REPORTS -->
                 <div class="nav-section">
                     <div class="nav-section-title">{{ __('navigation.reports') }}</div>

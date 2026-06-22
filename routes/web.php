@@ -19,6 +19,7 @@ use App\Http\Controllers\ArInvoiceController;
 use App\Http\Controllers\ApInvoiceController;
 use App\Http\Controllers\CustomerPaymentController;
 use App\Http\Controllers\SupplierPaymentController;
+use App\Http\Controllers\ChartAccountController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\DeliveryVendorController;
@@ -288,6 +289,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('supplier-payments', [SupplierPaymentController::class, 'store'])
         ->middleware('permission:process payment')
         ->name('supplier-payments.store');
+
+    // ============= ACCOUNTING MANAGEMENT =============
+    Route::resource('chart-accounts', ChartAccountController::class)
+        ->only(['index'])
+        ->middleware('permission:view chart of accounts');
+    Route::post('chart-accounts', [ChartAccountController::class, 'store'])
+        ->middleware('permission:manage chart of accounts')
+        ->name('chart-accounts.store');
+    Route::put('chart-accounts/{chartAccount}', [ChartAccountController::class, 'update'])
+        ->middleware('permission:manage chart of accounts')
+        ->name('chart-accounts.update');
+    Route::post('chart-accounts/{chartAccount}/toggle', [ChartAccountController::class, 'toggle'])
+        ->middleware('permission:manage chart of accounts')
+        ->name('chart-accounts.toggle');
     
     // ============= DELIVERY MANAGEMENT =============
     Route::get('deliveries/kurir/today', [DeliveryController::class, 'kurirToday'])->middleware('permission:view deliveries')->name('deliveries.kurir.today');
