@@ -14,20 +14,33 @@ return new class extends Migration
                 $table->text('admin_notes')->nullable()->after('notes');
             }
             
-            // Tambah kolom baru
-            $table->enum('order_source', ['app', 'admin'])->default('app')->after('status');
-            $table->enum('payment_method', ['gateway', 'manual', 'wallet'])->nullable()->after('order_source');
-            $table->string('payment_reference')->nullable()->after('payment_method');
-            $table->enum('fulfillment_type', ['stock', 'jit'])->default('jit')->after('payment_reference');
-            $table->text('shopping_notes')->nullable()->after('admin_notes');
-            $table->timestamp('procurement_started_at')->nullable()->after('shopping_notes');
-            $table->timestamp('procurement_completed_at')->nullable()->after('procurement_started_at');
-            $table->string('tracking_code')->nullable()->after('delivered_at');
-            $table->timestamp('shipped_at')->nullable()->after('tracking_code');
-            
-            // Indeks
-            $table->index(['order_source', 'fulfillment_type']);
-            $table->index(['payment_method', 'status']);
+            if (!Schema::hasColumn('orders', 'order_source')) {
+                $table->enum('order_source', ['app', 'admin'])->default('app')->after('status');
+            }
+            if (!Schema::hasColumn('orders', 'payment_method')) {
+                $table->enum('payment_method', ['gateway', 'manual', 'wallet'])->nullable()->after('order_source');
+            }
+            if (!Schema::hasColumn('orders', 'payment_reference')) {
+                $table->string('payment_reference')->nullable()->after('payment_method');
+            }
+            if (!Schema::hasColumn('orders', 'fulfillment_type')) {
+                $table->enum('fulfillment_type', ['stock', 'jit'])->default('jit')->after('payment_reference');
+            }
+            if (!Schema::hasColumn('orders', 'shopping_notes')) {
+                $table->text('shopping_notes')->nullable()->after('admin_notes');
+            }
+            if (!Schema::hasColumn('orders', 'procurement_started_at')) {
+                $table->timestamp('procurement_started_at')->nullable()->after('shopping_notes');
+            }
+            if (!Schema::hasColumn('orders', 'procurement_completed_at')) {
+                $table->timestamp('procurement_completed_at')->nullable()->after('procurement_started_at');
+            }
+            if (!Schema::hasColumn('orders', 'tracking_code')) {
+                $table->string('tracking_code')->nullable()->after('delivered_at');
+            }
+            if (!Schema::hasColumn('orders', 'shipped_at')) {
+                $table->timestamp('shipped_at')->nullable()->after('tracking_code');
+            }
         });
     }
 

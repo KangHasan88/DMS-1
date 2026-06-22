@@ -8,10 +8,16 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('stock_movements', 'source_type')) {
+            return;
+        }
+
         Schema::table('stock_movements', function (Blueprint $table) {
             // Sumber stock masuk
             $table->string('source_type')->nullable()->after('order_id');
-            $table->unsignedBigInteger('source_id')->nullable()->after('source_type');
+            if (!Schema::hasColumn('stock_movements', 'source_id')) {
+                $table->unsignedBigInteger('source_id')->nullable()->after('source_type');
+            }
             
             // Index untuk query
             $table->index(['source_type', 'source_id']);

@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('product_stocks', 'consignment_quantity')) {
+            return;
+        }
+
         Schema::table('product_stocks', function (Blueprint $table) {
             $table->integer('consignment_quantity')->default(0)->after('quantity');
         });

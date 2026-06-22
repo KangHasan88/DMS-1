@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('activity_log') || !Schema::hasTable('activity_logs')) {
+            return;
+        }
+
         Schema::rename('activity_logs', 'activity_log');
     }
 
