@@ -3,10 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\ArInvoice;
+use App\Models\ChartAccount;
 use App\Models\CompanyBranch;
 use App\Models\CompanyProfile;
 use App\Models\Customer;
 use App\Models\CustomerPayment;
+use App\Models\JournalEntry;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -44,6 +46,16 @@ class ArInvoiceFlowTest extends TestCase
         $this->assertSame(ArInvoice::STATUS_ISSUED, $invoice->status);
         $this->assertCount(1, $invoice->items);
         $this->assertSame('Produk AR', $invoice->items->first()->description);
+
+        $journal = JournalEntry::with('lines.account')
+            ->where('source_type', ArInvoice::class)
+            ->where('source_id', $invoice->id)
+            ->firstOrFail();
+
+        $this->assertSame(50000, $journal->debit_total);
+        $this->assertSame(50000, $journal->credit_total);
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1102' && $line->debit_amount === 50000));
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '4101' && $line->credit_amount === 50000));
 
         $this->actingAs($finance)
             ->get(route('ar-invoices.show', $invoice))
@@ -103,6 +115,16 @@ class ArInvoiceFlowTest extends TestCase
         $this->assertSame(20000, $invoice->paid_amount);
         $this->assertSame(30000, $invoice->outstanding_amount);
         $this->assertSame(ArInvoice::STATUS_PARTIALLY_PAID, $invoice->status);
+
+        $journal = JournalEntry::with('lines.account')
+            ->where('source_type', CustomerPayment::class)
+            ->where('source_id', $payment->id)
+            ->firstOrFail();
+
+        $this->assertSame(20000, $journal->debit_total);
+        $this->assertSame(20000, $journal->credit_total);
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1110' && $line->debit_amount === 20000));
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1102' && $line->credit_amount === 20000));
     }
 
     public function test_full_customer_payment_marks_ar_invoice_paid(): void
@@ -149,6 +171,34 @@ class ArInvoiceFlowTest extends TestCase
         $this->assertDatabaseCount('customer_payments', 0);
         $this->assertSame(0, $invoice->paid_amount);
         $this->assertSame(50000, $invoice->outstanding_amount);
+    }
+
+    public function test_ar_auto_journals_flow_into_trial_balance(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ar-trial@example.test');
+        [$order] = $this->deliveredOrder();
+        $invoice = ArInvoice::issueFromOrder($order, $finance);
+        CustomerPayment::receiveForInvoice($invoice, [
+            'payment_date' => now()->toDateString(),
+            'payment_method' => CustomerPayment::METHOD_TRANSFER,
+            'amount' => 50000,
+        ], $finance);
+
+        $this->actingAs($finance)
+            ->get(route('trial-balance.index', [
+                'date_from' => now()->startOfMonth()->toDateString(),
+                'date_to' => now()->toDateString(),
+            ]))
+            ->assertOk()
+            ->assertSee('Neraca Saldo')
+            ->assertSee('Kas dan Bank')
+            ->assertSee('Pendapatan Penjualan');
+
+        $this->assertDatabaseHas('chart_accounts', [
+            'code' => '1102',
+            'name' => 'Piutang Usaha',
+            'account_type' => ChartAccount::TYPE_ASSET,
+        ]);
     }
 
     private function deliveredOrder(string $status = Order::STATUS_DELIVERED): array
