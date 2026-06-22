@@ -3,10 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\ArInvoice;
+use App\Models\ApInvoice;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductStock;
+use App\Models\PurchaseOrder;
+use App\Models\Supplier;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -156,6 +159,33 @@ class ReportDateRangeTest extends TestCase
             ->assertDontSee('INV-VOID');
     }
 
+    public function test_ap_aging_report_groups_open_payables_by_due_date(): void
+    {
+        $user = $this->superAdmin();
+        $asOfDate = '2026-06-22';
+
+        $this->createApInvoice($user, 'AP-CURRENT', '2026-06-25', 120000);
+        $this->createApInvoice($user, 'AP-OVER-10', '2026-06-12', 220000);
+        $this->createApInvoice($user, 'AP-OVER-40', '2026-05-13', 320000);
+        $this->createApInvoice($user, 'AP-PAID', '2026-05-01', 420000, ApInvoice::STATUS_PAID, 420000, 0);
+        $this->createApInvoice($user, 'AP-VOID', '2026-05-01', 520000, ApInvoice::STATUS_VOID, 0, 520000);
+
+        $this->actingAs($user)
+            ->get('/reports/ap-aging?as_of_date=' . $asOfDate)
+            ->assertOk()
+            ->assertSee('Umur Hutang')
+            ->assertSee('Belum Jatuh Tempo')
+            ->assertSee('1-30 Hari')
+            ->assertSee('31-60 Hari')
+            ->assertSee('AP-CURRENT')
+            ->assertSee('AP-OVER-10')
+            ->assertSee('AP-OVER-40')
+            ->assertSee('Rp 660.000')
+            ->assertSee('Rp 540.000')
+            ->assertDontSee('AP-PAID')
+            ->assertDontSee('AP-VOID');
+    }
+
     private function superAdmin(): User
     {
         $user = User::factory()->create();
@@ -190,6 +220,49 @@ class ReportDateRangeTest extends TestCase
             'invoice_number' => $invoiceNumber,
             'order_id' => $order->id,
             'user_id' => $user->id,
+            'invoice_date' => '2026-06-01',
+            'due_date' => $dueDate,
+            'status' => $status,
+            'subtotal' => $totalAmount,
+            'total_amount' => $totalAmount,
+            'paid_amount' => $paidAmount,
+            'outstanding_amount' => $outstandingAmount ?? max(0, $totalAmount - $paidAmount),
+            'issued_by' => $user->id,
+            'issued_at' => now(),
+        ]);
+    }
+
+    private function createApInvoice(
+        User $user,
+        string $invoiceNumber,
+        string $dueDate,
+        int $totalAmount,
+        string $status = ApInvoice::STATUS_ISSUED,
+        int $paidAmount = 0,
+        ?int $outstandingAmount = null
+    ): ApInvoice {
+        $supplier = Supplier::create([
+            'name' => 'Pemasok Aging ' . substr(md5($invoiceNumber), 0, 6),
+            'phone' => '0812' . random_int(10000000, 99999999),
+            'category' => Supplier::CATEGORY_ALL,
+            'is_active' => true,
+        ]);
+        $purchaseOrder = PurchaseOrder::create([
+            'po_number' => 'POAGING' . substr(md5($invoiceNumber), 0, 8),
+            'supplier_id' => $supplier->id,
+            'order_date' => '2026-06-01',
+            'expected_delivery_date' => '2026-06-01',
+            'received_date' => '2026-06-01',
+            'status' => PurchaseOrder::STATUS_RECEIVED,
+            'subtotal' => $totalAmount,
+            'total' => $totalAmount,
+            'created_by' => $user->id,
+        ]);
+
+        return ApInvoice::create([
+            'invoice_number' => $invoiceNumber,
+            'purchase_order_id' => $purchaseOrder->id,
+            'supplier_id' => $supplier->id,
             'invoice_date' => '2026-06-01',
             'due_date' => $dueDate,
             'status' => $status,

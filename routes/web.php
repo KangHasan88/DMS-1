@@ -326,6 +326,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/delivery', [ReportController::class, 'delivery'])->middleware('permission:view delivery report')->name('delivery');
         Route::get('/financial', [ReportController::class, 'financial'])->middleware('permission:view financial report')->name('financial');
         Route::get('/ar-aging', [ReportController::class, 'arAging'])->middleware('permission:view piutang')->name('ar-aging');
+        Route::get('/ap-aging', [ReportController::class, 'apAging'])->middleware('permission:view piutang')->name('ap-aging');
         Route::get('/export/{type}', [ReportController::class, 'export'])->middleware('permission:export reports')->name('export');
     });
     

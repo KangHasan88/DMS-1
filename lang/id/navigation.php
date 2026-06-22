@@ -34,6 +34,7 @@ return [
     'customer_payments' => 'Pembayaran Customer',
     'supplier_payments' => 'Pembayaran Supplier',
     'ar_aging' => 'Umur Piutang',
+    'ap_aging' => 'Umur Hutang',
     'sales_report' => 'Laporan Penjualan',
     'inventory_report' => 'Laporan Inventori',
     'delivery_report' => 'Laporan Pengiriman',

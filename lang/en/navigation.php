@@ -34,6 +34,7 @@ return [
     'customer_payments' => 'Customer Payments',
     'supplier_payments' => 'Supplier Payments',
     'ar_aging' => 'AR Aging',
+    'ap_aging' => 'AP Aging',
     'sales_report' => 'Sales Report',
     'inventory_report' => 'Inventory Report',
     'delivery_report' => 'Delivery Report',

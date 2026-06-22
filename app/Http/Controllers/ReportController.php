@@ -3,11 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\ArInvoice;
+use App\Models\ApInvoice;
 use App\Models\CompanyBranch;
 use App\Models\Delivery;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\Supplier;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -228,9 +230,74 @@ class ReportController extends Controller
         ));
     }
 
+    public function apAging(Request $request)
+    {
+        $request->validate([
+            'as_of_date' => ['nullable', 'date'],
+            'supplier_id' => ['nullable', 'exists:suppliers,id'],
+        ]);
+
+        $asOfDate = $request->filled('as_of_date')
+            ? $request->date('as_of_date')->endOfDay()
+            : now()->endOfDay();
+
+        $baseQuery = ApInvoice::with(['purchaseOrder', 'supplier'])
+            ->where('outstanding_amount', '>', 0)
+            ->whereNotIn('status', [ApInvoice::STATUS_PAID, ApInvoice::STATUS_VOID])
+            ->when($request->filled('supplier_id'), fn ($query) => $query->where('supplier_id', $request->supplier_id));
+
+        $allOpenInvoices = (clone $baseQuery)->get();
+        $bucketSummary = $this->emptyAgingBuckets();
+        $overdueInvoices = 0;
+        $overdueAmount = 0;
+
+        foreach ($allOpenInvoices as $invoice) {
+            $bucket = $this->apAgingBucket($invoice, $asOfDate);
+            $bucketSummary[$bucket['key']]['amount'] += (int) $invoice->outstanding_amount;
+            $bucketSummary[$bucket['key']]['count']++;
+
+            if ($bucket['key'] !== 'current') {
+                $overdueInvoices++;
+                $overdueAmount += (int) $invoice->outstanding_amount;
+            }
+        }
+
+        $summary = [
+            'open_invoices' => $allOpenInvoices->count(),
+            'total_outstanding' => $allOpenInvoices->sum('outstanding_amount'),
+            'overdue_invoices' => $overdueInvoices,
+            'overdue_amount' => $overdueAmount,
+        ];
+
+        $invoices = (clone $baseQuery)
+            ->orderByRaw('due_date IS NULL')
+            ->orderBy('due_date')
+            ->paginate($request->get('per_page', 20))
+            ->withQueryString();
+
+        $invoices->getCollection()->transform(function (ApInvoice $invoice) use ($asOfDate) {
+            $bucket = $this->apAgingBucket($invoice, $asOfDate);
+            $invoice->aging_bucket = $bucket['label'];
+            $invoice->aging_badge = $bucket['badge'];
+            $invoice->days_overdue = $bucket['days_overdue'];
+
+            return $invoice;
+        });
+
+        $suppliers = Supplier::active()->orderBy('name')->get();
+
+        return view('reports.ap-aging', compact(
+            'asOfDate',
+            'summary',
+            'bucketSummary',
+            'invoices',
+            'suppliers'
+        ));
+    }
+
     public function export(Request $request, string $type): StreamedResponse
     {
-        abort_unless(in_array($type, ['sales', 'inventory', 'delivery', 'financial', 'ar-aging'], true), 404);
+        abort_unless(in_array($type, ['sales', 'inventory', 'delivery', 'financial', 'ar-aging', 'ap-aging'], true), 404);
 
         [$startDate, $endDate] = $this->dateRange($request);
 
@@ -295,6 +362,29 @@ class ReportController extends Controller
     }
 
     private function arAgingBucket(ArInvoice $invoice, $asOfDate): array
+    {
+        if (!$invoice->due_date || $invoice->due_date->greaterThanOrEqualTo($asOfDate->copy()->startOfDay())) {
+            return ['key' => 'current', 'label' => 'Belum Jatuh Tempo', 'badge' => 'info', 'days_overdue' => 0];
+        }
+
+        $daysOverdue = (int) $invoice->due_date->diffInDays($asOfDate);
+
+        if ($daysOverdue <= 30) {
+            return ['key' => '1_30', 'label' => '1-30 Hari', 'badge' => 'warning', 'days_overdue' => $daysOverdue];
+        }
+
+        if ($daysOverdue <= 60) {
+            return ['key' => '31_60', 'label' => '31-60 Hari', 'badge' => 'warning', 'days_overdue' => $daysOverdue];
+        }
+
+        if ($daysOverdue <= 90) {
+            return ['key' => '61_90', 'label' => '61-90 Hari', 'badge' => 'danger', 'days_overdue' => $daysOverdue];
+        }
+
+        return ['key' => 'over_90', 'label' => '>90 Hari', 'badge' => 'danger', 'days_overdue' => $daysOverdue];
+    }
+
+    private function apAgingBucket(ApInvoice $invoice, $asOfDate): array
     {
         if (!$invoice->due_date || $invoice->due_date->greaterThanOrEqualTo($asOfDate->copy()->startOfDay())) {
             return ['key' => 'current', 'label' => 'Belum Jatuh Tempo', 'badge' => 'info', 'days_overdue' => 0];

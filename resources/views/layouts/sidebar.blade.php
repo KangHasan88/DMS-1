@@ -1435,6 +1435,12 @@
                                 <span>{{ __('navigation.ar_aging') }}</span>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{ route('reports.ap-aging') }}" class="nav-link {{ request()->routeIs('reports.ap-aging') ? 'active' : '' }}">
+                                <i class="bi bi-hourglass-bottom"></i>
+                                <span>{{ __('navigation.ap_aging') }}</span>
+                            </a>
+                        </li>
                         @endcan
                         @can('view sales report')
                         <li class="nav-item">
