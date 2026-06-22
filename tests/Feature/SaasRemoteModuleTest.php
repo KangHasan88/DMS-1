@@ -13,13 +13,21 @@ class SaasRemoteModuleTest extends TestCase
 
     public function test_remote_health_endpoint_reports_dms_module(): void
     {
+        config()->set('modules.remote_provision_secret', 'testing-provision-secret');
+
         $response = $this->getJson('/health');
 
         $response->assertOk()
             ->assertJson([
                 'module_key' => 'dms',
                 'status' => 'healthy',
-            ]);
+            ])
+            ->assertJsonPath('signed_health.module_key', 'dms')
+            ->assertJsonPath('signed_health.status', 'healthy');
+
+        $signedHealth = $response->json('signed_health');
+        $this->assertIsString($signedHealth['signature'] ?? null);
+        $this->assertSame(64, strlen($signedHealth['signature']));
     }
 
     public function test_signed_remote_launch_stores_saas_context_and_redirects_to_login(): void
