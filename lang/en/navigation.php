@@ -27,6 +27,7 @@ return [
     'customers' => 'Customers',
     'suppliers' => 'Suppliers',
     'products' => 'Products',
+    'finance' => 'Finance',
     'reports' => 'Reports',
     'ar_invoices' => 'AR Invoices',
     'ap_invoices' => 'AP Invoices',

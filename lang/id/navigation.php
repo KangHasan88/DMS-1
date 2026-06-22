@@ -27,6 +27,7 @@ return [
     'customers' => 'Pelanggan',
     'suppliers' => 'Pemasok',
     'products' => 'Produk',
+    'finance' => 'Keuangan',
     'reports' => 'Laporan',
     'ar_invoices' => 'Invoice AR',
     'ap_invoices' => 'Invoice AP',

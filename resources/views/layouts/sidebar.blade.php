@@ -1389,9 +1389,9 @@
                     </ul>
                 </div>
 
-                <!-- SECTION: REPORTS -->
+                <!-- SECTION: FINANCE -->
                 <div class="nav-section">
-                    <div class="nav-section-title">{{ __('navigation.reports') }}</div>
+                    <div class="nav-section-title">{{ __('navigation.finance') }}</div>
                     <ul style="list-style: none; padding: 0;">
                         @can('view invoice')
                         <li class="nav-item">
@@ -1415,6 +1415,13 @@
                             </a>
                         </li>
                         @endcan
+                    </ul>
+                </div>
+
+                <!-- SECTION: REPORTS -->
+                <div class="nav-section">
+                    <div class="nav-section-title">{{ __('navigation.reports') }}</div>
+                    <ul style="list-style: none; padding: 0;">
                         @can('view piutang')
                         <li class="nav-item">
                             <a href="{{ route('reports.ar-aging') }}" class="nav-link {{ request()->routeIs('reports.ar-aging') ? 'active' : '' }}">
