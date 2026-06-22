@@ -31,6 +31,7 @@ return [
     'accounting' => 'Akuntansi',
     'chart_accounts' => 'Daftar Akun',
     'journal_entries' => 'Jurnal Umum',
+    'general_ledger' => 'Buku Besar',
     'reports' => 'Laporan',
     'ar_invoices' => 'Invoice AR',
     'ap_invoices' => 'Invoice AP',

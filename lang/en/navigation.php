@@ -31,6 +31,7 @@ return [
     'accounting' => 'Accounting',
     'chart_accounts' => 'Chart of Accounts',
     'journal_entries' => 'Journal Entries',
+    'general_ledger' => 'General Ledger',
     'reports' => 'Reports',
     'ar_invoices' => 'AR Invoices',
     'ap_invoices' => 'AP Invoices',

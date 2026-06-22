@@ -21,6 +21,7 @@ use App\Http\Controllers\CustomerPaymentController;
 use App\Http\Controllers\SupplierPaymentController;
 use App\Http\Controllers\ChartAccountController;
 use App\Http\Controllers\JournalEntryController;
+use App\Http\Controllers\GeneralLedgerController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\DeliveryVendorController;
@@ -311,6 +312,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('journal-entries', [JournalEntryController::class, 'store'])
         ->middleware('permission:manage journal entries')
         ->name('journal-entries.store');
+
+    Route::get('general-ledger', [GeneralLedgerController::class, 'index'])
+        ->middleware('permission:view general ledger')
+        ->name('general-ledger.index');
     
     // ============= DELIVERY MANAGEMENT =============
     Route::get('deliveries/kurir/today', [DeliveryController::class, 'kurirToday'])->middleware('permission:view deliveries')->name('deliveries.kurir.today');
