@@ -28,6 +28,7 @@ return [
     'suppliers' => 'Suppliers',
     'products' => 'Products',
     'reports' => 'Reports',
+    'ar_invoices' => 'AR Invoices',
     'sales_report' => 'Sales Report',
     'inventory_report' => 'Inventory Report',
     'delivery_report' => 'Delivery Report',

@@ -227,6 +227,11 @@ class Order extends Model
         return $this->hasOne(Delivery::class);
     }
 
+    public function arInvoice(): HasOne
+    {
+        return $this->hasOne(ArInvoice::class);
+    }
+
     // ===================== HELPER METHODS =====================
     
     public static function generateOrderNumber(): string
@@ -261,6 +266,23 @@ class Order extends Model
     public function canUpdateStatus(): bool
     {
         return !in_array($this->status, [self::STATUS_DELIVERED, self::STATUS_CANCELLED]);
+    }
+
+    public function isInvoiceableForAr(): bool
+    {
+        if ($this->arInvoice) {
+            return false;
+        }
+
+        if ($this->status === self::STATUS_CANCELLED) {
+            return false;
+        }
+
+        if ($this->status === self::STATUS_DELIVERED) {
+            return true;
+        }
+
+        return $this->delivery?->status === Delivery::STATUS_COMPLETED;
     }
 
     public function canEditOrder(): bool

@@ -1393,6 +1393,14 @@
                 <div class="nav-section">
                     <div class="nav-section-title">{{ __('navigation.reports') }}</div>
                     <ul style="list-style: none; padding: 0;">
+                        @can('view invoice')
+                        <li class="nav-item">
+                            <a href="{{ route('ar-invoices.index') }}" class="nav-link {{ request()->routeIs('ar-invoices.*') ? 'active' : '' }}">
+                                <i class="bi bi-receipt"></i>
+                                <span>{{ __('navigation.ar_invoices') }}</span>
+                            </a>
+                        </li>
+                        @endcan
                         @can('view sales report')
                         <li class="nav-item">
                             <a href="{{ route('reports.sales') }}" class="nav-link {{ request()->routeIs('reports.sales') ? 'active' : '' }}">

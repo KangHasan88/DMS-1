@@ -28,6 +28,7 @@ return [
     'suppliers' => 'Pemasok',
     'products' => 'Produk',
     'reports' => 'Laporan',
+    'ar_invoices' => 'Invoice AR',
     'sales_report' => 'Laporan Penjualan',
     'inventory_report' => 'Laporan Inventori',
     'delivery_report' => 'Laporan Pengiriman',

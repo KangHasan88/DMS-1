@@ -15,6 +15,7 @@ use App\Http\Controllers\SalesCoverageController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierCategoryController;
 use App\Http\Controllers\CompanyProfileController;
+use App\Http\Controllers\ArInvoiceController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\DeliveryVendorController;
@@ -243,6 +244,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('orders/{order}/proforma-invoice', [OrderController::class, 'proformaInvoice'])->middleware('permission:view invoice')->name('orders.proforma-invoice');
     Route::get('orders/{order}/delivery-order', [OrderController::class, 'deliveryOrder'])->middleware('permission:view invoice')->name('orders.delivery-order');
     Route::post('order-items/{item}/unavailable', [OrderController::class, 'markItemUnavailable'])->middleware('permission:process orders')->name('order-items.unavailable');
+
+    // ============= AR INVOICE MANAGEMENT =============
+    Route::resource('ar-invoices', ArInvoiceController::class)
+        ->only(['index', 'show'])
+        ->middleware('permission:view invoice');
+    Route::post('ar-invoices', [ArInvoiceController::class, 'store'])
+        ->middleware('permission:create invoice')
+        ->name('ar-invoices.store');
     
     // ============= DELIVERY MANAGEMENT =============
     Route::get('deliveries/kurir/today', [DeliveryController::class, 'kurirToday'])->middleware('permission:view deliveries')->name('deliveries.kurir.today');
