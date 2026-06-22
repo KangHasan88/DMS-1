@@ -1436,6 +1436,14 @@
                             </a>
                         </li>
                         @endcan
+                        @can('view journal entries')
+                        <li class="nav-item">
+                            <a href="{{ route('journal-entries.index') }}" class="nav-link {{ request()->routeIs('journal-entries.*') ? 'active' : '' }}">
+                                <i class="bi bi-journal-check"></i>
+                                <span>{{ __('navigation.journal_entries') }}</span>
+                            </a>
+                        </li>
+                        @endcan
                     </ul>
                 </div>
 

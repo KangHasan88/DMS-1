@@ -20,6 +20,7 @@ use App\Http\Controllers\ApInvoiceController;
 use App\Http\Controllers\CustomerPaymentController;
 use App\Http\Controllers\SupplierPaymentController;
 use App\Http\Controllers\ChartAccountController;
+use App\Http\Controllers\JournalEntryController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\DeliveryVendorController;
@@ -303,6 +304,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('chart-accounts/{chartAccount}/toggle', [ChartAccountController::class, 'toggle'])
         ->middleware('permission:manage chart of accounts')
         ->name('chart-accounts.toggle');
+
+    Route::resource('journal-entries', JournalEntryController::class)
+        ->only(['index', 'show'])
+        ->middleware('permission:view journal entries');
+    Route::post('journal-entries', [JournalEntryController::class, 'store'])
+        ->middleware('permission:manage journal entries')
+        ->name('journal-entries.store');
     
     // ============= DELIVERY MANAGEMENT =============
     Route::get('deliveries/kurir/today', [DeliveryController::class, 'kurirToday'])->middleware('permission:view deliveries')->name('deliveries.kurir.today');

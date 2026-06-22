@@ -30,6 +30,7 @@ return [
     'finance' => 'Keuangan',
     'accounting' => 'Akuntansi',
     'chart_accounts' => 'Daftar Akun',
+    'journal_entries' => 'Jurnal Umum',
     'reports' => 'Laporan',
     'ar_invoices' => 'Invoice AR',
     'ap_invoices' => 'Invoice AP',

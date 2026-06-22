@@ -30,6 +30,7 @@ return [
     'finance' => 'Finance',
     'accounting' => 'Accounting',
     'chart_accounts' => 'Chart of Accounts',
+    'journal_entries' => 'Journal Entries',
     'reports' => 'Reports',
     'ar_invoices' => 'AR Invoices',
     'ap_invoices' => 'AP Invoices',
