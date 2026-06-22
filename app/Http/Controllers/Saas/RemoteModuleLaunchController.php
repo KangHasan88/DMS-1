@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Saas;
 
 use App\Http\Controllers\Controller;
+use App\Models\SaasModuleTenant;
 use App\Services\Saas\RemoteModuleLaunchVerifier;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,6 +23,17 @@ class RemoteModuleLaunchController extends Controller
         ]);
 
         abort_unless($verifier->verify($payload), 403);
+
+        $tenant = SaasModuleTenant::query()
+            ->where('tenant_id', $payload['tenant_id'])
+            ->where('tenant_module_id', $payload['tenant_module_id'])
+            ->where('module_key', $payload['module_key'])
+            ->where('status', 'provisioned')
+            ->first();
+
+        abort_unless($tenant, 403);
+
+        $tenant->forceFill(['last_launch_at' => now()])->save();
 
         $request->session()->put('saas.remote_launch', $verifier->context($payload));
 
