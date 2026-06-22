@@ -22,6 +22,7 @@ use App\Http\Controllers\SupplierPaymentController;
 use App\Http\Controllers\ChartAccountController;
 use App\Http\Controllers\JournalEntryController;
 use App\Http\Controllers\GeneralLedgerController;
+use App\Http\Controllers\TrialBalanceController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\DeliveryVendorController;
@@ -316,6 +317,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('general-ledger', [GeneralLedgerController::class, 'index'])
         ->middleware('permission:view general ledger')
         ->name('general-ledger.index');
+
+    Route::get('trial-balance', [TrialBalanceController::class, 'index'])
+        ->middleware('permission:view general ledger')
+        ->name('trial-balance.index');
     
     // ============= DELIVERY MANAGEMENT =============
     Route::get('deliveries/kurir/today', [DeliveryController::class, 'kurirToday'])->middleware('permission:view deliveries')->name('deliveries.kurir.today');

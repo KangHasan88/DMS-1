@@ -1451,6 +1451,12 @@
                                 <span>{{ __('navigation.general_ledger') }}</span>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{ route('trial-balance.index') }}" class="nav-link {{ request()->routeIs('trial-balance.*') ? 'active' : '' }}">
+                                <i class="bi bi-columns-gap"></i>
+                                <span>{{ __('navigation.trial_balance') }}</span>
+                            </a>
+                        </li>
                         @endcan
                     </ul>
                 </div>

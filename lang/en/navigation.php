@@ -32,6 +32,7 @@ return [
     'chart_accounts' => 'Chart of Accounts',
     'journal_entries' => 'Journal Entries',
     'general_ledger' => 'General Ledger',
+    'trial_balance' => 'Trial Balance',
     'reports' => 'Reports',
     'ar_invoices' => 'AR Invoices',
     'ap_invoices' => 'AP Invoices',
