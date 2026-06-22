@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Saas;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\SaasModuleTenant;
 use App\Services\Saas\RemoteModuleProvisioningSigner;
 use Illuminate\Http\JsonResponse;
@@ -40,6 +41,13 @@ class RemoteModuleProvisioningController extends Controller
                 'provisioned_at' => now(),
             ],
         );
+
+        ActivityLog::record('saas', 'provisioning.accepted', 'SaaS module provisioning diterima', $tenant, [
+            'tenant_id' => $tenant->tenant_id,
+            'tenant_module_id' => $tenant->tenant_module_id,
+            'module_key' => $tenant->module_key,
+            'operation_id' => $tenant->operation_id,
+        ]);
 
         return response()->json([
             'accepted' => true,

@@ -49,6 +49,11 @@ class SaasRemoteModuleTest extends TestCase
         $this->assertSame('11111111-1111-4111-8111-111111111111', session('saas.remote_launch.tenant_id'));
         $this->assertSame('42', session('saas.remote_launch.tenant_module_id'));
         $this->assertNotNull(SaasModuleTenant::first()->last_launch_at);
+        $this->assertDatabaseHas('activity_log', [
+            'log_name' => 'saas',
+            'event' => 'launch.accepted',
+            'description' => 'SaaS module launch diterima',
+        ]);
     }
 
     public function test_signed_remote_launch_requires_provisioned_tenant_module(): void

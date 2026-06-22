@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Saas;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\SaasModuleTenant;
 use App\Services\Saas\RemoteModuleLaunchVerifier;
 use Illuminate\Http\RedirectResponse;
@@ -34,6 +35,14 @@ class RemoteModuleLaunchController extends Controller
         abort_unless($tenant, 403);
 
         $tenant->forceFill(['last_launch_at' => now()])->save();
+
+        ActivityLog::record('saas', 'launch.accepted', 'SaaS module launch diterima', $tenant, [
+            'tenant_id' => $tenant->tenant_id,
+            'tenant_module_id' => $tenant->tenant_module_id,
+            'module_key' => $tenant->module_key,
+            'tenant_user_id' => $payload['tenant_user_id'] ?? null,
+            'tenant_user_role' => $payload['tenant_user_role'] ?? null,
+        ]);
 
         $request->session()->put('saas.remote_launch', $verifier->context($payload));
 
