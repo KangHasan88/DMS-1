@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ArInvoice;
+use App\Models\CompanyBranch;
 use App\Models\Delivery;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -155,9 +157,80 @@ class ReportController extends Controller
         return view('reports.financial', compact('summary', 'byPaymentMethod', 'startDate', 'endDate'));
     }
 
+    public function arAging(Request $request)
+    {
+        $request->validate([
+            'as_of_date' => ['nullable', 'date'],
+            'company_branch_id' => ['nullable', 'exists:company_branches,id'],
+        ]);
+
+        $asOfDate = $request->filled('as_of_date')
+            ? $request->date('as_of_date')->endOfDay()
+            : now()->endOfDay();
+
+        $branchScopeId = auth()->user()?->scopedCompanyBranchId();
+        $canFilterBranches = !$branchScopeId;
+
+        $baseQuery = ArInvoice::with(['order', 'customer', 'customerUser', 'companyBranch'])
+            ->where('outstanding_amount', '>', 0)
+            ->whereNotIn('status', [ArInvoice::STATUS_PAID, ArInvoice::STATUS_VOID])
+            ->when($branchScopeId, fn ($query) => $query->where('company_branch_id', $branchScopeId))
+            ->when(!$branchScopeId && $request->filled('company_branch_id'), fn ($query) => $query->where('company_branch_id', $request->company_branch_id));
+
+        $allOpenInvoices = (clone $baseQuery)->get();
+        $bucketSummary = $this->emptyAgingBuckets();
+
+        $overdueInvoices = 0;
+        $overdueAmount = 0;
+
+        foreach ($allOpenInvoices as $invoice) {
+            $bucket = $this->arAgingBucket($invoice, $asOfDate);
+            $bucketSummary[$bucket['key']]['amount'] += (int) $invoice->outstanding_amount;
+            $bucketSummary[$bucket['key']]['count']++;
+
+            if ($bucket['key'] !== 'current') {
+                $overdueInvoices++;
+                $overdueAmount += (int) $invoice->outstanding_amount;
+            }
+        }
+
+        $summary = [
+            'open_invoices' => $allOpenInvoices->count(),
+            'total_outstanding' => $allOpenInvoices->sum('outstanding_amount'),
+            'overdue_invoices' => $overdueInvoices,
+            'overdue_amount' => $overdueAmount,
+        ];
+
+        $invoices = (clone $baseQuery)
+            ->orderByRaw('due_date IS NULL')
+            ->orderBy('due_date')
+            ->paginate($request->get('per_page', 20))
+            ->withQueryString();
+
+        $invoices->getCollection()->transform(function (ArInvoice $invoice) use ($asOfDate) {
+            $bucket = $this->arAgingBucket($invoice, $asOfDate);
+            $invoice->aging_bucket = $bucket['label'];
+            $invoice->aging_badge = $bucket['badge'];
+            $invoice->days_overdue = $bucket['days_overdue'];
+
+            return $invoice;
+        });
+
+        $companyBranches = CompanyBranch::where('is_active', true)->orderBy('name')->get();
+
+        return view('reports.ar-aging', compact(
+            'asOfDate',
+            'summary',
+            'bucketSummary',
+            'invoices',
+            'companyBranches',
+            'canFilterBranches'
+        ));
+    }
+
     public function export(Request $request, string $type): StreamedResponse
     {
-        abort_unless(in_array($type, ['sales', 'inventory', 'delivery', 'financial'], true), 404);
+        abort_unless(in_array($type, ['sales', 'inventory', 'delivery', 'financial', 'ar-aging'], true), 404);
 
         [$startDate, $endDate] = $this->dateRange($request);
 
@@ -208,5 +281,39 @@ class ReportController extends Controller
         }
 
         return ['type' => 'healthy', 'label' => 'Sehat', 'class' => 'success'];
+    }
+
+    private function emptyAgingBuckets(): array
+    {
+        return [
+            'current' => ['label' => 'Belum Jatuh Tempo', 'amount' => 0, 'count' => 0, 'badge' => 'info'],
+            '1_30' => ['label' => '1-30 Hari', 'amount' => 0, 'count' => 0, 'badge' => 'warning'],
+            '31_60' => ['label' => '31-60 Hari', 'amount' => 0, 'count' => 0, 'badge' => 'warning'],
+            '61_90' => ['label' => '61-90 Hari', 'amount' => 0, 'count' => 0, 'badge' => 'danger'],
+            'over_90' => ['label' => '>90 Hari', 'amount' => 0, 'count' => 0, 'badge' => 'danger'],
+        ];
+    }
+
+    private function arAgingBucket(ArInvoice $invoice, $asOfDate): array
+    {
+        if (!$invoice->due_date || $invoice->due_date->greaterThanOrEqualTo($asOfDate->copy()->startOfDay())) {
+            return ['key' => 'current', 'label' => 'Belum Jatuh Tempo', 'badge' => 'info', 'days_overdue' => 0];
+        }
+
+        $daysOverdue = (int) $invoice->due_date->diffInDays($asOfDate);
+
+        if ($daysOverdue <= 30) {
+            return ['key' => '1_30', 'label' => '1-30 Hari', 'badge' => 'warning', 'days_overdue' => $daysOverdue];
+        }
+
+        if ($daysOverdue <= 60) {
+            return ['key' => '31_60', 'label' => '31-60 Hari', 'badge' => 'warning', 'days_overdue' => $daysOverdue];
+        }
+
+        if ($daysOverdue <= 90) {
+            return ['key' => '61_90', 'label' => '61-90 Hari', 'badge' => 'danger', 'days_overdue' => $daysOverdue];
+        }
+
+        return ['key' => 'over_90', 'label' => '>90 Hari', 'badge' => 'danger', 'days_overdue' => $daysOverdue];
     }
 }

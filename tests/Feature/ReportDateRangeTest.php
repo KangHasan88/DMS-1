@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\ArInvoice;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -128,11 +129,76 @@ class ReportDateRangeTest extends TestCase
             ->assertSee('Produk Diam');
     }
 
+    public function test_ar_aging_report_groups_open_receivables_by_due_date(): void
+    {
+        $user = $this->superAdmin();
+        $asOfDate = '2026-06-22';
+
+        $this->createArInvoice($user, 'INV-CURRENT', '2026-06-25', 100000);
+        $this->createArInvoice($user, 'INV-OVER-10', '2026-06-12', 200000);
+        $this->createArInvoice($user, 'INV-OVER-40', '2026-05-13', 300000);
+        $this->createArInvoice($user, 'INV-PAID', '2026-05-01', 400000, ArInvoice::STATUS_PAID, 400000, 0);
+        $this->createArInvoice($user, 'INV-VOID', '2026-05-01', 500000, ArInvoice::STATUS_VOID, 0, 500000);
+
+        $this->actingAs($user)
+            ->get('/reports/ar-aging?as_of_date=' . $asOfDate)
+            ->assertOk()
+            ->assertSee('Umur Piutang')
+            ->assertSee('Belum Jatuh Tempo')
+            ->assertSee('1-30 Hari')
+            ->assertSee('31-60 Hari')
+            ->assertSee('INV-CURRENT')
+            ->assertSee('INV-OVER-10')
+            ->assertSee('INV-OVER-40')
+            ->assertSee('Rp 600.000')
+            ->assertSee('Rp 500.000')
+            ->assertDontSee('INV-PAID')
+            ->assertDontSee('INV-VOID');
+    }
+
     private function superAdmin(): User
     {
         $user = User::factory()->create();
         $user->assignRole('super-admin');
 
         return $user;
+    }
+
+    private function createArInvoice(
+        User $user,
+        string $invoiceNumber,
+        string $dueDate,
+        int $totalAmount,
+        string $status = ArInvoice::STATUS_ISSUED,
+        int $paidAmount = 0,
+        ?int $outstandingAmount = null
+    ): ArInvoice {
+        $order = Order::create([
+            'user_id' => $user->id,
+            'order_number' => 'KMGAR' . substr(md5($invoiceNumber), 0, 8),
+            'delivery_date' => '2026-06-01',
+            'address' => 'Alamat AR Aging',
+            'delivery_fee' => 0,
+            'packing_fee' => 0,
+            'status' => Order::STATUS_DELIVERED,
+            'subtotal' => $totalAmount,
+            'total' => $totalAmount,
+            'grand_total' => $totalAmount,
+        ]);
+
+        return ArInvoice::create([
+            'invoice_number' => $invoiceNumber,
+            'order_id' => $order->id,
+            'user_id' => $user->id,
+            'invoice_date' => '2026-06-01',
+            'due_date' => $dueDate,
+            'status' => $status,
+            'subtotal' => $totalAmount,
+            'total_amount' => $totalAmount,
+            'paid_amount' => $paidAmount,
+            'outstanding_amount' => $outstandingAmount ?? max(0, $totalAmount - $paidAmount),
+            'issued_by' => $user->id,
+            'issued_at' => now(),
+        ]);
     }
 }

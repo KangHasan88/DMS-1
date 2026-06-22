@@ -30,6 +30,7 @@ return [
     'reports' => 'Laporan',
     'ar_invoices' => 'Invoice AR',
     'customer_payments' => 'Pembayaran Customer',
+    'ar_aging' => 'Umur Piutang',
     'sales_report' => 'Laporan Penjualan',
     'inventory_report' => 'Laporan Inventori',
     'delivery_report' => 'Laporan Pengiriman',

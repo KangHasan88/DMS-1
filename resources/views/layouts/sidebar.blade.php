@@ -1409,6 +1409,14 @@
                             </a>
                         </li>
                         @endcan
+                        @can('view piutang')
+                        <li class="nav-item">
+                            <a href="{{ route('reports.ar-aging') }}" class="nav-link {{ request()->routeIs('reports.ar-aging') ? 'active' : '' }}">
+                                <i class="bi bi-hourglass-split"></i>
+                                <span>{{ __('navigation.ar_aging') }}</span>
+                            </a>
+                        </li>
+                        @endcan
                         @can('view sales report')
                         <li class="nav-item">
                             <a href="{{ route('reports.sales') }}" class="nav-link {{ request()->routeIs('reports.sales') ? 'active' : '' }}">

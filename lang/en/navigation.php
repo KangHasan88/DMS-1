@@ -30,6 +30,7 @@ return [
     'reports' => 'Reports',
     'ar_invoices' => 'AR Invoices',
     'customer_payments' => 'Customer Payments',
+    'ar_aging' => 'AR Aging',
     'sales_report' => 'Sales Report',
     'inventory_report' => 'Inventory Report',
     'delivery_report' => 'Delivery Report',
