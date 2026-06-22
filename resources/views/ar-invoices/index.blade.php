@@ -46,15 +46,32 @@
     @can('create invoice')
         @if($invoiceableOrders->isNotEmpty())
             <div style="margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--k-border); border-radius: 8px; background: #f8fbff;">
-                <strong>Order siap dibuat invoice:</strong>
-                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem;">
+                <div class="dms-section-header" style="margin-bottom: 0.75rem;">
+                    <div>
+                        <h3 class="dms-section-title" style="font-size: 0.95rem;">Order Siap Dibuat Invoice</h3>
+                        <p class="dms-section-subtitle">Order terkirim yang belum memiliki invoice AR.</p>
+                    </div>
+                    <span class="dms-badge dms-badge-info">{{ $invoiceableOrders->count() }} order</span>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 0.75rem;">
                     @foreach($invoiceableOrders as $order)
-                        <form action="{{ route('ar-invoices.store') }}" method="POST">
+                        <form action="{{ route('ar-invoices.store') }}" method="POST" style="margin: 0;">
                             @csrf
                             <input type="hidden" name="order_id" value="{{ $order->id }}">
-                            <button type="submit" class="dms-btn dms-btn-outline dms-btn-sm">
-                                <i class="bi bi-receipt"></i>
-                                {{ $order->order_number }} - Rp {{ number_format($order->grand_total ?: $order->total, 0, ',', '.') }}
+                            <button type="submit" class="dms-btn dms-btn-outline" style="width: 100%; min-height: 56px; justify-content: space-between; text-align: left; gap: 0.75rem;">
+                                <span style="display: flex; align-items: center; min-width: 0; gap: 0.75rem;">
+                                    <i class="bi bi-receipt"></i>
+                                    <span style="display: grid; min-width: 0;">
+                                        <strong style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $order->order_number }}</strong>
+                                        <small style="color: var(--k-gray-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                            {{ $order->user?->customer?->name ?? $order->user?->name ?? 'Pelanggan' }}
+                                        </small>
+                                    </span>
+                                </span>
+                                <span style="display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0;">
+                                    <strong class="dms-money">Rp {{ number_format($order->grand_total ?: $order->total, 0, ',', '.') }}</strong>
+                                    <span class="dms-badge dms-badge-info">Buat Invoice</span>
+                                </span>
                             </button>
                         </form>
                     @endforeach
