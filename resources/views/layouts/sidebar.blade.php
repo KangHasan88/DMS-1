@@ -1401,6 +1401,14 @@
                             </a>
                         </li>
                         @endcan
+                        @can('view payment')
+                        <li class="nav-item">
+                            <a href="{{ route('customer-payments.index') }}" class="nav-link {{ request()->routeIs('customer-payments.*') ? 'active' : '' }}">
+                                <i class="bi bi-cash-coin"></i>
+                                <span>{{ __('navigation.customer_payments') }}</span>
+                            </a>
+                        </li>
+                        @endcan
                         @can('view sales report')
                         <li class="nav-item">
                             <a href="{{ route('reports.sales') }}" class="nav-link {{ request()->routeIs('reports.sales') ? 'active' : '' }}">

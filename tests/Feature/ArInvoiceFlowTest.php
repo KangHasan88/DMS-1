@@ -6,6 +6,7 @@ use App\Models\ArInvoice;
 use App\Models\CompanyBranch;
 use App\Models\CompanyProfile;
 use App\Models\Customer;
+use App\Models\CustomerPayment;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
@@ -72,7 +73,82 @@ class ArInvoiceFlowTest extends TestCase
         $this->actingAs($finance)
             ->get('/dashboard')
             ->assertOk()
-            ->assertSee('Invoice AR');
+            ->assertSee('Invoice AR')
+            ->assertSee('Pembayaran Customer');
+    }
+
+    public function test_finance_can_record_partial_customer_payment_for_ar_invoice(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-payment-partial@example.test');
+        [$order] = $this->deliveredOrder();
+        $invoice = ArInvoice::issueFromOrder($order, $finance);
+
+        $this->actingAs($finance)
+            ->post(route('customer-payments.store'), [
+                'ar_invoice_id' => $invoice->id,
+                'payment_date' => now()->toDateString(),
+                'payment_method' => CustomerPayment::METHOD_TRANSFER,
+                'amount' => 20000,
+                'reference_number' => 'TRF-001',
+                'notes' => 'Bayar sebagian',
+            ])
+            ->assertRedirect(route('ar-invoices.show', $invoice->fresh()));
+
+        $invoice->refresh();
+        $payment = CustomerPayment::with('allocations')->firstOrFail();
+
+        $this->assertSame(20000, $payment->amount);
+        $this->assertSame(0, $payment->unallocated_amount);
+        $this->assertCount(1, $payment->allocations);
+        $this->assertSame(20000, $invoice->paid_amount);
+        $this->assertSame(30000, $invoice->outstanding_amount);
+        $this->assertSame(ArInvoice::STATUS_PARTIALLY_PAID, $invoice->status);
+    }
+
+    public function test_full_customer_payment_marks_ar_invoice_paid(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-payment-full@example.test');
+        [$order] = $this->deliveredOrder();
+        $invoice = ArInvoice::issueFromOrder($order, $finance);
+
+        $this->actingAs($finance)
+            ->post(route('customer-payments.store'), [
+                'ar_invoice_id' => $invoice->id,
+                'payment_date' => now()->toDateString(),
+                'payment_method' => CustomerPayment::METHOD_CASH,
+                'amount' => 50000,
+            ])
+            ->assertRedirect(route('ar-invoices.show', $invoice->fresh()));
+
+        $invoice->refresh();
+
+        $this->assertSame(50000, $invoice->paid_amount);
+        $this->assertSame(0, $invoice->outstanding_amount);
+        $this->assertSame(ArInvoice::STATUS_PAID, $invoice->status);
+    }
+
+    public function test_customer_payment_cannot_exceed_invoice_outstanding(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-payment-over@example.test');
+        [$order] = $this->deliveredOrder();
+        $invoice = ArInvoice::issueFromOrder($order, $finance);
+
+        $this->actingAs($finance)
+            ->from(route('ar-invoices.show', $invoice))
+            ->post(route('customer-payments.store'), [
+                'ar_invoice_id' => $invoice->id,
+                'payment_date' => now()->toDateString(),
+                'payment_method' => CustomerPayment::METHOD_TRANSFER,
+                'amount' => 60000,
+            ])
+            ->assertRedirect(route('ar-invoices.show', $invoice))
+            ->assertSessionHas('error');
+
+        $invoice->refresh();
+
+        $this->assertDatabaseCount('customer_payments', 0);
+        $this->assertSame(0, $invoice->paid_amount);
+        $this->assertSame(50000, $invoice->outstanding_amount);
     }
 
     private function deliveredOrder(string $status = Order::STATUS_DELIVERED): array

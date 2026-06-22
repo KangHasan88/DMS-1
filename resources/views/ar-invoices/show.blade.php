@@ -103,4 +103,101 @@
         </div>
     </div>
 </div>
+
+@can('process payment')
+    @if($arInvoice->outstanding_amount > 0 && $arInvoice->status !== \App\Models\ArInvoice::STATUS_VOID)
+        <div class="dms-card" style="margin-top: 1rem;">
+            <div class="dms-section-header">
+                <div>
+                    <h3 class="dms-section-title">Catat Pembayaran</h3>
+                    <p class="dms-section-subtitle">Input pembayaran customer dan alokasikan langsung ke invoice ini.</p>
+                </div>
+            </div>
+
+            <form action="{{ route('customer-payments.store') }}" method="POST">
+                @csrf
+                <input type="hidden" name="ar_invoice_id" value="{{ $arInvoice->id }}">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
+                    <div>
+                        <label class="form-label">Tanggal Bayar</label>
+                        <input type="date" name="payment_date" value="{{ old('payment_date', now()->toDateString()) }}" class="form-control" required>
+                    </div>
+                    <div>
+                        <label class="form-label">Metode</label>
+                        <select name="payment_method" class="form-control" required>
+                            @foreach(\App\Models\CustomerPayment::METHOD_LIST as $key => $label)
+                                <option value="{{ $key }}" {{ old('payment_method', \App\Models\CustomerPayment::METHOD_TRANSFER) === $key ? 'selected' : '' }}>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Nominal</label>
+                        <input type="number" name="amount" min="1" max="{{ $arInvoice->outstanding_amount }}" value="{{ old('amount', $arInvoice->outstanding_amount) }}" class="form-control" required>
+                    </div>
+                    <div>
+                        <label class="form-label">No. Referensi</label>
+                        <input type="text" name="reference_number" value="{{ old('reference_number') }}" class="form-control" placeholder="Opsional">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.75rem; align-items: end; margin-top: 0.75rem;">
+                    <div style="flex: 1;">
+                        <label class="form-label">Catatan</label>
+                        <input type="text" name="notes" value="{{ old('notes') }}" class="form-control" placeholder="Opsional">
+                    </div>
+                    <button type="submit" class="dms-btn dms-btn-primary">
+                        <i class="bi bi-cash-coin"></i>
+                        Simpan Pembayaran
+                    </button>
+                </div>
+            </form>
+        </div>
+    @endif
+@endcan
+
+<div class="dms-card" style="margin-top: 1rem;">
+    <div class="dms-section-header">
+        <div>
+            <h3 class="dms-section-title">Riwayat Pembayaran</h3>
+            <p class="dms-section-subtitle">Daftar payment yang sudah dialokasikan ke invoice ini.</p>
+        </div>
+    </div>
+
+    <div class="dms-table-wrap">
+        <table class="dms-table">
+            <thead>
+                <tr>
+                    <th>No. Payment</th>
+                    <th>Tanggal</th>
+                    <th>Metode</th>
+                    <th>Referensi</th>
+                    <th>Dicatat Oleh</th>
+                    <th>Nominal</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($arInvoice->paymentAllocations as $allocation)
+                    <tr>
+                        <td>
+                            <a href="{{ route('customer-payments.show', $allocation->customerPayment) }}">
+                                <strong>{{ $allocation->customerPayment?->payment_number ?? '-' }}</strong>
+                            </a>
+                        </td>
+                        <td>{{ $allocation->customerPayment?->payment_date?->format('d M Y') ?? '-' }}</td>
+                        <td>{{ $allocation->customerPayment?->method_label ?? '-' }}</td>
+                        <td>{{ $allocation->customerPayment?->reference_number ?? '-' }}</td>
+                        <td>{{ $allocation->customerPayment?->receivedBy?->name ?? '-' }}</td>
+                        <td class="dms-money">Rp {{ number_format($allocation->amount, 0, ',', '.') }}</td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="6" class="dms-empty">
+                            <i class="bi bi-cash-coin"></i>
+                            <p>Belum ada pembayaran</p>
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
 @endsection

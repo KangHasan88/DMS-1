@@ -103,6 +103,11 @@ class ArInvoice extends Model
         return $this->hasMany(ArInvoiceItem::class);
     }
 
+    public function paymentAllocations(): HasMany
+    {
+        return $this->hasMany(CustomerPaymentAllocation::class);
+    }
+
     public function getStatusLabelAttribute(): string
     {
         return self::STATUS_LIST[$this->status] ?? str($this->status)->headline()->toString();

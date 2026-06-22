@@ -90,7 +90,15 @@ class ArInvoiceController extends Controller
     {
         $this->authorizeInvoiceBranch($arInvoice);
 
-        $arInvoice->load(['items.product', 'order.items', 'customer', 'customerUser', 'companyBranch', 'issuedBy']);
+        $arInvoice->load([
+            'items.product',
+            'order.items',
+            'customer',
+            'customerUser',
+            'companyBranch',
+            'issuedBy',
+            'paymentAllocations.customerPayment.receivedBy',
+        ]);
 
         return view('ar-invoices.show', compact('arInvoice'));
     }

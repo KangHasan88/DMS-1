@@ -29,6 +29,7 @@ return [
     'products' => 'Produk',
     'reports' => 'Laporan',
     'ar_invoices' => 'Invoice AR',
+    'customer_payments' => 'Pembayaran Customer',
     'sales_report' => 'Laporan Penjualan',
     'inventory_report' => 'Laporan Inventori',
     'delivery_report' => 'Laporan Pengiriman',
