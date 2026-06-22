@@ -1,8 +1,10 @@
 <?php
 
 use App\Models\Order;
+use App\Services\Saas\RemoteModuleProvisioningSigner;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 
 Artisan::command('orders:sync-legacy-stock {--dry-run : Simulate syncing without saving changes}', function () {
     $query = Order::query()
@@ -60,3 +62,45 @@ Artisan::command('orders:sync-legacy-stock {--dry-run : Simulate syncing without
         $this->warn("{$warnings} order masih kekurangan stock saat sinkronisasi.");
     }
 })->purpose('Sync legacy stock orders so old records follow the current stock flow.');
+
+Artisan::command('saas:health-callback {--send : Send payload to central callback URL}', function (RemoteModuleProvisioningSigner $signer) {
+    $checkedAt = now()->toIso8601String();
+    $payload = $signer->signHealth([
+        'module_key' => config('modules.key', 'dms'),
+        'status' => 'healthy',
+        'message' => 'DMS module is reachable.',
+        'checked_at' => $checkedAt,
+        'expires' => now()->addSeconds((int) config('modules.remote_provision_ttl_seconds', 300))->getTimestamp(),
+    ]);
+
+    $url = config('modules.central_health_callback_url');
+
+    if (!$this->option('send')) {
+        $this->line(json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        $this->info('Dry-run selesai. Tambahkan --send untuk POST ke central callback URL.');
+
+        return self::SUCCESS;
+    }
+
+    if (!$url) {
+        $this->error('MODULE_CENTRAL_HEALTH_CALLBACK_URL belum dikonfigurasi.');
+
+        return self::FAILURE;
+    }
+
+    $response = Http::asJson()
+        ->timeout(10)
+        ->post($url, $payload);
+
+    if ($response->successful()) {
+        $this->info('Health callback terkirim: HTTP '.$response->status());
+        $this->line($response->body());
+
+        return self::SUCCESS;
+    }
+
+    $this->error('Health callback gagal: HTTP '.$response->status());
+    $this->line($response->body());
+
+    return self::FAILURE;
+})->purpose('Build or send signed SaaS health callback payload for the central registry.');
