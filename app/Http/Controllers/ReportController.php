@@ -406,6 +406,7 @@ class ReportController extends Controller
                 $credit = $this->financialLineSum($account, $selectedBranchId, $journalDateScope, 'credit_amount');
 
                 return [
+                    'id' => $account->id,
                     'code' => $account->code,
                     'name' => $account->name,
                     'account_type' => $account->account_type,

@@ -6,6 +6,26 @@
 @section('content')
 @php
     $formatMoney = fn ($value) => 'Rp ' . number_format((int) $value, 0, ',', '.');
+    $ledgerUrl = function ($row, $from = null) use ($startDate, $endDate, $selectedBranchId) {
+        if (empty($row['id'])) {
+            return null;
+        }
+
+        return route('general-ledger.index', array_filter([
+            'chart_account_id' => $row['id'],
+            'date_from' => $from ?: $startDate->toDateString(),
+            'date_to' => $endDate->toDateString(),
+            'company_branch_id' => $selectedBranchId,
+        ], fn ($value) => $value !== null && $value !== ''));
+    };
+    $accountLabel = function ($row, $from = null) use ($ledgerUrl) {
+        $label = $row['code'] . ' - ' . $row['name'];
+        $url = $ledgerUrl($row, $from);
+
+        return $url
+            ? '<a href="' . e($url) . '" style="color: var(--k-blue); font-weight: 700; text-decoration: none;">' . e($label) . '</a>'
+            : e($label);
+    };
 @endphp
 
 <div class="dms-card">
@@ -79,7 +99,7 @@
                     <tr><th colspan="2">Pendapatan</th></tr>
                     @forelse($profitLoss['revenue'] as $row)
                         <tr>
-                            <td>{{ $row['code'] }} - {{ $row['name'] }}</td>
+                            <td>{!! $accountLabel($row) !!}</td>
                             <td class="dms-money">{{ $formatMoney($row['amount']) }}</td>
                         </tr>
                     @empty
@@ -92,7 +112,7 @@
                     <tr><th colspan="2">Harga Pokok Penjualan</th></tr>
                     @forelse($profitLoss['cogs'] as $row)
                         <tr>
-                            <td>{{ $row['code'] }} - {{ $row['name'] }}</td>
+                            <td>{!! $accountLabel($row) !!}</td>
                             <td class="dms-money">{{ $formatMoney($row['amount']) }}</td>
                         </tr>
                     @empty
@@ -105,7 +125,7 @@
                     <tr><th colspan="2">Beban Operasional</th></tr>
                     @forelse($profitLoss['expenses'] as $row)
                         <tr>
-                            <td>{{ $row['code'] }} - {{ $row['name'] }}</td>
+                            <td>{!! $accountLabel($row) !!}</td>
                             <td class="dms-money">{{ $formatMoney($row['amount']) }}</td>
                         </tr>
                     @empty
@@ -131,7 +151,7 @@
                     <tr><th colspan="2">Aset</th></tr>
                     @forelse($balanceSheet['assets'] as $row)
                         <tr>
-                            <td>{{ $row['code'] }} - {{ $row['name'] }}</td>
+                            <td>{!! $accountLabel($row, null) !!}</td>
                             <td class="dms-money">{{ $formatMoney($row['amount']) }}</td>
                         </tr>
                     @empty
@@ -144,7 +164,7 @@
                     <tr><th colspan="2">Kewajiban</th></tr>
                     @forelse($balanceSheet['liabilities'] as $row)
                         <tr>
-                            <td>{{ $row['code'] }} - {{ $row['name'] }}</td>
+                            <td>{!! $accountLabel($row, null) !!}</td>
                             <td class="dms-money">{{ $formatMoney($row['amount']) }}</td>
                         </tr>
                     @empty
@@ -157,7 +177,7 @@
                     <tr><th colspan="2">Ekuitas</th></tr>
                     @forelse($balanceSheet['equity'] as $row)
                         <tr>
-                            <td>{{ $row['code'] }} - {{ $row['name'] }}</td>
+                            <td>{!! $accountLabel($row, null) !!}</td>
                             <td class="dms-money">{{ $formatMoney($row['amount']) }}</td>
                         </tr>
                     @empty

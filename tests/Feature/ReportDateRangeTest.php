@@ -216,7 +216,17 @@ class ReportDateRangeTest extends TestCase
             ->assertSee('Rp 150.000')
             ->assertSee('Rp 40.000')
             ->assertSee('Rp 110.000')
-            ->assertSee('Balance');
+            ->assertSee('Balance')
+            ->assertSee(route('general-ledger.index', [
+                'chart_account_id' => $cash->id,
+                'date_from' => '2026-06-01',
+                'date_to' => '2026-06-30',
+            ]))
+            ->assertSee(route('general-ledger.index', [
+                'chart_account_id' => $revenue->id,
+                'date_from' => '2026-06-01',
+                'date_to' => '2026-06-30',
+            ]));
     }
 
     private function superAdmin(): User
