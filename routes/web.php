@@ -37,6 +37,8 @@ use App\Http\Controllers\ConsignmentController;
 use App\Http\Controllers\OutboundFocController;
 use App\Http\Controllers\OutboundReturnController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\Saas\RemoteModuleHealthController;
+use App\Http\Controllers\Saas\RemoteModuleLaunchController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -49,6 +51,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return redirect()->route('login');
 })->name('home');
+
+Route::get('/health', RemoteModuleHealthController::class)->name('remote-module.health');
+Route::get('/sso/launch', RemoteModuleLaunchController::class)->name('remote-module.launch');
 
 // Authenticated routes
 Route::middleware(['auth', 'verified'])->group(function () {
