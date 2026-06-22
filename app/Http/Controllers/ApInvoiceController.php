@@ -13,6 +13,7 @@ class ApInvoiceController extends Controller
     public function index(Request $request)
     {
         $query = ApInvoice::with(['purchaseOrder', 'supplier', 'issuedBy'])
+            ->forUserBranch()
             ->latest('invoice_date')
             ->latest('id');
 
@@ -39,6 +40,7 @@ class ApInvoiceController extends Controller
 
         $invoiceablePurchaseOrders = PurchaseOrder::query()
             ->with(['supplier'])
+            ->forUserBranch()
             ->whereDoesntHave('apInvoice')
             ->where('status', PurchaseOrder::STATUS_RECEIVED)
             ->latest()
@@ -56,6 +58,7 @@ class ApInvoiceController extends Controller
         ]);
 
         $purchaseOrder = PurchaseOrder::with(['apInvoice', 'items.product', 'supplier'])
+            ->forUserBranch()
             ->findOrFail($validated['purchase_order_id']);
 
         try {
@@ -70,6 +73,8 @@ class ApInvoiceController extends Controller
 
     public function show(ApInvoice $apInvoice)
     {
+        $this->authorizeBranchAccess($apInvoice);
+
         $apInvoice->load([
             'items.product',
             'purchaseOrder.items',
@@ -79,5 +84,15 @@ class ApInvoiceController extends Controller
         ]);
 
         return view('ap-invoices.show', compact('apInvoice'));
+    }
+
+    private function authorizeBranchAccess(ApInvoice $invoice): void
+    {
+        $branchScopeId = Auth::user()?->scopedCompanyBranchId();
+
+        abort_if(
+            $branchScopeId && (int) $invoice->company_branch_id !== (int) $branchScopeId,
+            403
+        );
     }
 }

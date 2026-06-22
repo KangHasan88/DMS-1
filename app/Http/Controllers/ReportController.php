@@ -242,6 +242,7 @@ class ReportController extends Controller
             : now()->endOfDay();
 
         $baseQuery = ApInvoice::with(['purchaseOrder', 'supplier'])
+            ->forUserBranch()
             ->where('outstanding_amount', '>', 0)
             ->whereNotIn('status', [ApInvoice::STATUS_PAID, ApInvoice::STATUS_VOID])
             ->when($request->filled('supplier_id'), fn ($query) => $query->where('supplier_id', $request->supplier_id));

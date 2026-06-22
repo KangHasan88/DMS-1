@@ -8,6 +8,7 @@ use App\Models\Supplier;
 use App\Models\Product;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\CompanyBranch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -19,7 +20,13 @@ class PurchaseOrderController extends Controller
      */
     public function index(Request $request)
     {
-        $query = PurchaseOrder::with('supplier', 'createdBy');
+        $branchScopeId = $this->currentBranchScopeId();
+        $query = PurchaseOrder::with('supplier', 'createdBy', 'companyBranch')
+            ->forUserBranch();
+
+        if (!$branchScopeId && $request->filled('company_branch_id')) {
+            $query->where('company_branch_id', $request->company_branch_id);
+        }
         
         // Search
         if ($request->filled('search')) {
@@ -178,6 +185,7 @@ class PurchaseOrderController extends Controller
             $purchaseOrder = PurchaseOrder::create([
                 'po_number' => PurchaseOrder::generatePONumber(),
                 'supplier_id' => $request->supplier_id,
+                'company_branch_id' => $this->branchIdForWrite(),
                 'order_date' => $request->order_date,
                 'expected_delivery_date' => $request->expected_delivery_date,
                 'subtotal' => $subtotal,
@@ -209,6 +217,8 @@ class PurchaseOrderController extends Controller
      */
     public function show(PurchaseOrder $purchaseOrder)
     {
+        $this->authorizeBranchAccess($purchaseOrder);
+
         $purchaseOrder->load('supplier', 'items.product', 'createdBy', 'approvedBy');
         
         return view('purchase-orders.show', compact('purchaseOrder'));
@@ -219,6 +229,8 @@ class PurchaseOrderController extends Controller
      */
     public function edit(PurchaseOrder $purchaseOrder)
     {
+        $this->authorizeBranchAccess($purchaseOrder);
+
         if (!in_array($purchaseOrder->status, [PurchaseOrder::STATUS_DRAFT, PurchaseOrder::STATUS_PENDING])) {
             return redirect()->route('purchase-orders.show', $purchaseOrder)
                 ->with('error', 'PO tidak dapat diedit karena sudah diproses');
@@ -235,6 +247,8 @@ class PurchaseOrderController extends Controller
      */
     public function update(Request $request, PurchaseOrder $purchaseOrder)
     {
+        $this->authorizeBranchAccess($purchaseOrder);
+
         if (!in_array($purchaseOrder->status, [PurchaseOrder::STATUS_DRAFT, PurchaseOrder::STATUS_PENDING])) {
             return back()->with('error', 'PO tidak dapat diupdate karena sudah diproses');
         }
@@ -313,6 +327,8 @@ class PurchaseOrderController extends Controller
      */
     public function destroy(PurchaseOrder $purchaseOrder)
     {
+        $this->authorizeBranchAccess($purchaseOrder);
+
         if ($purchaseOrder->status !== PurchaseOrder::STATUS_DRAFT) {
             return back()->with('error', 'PO tidak dapat dihapus karena sudah diproses');
         }
@@ -328,6 +344,8 @@ class PurchaseOrderController extends Controller
      */
     public function approve(PurchaseOrder $purchaseOrder)
     {
+        $this->authorizeBranchAccess($purchaseOrder);
+
         if (!$purchaseOrder->canApprove()) {
             return back()->with('error', 'PO tidak dapat diapprove');
         }
@@ -343,6 +361,8 @@ class PurchaseOrderController extends Controller
      */
     public function cancel(PurchaseOrder $purchaseOrder)
     {
+        $this->authorizeBranchAccess($purchaseOrder);
+
         if ($purchaseOrder->status === PurchaseOrder::STATUS_RECEIVED) {
             return back()->with('error', 'PO yang sudah diterima tidak dapat dibatalkan');
         }
@@ -358,6 +378,8 @@ class PurchaseOrderController extends Controller
      */
     public function receiveForm(PurchaseOrder $purchaseOrder)
     {
+        $this->authorizeBranchAccess($purchaseOrder);
+
         if (!$purchaseOrder->canReceive()) {
             return redirect()->route('purchase-orders.show', $purchaseOrder)
                 ->with('error', 'PO tidak dapat diterima');
@@ -373,6 +395,8 @@ class PurchaseOrderController extends Controller
      */
     public function receive(Request $request, PurchaseOrder $purchaseOrder)
     {
+        $this->authorizeBranchAccess($purchaseOrder);
+
         if (!$purchaseOrder->canReceive()) {
             return back()->with('error', 'PO tidak dapat diterima');
         }
@@ -441,5 +465,27 @@ class PurchaseOrderController extends Controller
             DB::rollBack();
             return back()->with('error', 'Gagal menerima barang: ' . $e->getMessage());
         }
+    }
+
+    private function currentBranchScopeId(): ?int
+    {
+        return Auth::user()?->scopedCompanyBranchId();
+    }
+
+    private function branchIdForWrite(): ?int
+    {
+        return $this->currentBranchScopeId()
+            ?: CompanyBranch::where('is_invoice_default', true)->value('id')
+            ?: CompanyBranch::orderBy('id')->value('id');
+    }
+
+    private function authorizeBranchAccess(PurchaseOrder $purchaseOrder): void
+    {
+        $branchScopeId = $this->currentBranchScopeId();
+
+        abort_if(
+            $branchScopeId && (int) $purchaseOrder->company_branch_id !== (int) $branchScopeId,
+            403
+        );
     }
 }

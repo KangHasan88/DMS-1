@@ -16,6 +16,7 @@ class ApInvoice extends Model
         'invoice_number',
         'purchase_order_id',
         'supplier_id',
+        'company_branch_id',
         'invoice_date',
         'due_date',
         'status',
@@ -72,6 +73,11 @@ class ApInvoice extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
+    }
+
+    public function companyBranch(): BelongsTo
+    {
+        return $this->belongsTo(CompanyBranch::class);
     }
 
     public function issuedBy(): BelongsTo
@@ -156,6 +162,7 @@ class ApInvoice extends Model
                 'invoice_number' => self::nextInvoiceNumber(),
                 'purchase_order_id' => $purchaseOrder->id,
                 'supplier_id' => $purchaseOrder->supplier_id,
+                'company_branch_id' => $purchaseOrder->company_branch_id,
                 'invoice_date' => $invoiceDate,
                 'due_date' => $dueDate,
                 'status' => self::STATUS_ISSUED,
@@ -187,5 +194,14 @@ class ApInvoice extends Model
 
             return $invoice;
         });
+    }
+
+    public function scopeForUserBranch($query, ?User $user = null)
+    {
+        $branchScopeId = ($user ?? auth()->user())?->scopedCompanyBranchId();
+
+        return $branchScopeId
+            ? $query->where('company_branch_id', $branchScopeId)
+            : $query;
     }
 }

@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\ApInvoice;
+use App\Models\CompanyBranch;
+use App\Models\CompanyProfile;
 use App\Models\Product;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
@@ -149,11 +151,69 @@ class ApInvoiceFlowTest extends TestCase
         $this->assertSame(60000, $invoice->outstanding_amount);
     }
 
+    public function test_branch_finance_only_sees_own_branch_ap_invoices(): void
+    {
+        [$branchA, $branchB] = $this->twoCompanyBranches();
+        $finance = $this->userWithRole('finance', 'finance-ap-branch@example.test', [
+            'company_branch_id' => $branchA->id,
+        ]);
+
+        [$ownPurchaseOrder] = $this->receivedPurchaseOrder(branch: $branchA);
+        [$otherPurchaseOrder] = $this->receivedPurchaseOrder(branch: $branchB);
+        $ownInvoice = ApInvoice::issueFromPurchaseOrder($ownPurchaseOrder, $finance);
+        $otherInvoice = ApInvoice::issueFromPurchaseOrder($otherPurchaseOrder, $finance);
+
+        $this->actingAs($finance)
+            ->get(route('ap-invoices.index'))
+            ->assertOk()
+            ->assertSee($ownInvoice->invoice_number)
+            ->assertDontSee($otherInvoice->invoice_number);
+    }
+
+    public function test_branch_finance_cannot_issue_ap_invoice_for_other_branch_po(): void
+    {
+        [$branchA, $branchB] = $this->twoCompanyBranches();
+        $finance = $this->userWithRole('finance', 'finance-ap-other-po@example.test', [
+            'company_branch_id' => $branchA->id,
+        ]);
+        [$otherPurchaseOrder] = $this->receivedPurchaseOrder(branch: $branchB);
+
+        $this->actingAs($finance)
+            ->post(route('ap-invoices.store'), ['purchase_order_id' => $otherPurchaseOrder->id])
+            ->assertNotFound();
+
+        $this->assertDatabaseCount('ap_invoices', 0);
+    }
+
+    public function test_branch_finance_cannot_pay_other_branch_ap_invoice(): void
+    {
+        [$branchA, $branchB] = $this->twoCompanyBranches();
+        $finance = $this->userWithRole('finance', 'finance-ap-other-payment@example.test', [
+            'company_branch_id' => $branchA->id,
+        ]);
+        [$otherPurchaseOrder] = $this->receivedPurchaseOrder(branch: $branchB);
+        $otherInvoice = ApInvoice::issueFromPurchaseOrder($otherPurchaseOrder, $finance);
+
+        $this->actingAs($finance)
+            ->post(route('supplier-payments.store'), [
+                'ap_invoice_id' => $otherInvoice->id,
+                'payment_date' => now()->toDateString(),
+                'payment_method' => SupplierPayment::METHOD_TRANSFER,
+                'amount' => 10000,
+            ])
+            ->assertNotFound();
+
+        $this->assertDatabaseCount('supplier_payments', 0);
+    }
+
     private function receivedPurchaseOrder(
         string $status = PurchaseOrder::STATUS_RECEIVED,
-        int $receivedQuantity = 3
+        int $receivedQuantity = 3,
+        ?CompanyBranch $branch = null,
     ): array {
-        $creator = $this->userWithRole('admin', 'po-creator-' . uniqid() . '@example.test');
+        $creator = $this->userWithRole('admin', 'po-creator-' . uniqid() . '@example.test', [
+            'company_branch_id' => $branch?->id,
+        ]);
         $supplier = Supplier::create([
             'name' => 'Pemasok AP',
             'phone' => '0812' . random_int(10000000, 99999999),
@@ -170,6 +230,7 @@ class ApInvoiceFlowTest extends TestCase
         $purchaseOrder = PurchaseOrder::create([
             'po_number' => 'POAP' . random_int(10000, 99999),
             'supplier_id' => $supplier->id,
+            'company_branch_id' => $branch?->id,
             'order_date' => now()->toDateString(),
             'expected_delivery_date' => now()->toDateString(),
             'received_date' => $status === PurchaseOrder::STATUS_RECEIVED ? now()->toDateString() : null,
@@ -190,9 +251,36 @@ class ApInvoiceFlowTest extends TestCase
         return [$purchaseOrder, $supplier];
     }
 
-    private function userWithRole(string $role, string $email): User
+    private function twoCompanyBranches(): array
     {
-        $user = User::factory()->create(['email' => $email]);
+        $company = CompanyProfile::create([
+            'code' => 'KMG',
+            'display_name' => 'Kurmigo Test',
+            'legal_name' => 'PT Kurmigo Test',
+            'is_active' => true,
+        ]);
+
+        $branchA = CompanyBranch::create([
+            'company_profile_id' => $company->id,
+            'name' => 'Cabang A',
+            'code' => 'CBA',
+            'is_invoice_default' => true,
+            'is_active' => true,
+        ]);
+
+        $branchB = CompanyBranch::create([
+            'company_profile_id' => $company->id,
+            'name' => 'Cabang B',
+            'code' => 'CBB',
+            'is_active' => true,
+        ]);
+
+        return [$branchA, $branchB];
+    }
+
+    private function userWithRole(string $role, string $email, array $attributes = []): User
+    {
+        $user = User::factory()->create(array_merge(['email' => $email], $attributes));
         $user->assignRole($role);
 
         return $user;

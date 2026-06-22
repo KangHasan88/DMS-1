@@ -13,6 +13,7 @@ class SupplierPaymentController extends Controller
     public function index(Request $request)
     {
         $query = SupplierPayment::with(['supplier', 'paidBy'])
+            ->forUserBranch()
             ->latest('payment_date')
             ->latest('id');
 
@@ -47,6 +48,7 @@ class SupplierPaymentController extends Controller
         ]);
 
         $invoice = ApInvoice::with(['supplier'])
+            ->forUserBranch()
             ->findOrFail($validated['ap_invoice_id']);
 
         try {
@@ -61,6 +63,8 @@ class SupplierPaymentController extends Controller
 
     public function show(SupplierPayment $supplierPayment)
     {
+        $this->authorizeBranchAccess($supplierPayment);
+
         $supplierPayment->load([
             'supplier',
             'paidBy',
@@ -68,5 +72,15 @@ class SupplierPaymentController extends Controller
         ]);
 
         return view('supplier-payments.show', compact('supplierPayment'));
+    }
+
+    private function authorizeBranchAccess(SupplierPayment $payment): void
+    {
+        $branchScopeId = Auth::user()?->scopedCompanyBranchId();
+
+        abort_if(
+            $branchScopeId && (int) $payment->company_branch_id !== (int) $branchScopeId,
+            403
+        );
     }
 }

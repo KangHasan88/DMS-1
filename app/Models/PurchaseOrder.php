@@ -14,6 +14,7 @@ class PurchaseOrder extends Model
     protected $fillable = [
         'po_number',
         'supplier_id',
+        'company_branch_id',
         'order_date',
         'expected_delivery_date',
         'received_date',
@@ -64,6 +65,11 @@ class PurchaseOrder extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
+    }
+
+    public function companyBranch(): BelongsTo
+    {
+        return $this->belongsTo(CompanyBranch::class);
     }
 
     public function items(): HasMany
@@ -164,5 +170,14 @@ class PurchaseOrder extends Model
     public function scopeBySupplier($query, $supplierId)
     {
         return $query->where('supplier_id', $supplierId);
+    }
+
+    public function scopeForUserBranch($query, ?User $user = null)
+    {
+        $branchScopeId = ($user ?? auth()->user())?->scopedCompanyBranchId();
+
+        return $branchScopeId
+            ? $query->where('company_branch_id', $branchScopeId)
+            : $query;
     }
 }

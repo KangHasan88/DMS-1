@@ -15,6 +15,7 @@ class SupplierPayment extends Model
     protected $fillable = [
         'payment_number',
         'supplier_id',
+        'company_branch_id',
         'payment_date',
         'payment_method',
         'reference_number',
@@ -45,6 +46,11 @@ class SupplierPayment extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
+    }
+
+    public function companyBranch(): BelongsTo
+    {
+        return $this->belongsTo(CompanyBranch::class);
     }
 
     public function paidBy(): BelongsTo
@@ -88,6 +94,7 @@ class SupplierPayment extends Model
             $payment = self::create([
                 'payment_number' => self::nextPaymentNumber(),
                 'supplier_id' => $invoice->supplier_id,
+                'company_branch_id' => $invoice->company_branch_id,
                 'payment_date' => $data['payment_date'],
                 'payment_method' => $data['payment_method'],
                 'reference_number' => $data['reference_number'] ?? null,
@@ -123,6 +130,14 @@ class SupplierPayment extends Model
             throw new \InvalidArgumentException('Pembayaran dan invoice harus milik pemasok yang sama.');
         }
 
+        if (
+            $this->company_branch_id
+            && $invoice->company_branch_id
+            && (int) $this->company_branch_id !== (int) $invoice->company_branch_id
+        ) {
+            throw new \InvalidArgumentException('Pembayaran dan invoice harus berada pada cabang yang sama.');
+        }
+
         if ($amount > (int) $this->unallocated_amount) {
             throw new \InvalidArgumentException('Nominal alokasi melebihi saldo pembayaran.');
         }
@@ -155,5 +170,14 @@ class SupplierPayment extends Model
 
             return $allocation;
         });
+    }
+
+    public function scopeForUserBranch($query, ?User $user = null)
+    {
+        $branchScopeId = ($user ?? auth()->user())?->scopedCompanyBranchId();
+
+        return $branchScopeId
+            ? $query->where('company_branch_id', $branchScopeId)
+            : $query;
     }
 }
