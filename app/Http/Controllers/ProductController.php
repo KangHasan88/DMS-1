@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductPriceHistory;
+use App\Models\ReturnablePackage;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Storage;
@@ -54,8 +55,10 @@ class ProductController extends Controller
     public function create()
     {
         $categories = ProductCategory::active()->orderBy('sort_order')->orderBy('name')->get();
+        $returnablePackages = ReturnablePackage::active()->orderBy('name')->get();
+        $packagingFlows = Product::PACKAGING_FLOW_LIST;
 
-        return view('products.create', compact('categories'));
+        return view('products.create', compact('categories', 'returnablePackages', 'packagingFlows'));
     }
 
     /**
@@ -67,6 +70,9 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'category' => ['nullable', 'string', 'max:100', Rule::exists('product_categories', 'name')->where('is_active', true)],
             'unit_id' => 'required|exists:units,id',
+            'returnable_package_id' => 'nullable|exists:returnable_packages,id',
+            'returnable_package_quantity_per_unit' => 'nullable|integer|min:0',
+            'returnable_package_default_flow' => ['nullable', Rule::in(array_keys(Product::PACKAGING_FLOW_LIST))],
             'price' => 'required|numeric|min:0',
             'base_price' => 'nullable|numeric|min:0',
             'description' => 'nullable|string',
@@ -82,6 +88,7 @@ class ProductController extends Controller
         
         // Set default values
         $validated['is_active'] = $request->has('is_active');
+        $validated = $this->normalizeReturnablePackaging($validated);
         
         $product = Product::create($validated);
         
@@ -113,8 +120,10 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $categories = ProductCategory::active()->orderBy('sort_order')->orderBy('name')->get();
+        $returnablePackages = ReturnablePackage::active()->orderBy('name')->get();
+        $packagingFlows = Product::PACKAGING_FLOW_LIST;
 
-        return view('products.edit', compact('product', 'categories'));
+        return view('products.edit', compact('product', 'categories', 'returnablePackages', 'packagingFlows'));
     }
 
     /**
@@ -126,6 +135,9 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'category' => ['nullable', 'string', 'max:100', Rule::exists('product_categories', 'name')->where('is_active', true)],
             'unit_id' => 'required|exists:units,id',
+            'returnable_package_id' => 'nullable|exists:returnable_packages,id',
+            'returnable_package_quantity_per_unit' => 'nullable|integer|min:0',
+            'returnable_package_default_flow' => ['nullable', Rule::in(array_keys(Product::PACKAGING_FLOW_LIST))],
             'price' => 'required|numeric|min:0',
             'base_price' => 'nullable|numeric|min:0',
             'description' => 'nullable|string',
@@ -152,6 +164,7 @@ class ProductController extends Controller
         }
         
         $validated['is_active'] = $request->has('is_active');
+        $validated = $this->normalizeReturnablePackaging($validated);
         
         $product->update($validated);
         
@@ -234,5 +247,29 @@ class ProductController extends Controller
             ->paginate(20);
         
         return view('products.price-history', compact('product', 'priceHistories'));
+    }
+
+    private function normalizeReturnablePackaging(array $validated): array
+    {
+        $packageId = $validated['returnable_package_id'] ?? null;
+        $quantityPerUnit = (int) ($validated['returnable_package_quantity_per_unit'] ?? 0);
+        $defaultFlow = $validated['returnable_package_default_flow'] ?? null;
+
+        if (!$packageId) {
+            $validated['returnable_package_id'] = null;
+            $validated['returnable_package_quantity_per_unit'] = 0;
+            $validated['returnable_package_default_flow'] = null;
+
+            return $validated;
+        }
+
+        if ($quantityPerUnit < 1) {
+            $quantityPerUnit = 1;
+        }
+
+        $validated['returnable_package_quantity_per_unit'] = $quantityPerUnit;
+        $validated['returnable_package_default_flow'] = $defaultFlow ?: Product::PACKAGING_FLOW_RETURNABLE;
+
+        return $validated;
     }
 }

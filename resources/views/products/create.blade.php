@@ -88,6 +88,43 @@
                         @error('unit_id') <span class="dms-error">{{ $message }}</span> @enderror
                     </div>
 
+                    <div class="form-group dms-form-span-2">
+                        <div style="padding: 1rem; background: var(--k-gray-50); border: 1px solid var(--k-gray-200); border-radius: 10px;">
+                            <label class="form-label" style="font-weight: 600;">Profil Kemasan Kembali</label>
+                            <div class="dms-form-grid">
+                                <div class="form-group">
+                                    <label class="form-label">Jenis Kemasan</label>
+                                    <select name="returnable_package_id" class="form-control">
+                                        <option value="">Tidak memakai kemasan kembali</option>
+                                        @foreach($returnablePackages as $package)
+                                            <option value="{{ $package->id }}" {{ old('returnable_package_id') == $package->id ? 'selected' : '' }}>
+                                                {{ $package->code }} - {{ $package->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('returnable_package_id') <span class="dms-error">{{ $message }}</span> @enderror
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Qty Kemasan / Qty Produk</label>
+                                    <input type="number" name="returnable_package_quantity_per_unit" value="{{ old('returnable_package_quantity_per_unit', 1) }}" class="form-control" min="0">
+                                    @error('returnable_package_quantity_per_unit') <span class="dms-error">{{ $message }}</span> @enderror
+                                </div>
+                                <div class="form-group dms-form-span-2">
+                                    <label class="form-label">Default Flow</label>
+                                    <select name="returnable_package_default_flow" class="form-control">
+                                        @foreach($packagingFlows as $value => $label)
+                                            <option value="{{ $value }}" {{ old('returnable_package_default_flow', \App\Models\Product::PACKAGING_FLOW_RETURNABLE) === $value ? 'selected' : '' }}>
+                                                {{ $label }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <small class="dms-form-help">Pilih Kemasan Kembali untuk Aqua/galon pinjam. Pilih Dijual Putus untuk produk seperti Lemin atau kemasan yang jadi milik customer.</small>
+                                    @error('returnable_package_default_flow') <span class="dms-error">{{ $message }}</span> @enderror
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Selling Price -->
                     <div class="form-group">
                         <label class="form-label">Harga Jual <span class="dms-required">*</span></label>

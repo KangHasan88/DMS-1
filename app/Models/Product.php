@@ -16,6 +16,9 @@ class Product extends Model
         'name', 
         'category', 
         'unit_id',
+        'returnable_package_id',
+        'returnable_package_quantity_per_unit',
+        'returnable_package_default_flow',
         'price', 
         'base_price', 
         'description', 
@@ -27,6 +30,15 @@ class Product extends Model
         'is_active' => 'boolean',
         'price' => 'integer',
         'base_price' => 'integer',
+        'returnable_package_quantity_per_unit' => 'integer',
+    ];
+
+    public const PACKAGING_FLOW_RETURNABLE = 'returnable';
+    public const PACKAGING_FLOW_SOLD = 'sold';
+
+    public const PACKAGING_FLOW_LIST = [
+        self::PACKAGING_FLOW_RETURNABLE => 'Kemasan Kembali',
+        self::PACKAGING_FLOW_SOLD => 'Dijual Putus',
     ];
     
     // ===================== RELATIONSHIPS =====================
@@ -34,6 +46,11 @@ class Product extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    public function returnablePackage(): BelongsTo
+    {
+        return $this->belongsTo(ReturnablePackage::class);
     }
     
     public function orderItems(): HasMany
@@ -205,6 +222,23 @@ class Product extends Model
             return $this->unit->symbol ?: $this->unit->name;
         }
         return '-';
+    }
+
+    public function hasReturnablePackaging(): bool
+    {
+        return $this->returnable_package_id !== null
+            && $this->returnable_package_quantity_per_unit > 0
+            && $this->returnable_package_default_flow !== null;
+    }
+
+    public function returnablePackageQuantityFor(int $productQuantity): int
+    {
+        return max(0, $productQuantity) * max(0, (int) $this->returnable_package_quantity_per_unit);
+    }
+
+    public function getReturnablePackageDefaultFlowLabelAttribute(): string
+    {
+        return self::PACKAGING_FLOW_LIST[$this->returnable_package_default_flow] ?? '-';
     }
     
     public function getFormattedPriceAttribute(): string

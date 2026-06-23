@@ -148,6 +148,35 @@
             </div>
             @endif
 
+            <!-- Returnable Packaging Profile -->
+            <div style="margin-bottom: 2rem;">
+                <h4 style="font-size: 1rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--k-gray-200);">
+                    <i class="bi bi-recycle" style="margin-right: 0.5rem; color: var(--k-green);"></i>
+                    Profil Kemasan
+                </h4>
+
+                @if($product->hasReturnablePackaging())
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                        <div style="padding: 1rem; background: var(--k-gray-50); border-radius: 8px;">
+                            <div style="font-size: 0.7rem; color: var(--k-gray-500); margin-bottom: 0.25rem;">Jenis Kemasan</div>
+                            <div style="font-weight: 600; color: var(--k-gray-800);">{{ $product->returnablePackage?->name ?? '-' }}</div>
+                        </div>
+                        <div style="padding: 1rem; background: var(--k-gray-50); border-radius: 8px;">
+                            <div style="font-size: 0.7rem; color: var(--k-gray-500); margin-bottom: 0.25rem;">Rasio</div>
+                            <div style="font-weight: 600; color: var(--k-gray-800);">{{ $product->returnable_package_quantity_per_unit }} kemasan / 1 produk</div>
+                        </div>
+                        <div style="padding: 1rem; background: var(--k-gray-50); border-radius: 8px;">
+                            <div style="font-size: 0.7rem; color: var(--k-gray-500); margin-bottom: 0.25rem;">Default Flow</div>
+                            <div style="font-weight: 600; color: var(--k-gray-800);">{{ $product->returnable_package_default_flow_label }}</div>
+                        </div>
+                    </div>
+                @else
+                    <div style="padding: 1rem; background: var(--k-gray-50); border-radius: 8px; color: var(--k-gray-600);">
+                        Produk ini tidak memakai kemasan returnable.
+                    </div>
+                @endif
+            </div>
+
             <!-- System Information -->
             <div>
                 <h4 style="font-size: 1rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--k-gray-200);">
