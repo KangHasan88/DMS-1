@@ -62,7 +62,7 @@ class DeliveryTimeSlotController extends Controller
     {
         $this->authorizeBranchTimeSlot($deliveryTimeSlot);
 
-        $companyBranches = $this->availableCompanyBranches();
+        $companyBranches = $this->availableCompanyBranches($deliveryTimeSlot->company_branch_id);
         $branchLocked = (bool) $this->currentBranchScopeId();
 
         return view('delivery-time-slots.edit', compact('deliveryTimeSlot', 'companyBranches', 'branchLocked'));
@@ -97,9 +97,17 @@ class DeliveryTimeSlotController extends Controller
         return auth()->user()?->scopedCompanyBranchId();
     }
 
-    private function availableCompanyBranches()
+    private function availableCompanyBranches(?int $currentBranchId = null)
     {
-        $query = CompanyProfile::defaultProfile()->activeBranches();
+        $query = CompanyProfile::defaultProfile()
+            ->branches()
+            ->where(function ($query) use ($currentBranchId) {
+                $query->where('is_active', true);
+
+                if ($currentBranchId) {
+                    $query->orWhere('id', $currentBranchId);
+                }
+            });
 
         if ($branchScopeId = $this->currentBranchScopeId()) {
             $query->whereKey($branchScopeId);

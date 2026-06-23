@@ -71,7 +71,7 @@ class DeliveryVendorController extends Controller
     {
         $this->authorizeBranchVendor($deliveryVendor);
 
-        $companyBranches = $this->availableCompanyBranches();
+        $companyBranches = $this->availableCompanyBranches($deliveryVendor->company_branch_id);
         $branchLocked = (bool) $this->currentBranchScopeId();
 
         return view('delivery-vendors.edit', compact('deliveryVendor', 'companyBranches', 'branchLocked'));
@@ -118,9 +118,17 @@ class DeliveryVendorController extends Controller
         return auth()->user()?->scopedCompanyBranchId();
     }
 
-    private function availableCompanyBranches()
+    private function availableCompanyBranches(?int $currentBranchId = null)
     {
-        $query = CompanyProfile::defaultProfile()->activeBranches();
+        $query = CompanyProfile::defaultProfile()
+            ->branches()
+            ->where(function ($query) use ($currentBranchId) {
+                $query->where('is_active', true);
+
+                if ($currentBranchId) {
+                    $query->orWhere('id', $currentBranchId);
+                }
+            });
 
         if ($branchScopeId = $this->currentBranchScopeId()) {
             $query->whereKey($branchScopeId);

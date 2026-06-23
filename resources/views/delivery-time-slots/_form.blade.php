@@ -1,3 +1,8 @@
+@php
+    $selectedBranchId = old('company_branch_id', $slot?->company_branch_id);
+    $selectedBranch = $companyBranches->firstWhere('id', (int) $selectedBranchId);
+@endphp
+
 <form action="{{ $action }}" method="POST">
     @csrf
     @if($method !== 'POST')
@@ -11,12 +16,15 @@
                 <option value="">Global / Semua Cabang</option>
                 @foreach($companyBranches as $branch)
                     <option value="{{ $branch->id }}" {{ (string) old('company_branch_id', $slot?->company_branch_id) === (string) $branch->id ? 'selected' : '' }}>
-                        {{ $branch->name }} - {{ $branch->code }}
+                        {{ $branch->name }} - {{ $branch->code }}{{ $branch->is_active ? '' : ' - nonaktif' }}
                     </option>
                 @endforeach
             </select>
             @if($branchLocked)
                 <input type="hidden" name="company_branch_id" value="{{ $companyBranches->first()?->id }}">
+            @endif
+            @if($selectedBranch && !$selectedBranch->is_active)
+                <small class="dms-form-help" style="color: var(--k-orange); font-weight: 600;">Cabang ini sedang nonaktif, tapi tetap ditampilkan karena masih tersimpan di slot waktu ini.</small>
             @endif
             <small class="dms-form-help">Kosongkan jika slot waktu berlaku untuk semua cabang.</small>
             @error('company_branch_id') <span class="dms-error">{{ $message }}</span> @enderror
