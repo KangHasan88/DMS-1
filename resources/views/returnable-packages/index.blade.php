@@ -330,7 +330,7 @@
                     <div>
                         <label class="form-label">Kategori</label>
                         <select name="returnable_package_category_id" class="form-control @error('returnable_package_category_id') is-invalid @enderror">
-                            @foreach($categories as $category)
+                            @foreach($activeCategories as $category)
                                 <option value="{{ $category->id }}" @selected((string) old('returnable_package_category_id') === (string) $category->id)>{{ $category->name }}</option>
                             @endforeach
                         </select>

@@ -110,10 +110,17 @@ class ReturnablePackageFlowTest extends TestCase
 
         $this->assertFalse($category->fresh()->is_active);
 
-        $this->actingAs($user)
+        $response = $this->actingAs($user)
             ->get(route('returnable-packages.index'))
             ->assertOk()
-            ->assertDontSee('value="' . $category->id . '"');
+            ->assertSee('Nonaktif')
+            ->assertSee('Aktifkan');
+
+        $html = $response->getContent();
+        $this->assertStringNotContainsString(
+            '<option value="' . $category->id . '">Galon</option>',
+            $html
+        );
 
         $this->actingAs($user)
             ->patch(route('returnable-packages.categories.toggle', $category))

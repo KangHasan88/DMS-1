@@ -44,7 +44,8 @@ class ReturnablePackageController extends Controller
             ->get();
         $companyBranches = CompanyBranch::where('is_active', true)->orderBy('name')->get();
         $canFilterBranches = !$this->currentBranchScopeId();
-        $categories = ReturnablePackageCategory::active()->orderBy('sort_order')->orderBy('name')->get();
+        $categories = ReturnablePackageCategory::orderBy('sort_order')->orderBy('name')->get();
+        $activeCategories = $categories->where('is_active', true)->values();
         $movementTypes = ReturnablePackageMovement::TYPE_LIST;
 
         return view('returnable-packages.index', compact(
@@ -56,6 +57,7 @@ class ReturnablePackageController extends Controller
             'companyBranches',
             'canFilterBranches',
             'categories',
+            'activeCategories',
             'movementTypes'
         ));
     }
