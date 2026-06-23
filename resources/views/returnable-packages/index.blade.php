@@ -698,4 +698,22 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var invalidField = document.querySelector('.returnable-page .is-invalid');
+
+        if (!invalidField) {
+            return;
+        }
+
+        window.setTimeout(function () {
+            invalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            if (typeof invalidField.focus === 'function') {
+                invalidField.focus({ preventScroll: true });
+            }
+        }, 120);
+    });
+</script>
 @endsection
