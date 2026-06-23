@@ -15,6 +15,10 @@
     </div>
 
     @php($assignmentEditable = $delivery->status === \App\Models\Delivery::STATUS_ASSIGNED)
+    @php($selectedDriver = $kurirs->firstWhere('id', $delivery->kurir_id))
+    @php($selectedVehicle = $deliveryVehicles->firstWhere('id', $delivery->delivery_vehicle_id))
+    @php($selectedDriverInactive = $selectedDriver && !$selectedDriver->is_active)
+    @php($selectedVehicleUnavailable = $selectedVehicle && (!$selectedVehicle->is_active || $selectedVehicle->status !== \App\Models\DeliveryVehicle::STATUS_AVAILABLE))
 
     @if($delivery->usesInternalDelivery() && !$assignmentEditable)
         <div style="margin-bottom: 1rem; padding: 0.75rem 0.875rem; border: 1px solid var(--k-gray-200); border-radius: 6px; background: var(--k-gray-50); color: var(--k-text-muted); font-size: 0.8rem;">
@@ -37,12 +41,17 @@
                             <option value="{{ $kurir->id }}"
                                 data-primary-vehicle-id="{{ $kurir->activeDriverVehicleAssignment?->delivery_vehicle_id ?? '' }}"
                                 {{ old('kurir_id', $delivery->kurir_id) == $kurir->id ? 'selected' : '' }}>
-                                {{ $kurir->name }} - {{ $kurir->companyBranch->code ?? '-' }} ({{ $kurir->phone }})
+                                {{ $kurir->name }} - {{ $kurir->companyBranch->code ?? '-' }} ({{ $kurir->phone }}){{ $kurir->is_active ? '' : ' - nonaktif' }}
                             </option>
                         @endforeach
                     </select>
                     @if(!$assignmentEditable)
                         <input type="hidden" name="kurir_id" value="{{ $delivery->kurir_id }}">
+                    @endif
+                    @if($selectedDriverInactive)
+                        <small class="dms-form-help" style="display: block; margin-top: 0.25rem; color: var(--k-orange); font-weight: 500;">
+                            Driver ini sedang nonaktif. Data lama tetap ditampilkan untuk menjaga riwayat pengiriman. Pilih driver aktif lain jika penugasan masih boleh diubah.
+                        </small>
                     @endif
                     @error('kurir_id') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
@@ -53,7 +62,7 @@
                         <option value="">-- Pilih Armada --</option>
                         @foreach($deliveryVehicles as $vehicle)
                             <option value="{{ $vehicle->id }}" {{ old('delivery_vehicle_id', $delivery->delivery_vehicle_id) == $vehicle->id ? 'selected' : '' }}>
-                                {{ $vehicle->code }} - {{ $vehicle->name }}{{ $vehicle->plate_number ? ' (' . $vehicle->plate_number . ')' : '' }}
+                                {{ $vehicle->code }} - {{ $vehicle->name }}{{ $vehicle->plate_number ? ' (' . $vehicle->plate_number . ')' : '' }}{{ ($vehicle->is_active && $vehicle->status === \App\Models\DeliveryVehicle::STATUS_AVAILABLE) ? '' : ' - nonaktif/tidak tersedia' }}
                             </option>
                         @endforeach
                     </select>
@@ -64,6 +73,11 @@
                         Armada utama mengikuti driver. Pilih berbeda hanya untuk armada backup.
                         <a href="{{ route('delivery-vehicles.index') }}" style="color: var(--k-blue); font-weight: 600;">Kelola armada</a>
                     </small>
+                    @if($selectedVehicleUnavailable)
+                        <small class="dms-form-help" style="display: block; margin-top: 0.25rem; color: var(--k-orange); font-weight: 500;">
+                            Armada ini sedang nonaktif atau tidak tersedia. Data lama tetap ditampilkan untuk menjaga riwayat pengiriman. Pilih armada aktif lain jika penugasan masih boleh diubah.
+                        </small>
+                    @endif
                     @error('delivery_vehicle_id') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
 

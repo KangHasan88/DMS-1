@@ -6,8 +6,10 @@ use App\Models\CompanyBranch;
 use App\Models\CompanyProfile;
 use App\Models\Customer;
 use App\Models\CustomerAddress;
+use App\Models\Delivery;
 use App\Models\DeliveryVehicle;
 use App\Models\DeliveryZone;
+use App\Models\Order;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -195,6 +197,66 @@ class DeliveryCoverageTest extends TestCase
             'priority' => 2,
             'max_daily_orders' => 30,
         ]);
+    }
+
+    public function test_edit_delivery_keeps_inactive_driver_and_unavailable_vehicle_visible(): void
+    {
+        [$branchA] = $this->twoCompanyBranches();
+        $admin = $this->userWithRole('admin', ['company_branch_id' => $branchA->id]);
+        $driver = $this->userWithRole('kurir', [
+            'company_branch_id' => $branchA->id,
+            'name' => 'Driver Nonaktif Lama',
+            'is_active' => false,
+        ]);
+        $vehicle = $this->vehicle($branchA);
+        $vehicle->update([
+            'status' => DeliveryVehicle::STATUS_MAINTENANCE,
+            'is_active' => false,
+        ]);
+        $customer = $this->userWithRole('customer', ['company_branch_id' => $branchA->id]);
+        $order = Order::create([
+            'user_id' => $customer->id,
+            'company_branch_id' => $branchA->id,
+            'order_number' => 'KMG-DELIVERY-LEGACY',
+            'delivery_date' => now()->addDay()->toDateString(),
+            'delivery_time_slot' => '09:00-12:00',
+            'address' => 'Jl. Delivery Legacy',
+            'delivery_fee' => 0,
+            'packing_fee' => 0,
+            'subtotal' => 0,
+            'total' => 0,
+            'grand_total' => 0,
+            'status' => Order::STATUS_READY,
+            'order_source' => Order::ORDER_SOURCE_ADMIN,
+            'fulfillment_type' => Order::FULFILLMENT_STOCK,
+            'payment_timing' => Order::PAYMENT_TIMING_POST_PAID,
+            'discount_type' => Order::DISCOUNT_NONE,
+            'discount_value' => 0,
+            'discount_amount' => 0,
+            'shipping_type' => Order::SHIPPING_FLAT,
+            'shipping_rate' => 0,
+            'include_ppn' => false,
+            'ppn_rate' => 0,
+            'ppn_amount' => 0,
+        ]);
+        $delivery = Delivery::create([
+            'order_id' => $order->id,
+            'delivery_method' => Delivery::METHOD_INTERNAL,
+            'kurir_id' => $driver->id,
+            'delivery_vehicle_id' => $vehicle->id,
+            'status' => Delivery::STATUS_ASSIGNED,
+            'assigned_at' => now(),
+            'actual_shipping_cost' => 0,
+            'shipping_cost_status' => Delivery::COST_NOT_APPLICABLE,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('deliveries.edit', $delivery))
+            ->assertOk()
+            ->assertSee('Driver Nonaktif Lama')
+            ->assertSee('Driver ini sedang nonaktif')
+            ->assertSee('nonaktif/tidak tersedia')
+            ->assertSee('Armada ini sedang nonaktif atau tidak tersedia');
     }
 
     private function shippingAddress(CompanyBranch $branch, string $name): CustomerAddress

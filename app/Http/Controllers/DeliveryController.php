@@ -303,7 +303,7 @@ class DeliveryController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
         
-        $kurirs = $this->availableKurirsQuery()
+        $kurirs = $this->availableKurirsQuery($delivery->kurir_id)
             ->with('activeDriverVehicleAssignment.vehicle')
             ->orderBy('name')
             ->get();
@@ -635,9 +635,17 @@ class DeliveryController extends Controller
         return $query;
     }
 
-    private function availableKurirsQuery()
+    private function availableKurirsQuery(?int $currentKurirId = null)
     {
-        $query = User::with('companyBranch')->role('kurir')->active();
+        $query = User::with('companyBranch')
+            ->role('kurir')
+            ->where(function ($query) use ($currentKurirId) {
+                $query->active();
+
+                if ($currentKurirId) {
+                    $query->orWhere('id', $currentKurirId);
+                }
+            });
 
         if ($branchScopeId = $this->currentBranchScopeId()) {
             $query->where('company_branch_id', $branchScopeId);
@@ -658,10 +666,12 @@ class DeliveryController extends Controller
         $branchId = $companyBranchId ?: $this->currentBranchScopeId();
 
         return DeliveryVehicle::with('companyBranch')
-            ->active()
             ->forCompanyBranch($branchId)
             ->where(function ($query) use ($currentVehicleId) {
-                $query->where('status', DeliveryVehicle::STATUS_AVAILABLE);
+                $query->where(function ($availableQuery) {
+                    $availableQuery->active()
+                        ->where('status', DeliveryVehicle::STATUS_AVAILABLE);
+                });
 
                 if ($currentVehicleId) {
                     $query->orWhere('id', $currentVehicleId);
