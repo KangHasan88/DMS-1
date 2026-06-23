@@ -20,6 +20,7 @@ return [
     'stock_management' => 'Manajemen Stok',
     'stock_opnames' => 'Stock Opname',
     'stock_movements' => 'Mutasi Stok',
+    'returnable_packages' => 'Kemasan Kembali',
     'master_data' => 'Master Data',
     'catalog' => 'Katalog',
     'business_relations' => 'Relasi Bisnis',

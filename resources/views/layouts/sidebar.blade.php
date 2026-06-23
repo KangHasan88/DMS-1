@@ -1325,6 +1325,15 @@
                             </a>
                         </li>
                         @endcan
+
+                        @can('view returnable packages')
+                        <li class="nav-item">
+                            <a href="{{ route('returnable-packages.index') }}" class="nav-link {{ request()->routeIs('returnable-packages.*') ? 'active' : '' }}">
+                                <i class="bi bi-recycle"></i>
+                                <span>{{ __('navigation.returnable_packages') }}</span>
+                            </a>
+                        </li>
+                        @endcan
                     </ul>
                 </div>
 

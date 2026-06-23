@@ -105,6 +105,8 @@ class RolePermissionSeeder extends Seeder
             'delete outbound return',
             'view stock opname',
             'do stock opname',
+            'view returnable packages',
+            'manage returnable packages',
             
             // FINANCE
             'view invoice',
@@ -181,6 +183,7 @@ class RolePermissionSeeder extends Seeder
             'view outbound foc', 'create outbound foc', 'edit outbound foc', 'delete outbound foc',
             'view outbound return', 'create outbound return', 'edit outbound return', 'delete outbound return',
             'view stock opname', 'do stock opname',
+            'view returnable packages', 'manage returnable packages',
             'view invoice', 'create invoice', 'edit invoice',
             'view payment', 'process payment',
             'view piutang', 'manage piutang',
@@ -232,6 +235,7 @@ class RolePermissionSeeder extends Seeder
             'view outbound foc',
             'view outbound return',
             'view stock opname',
+            'view returnable packages',
             'view invoice',
             'view payment',
             'view piutang',
@@ -281,6 +285,7 @@ class RolePermissionSeeder extends Seeder
             'view outbound foc', 'create outbound foc', 'edit outbound foc',
             'view outbound return', 'create outbound return', 'edit outbound return',
             'view stock opname', 'do stock opname',
+            'view returnable packages', 'manage returnable packages',
             'view inventory report',
             'download apk',
             'view sync status',
@@ -295,6 +300,7 @@ class RolePermissionSeeder extends Seeder
             'view deliveries',
             'view warehouse',
             'view stock movement',
+            'view returnable packages',
             'download apk',
             'view sync status',
         ]);

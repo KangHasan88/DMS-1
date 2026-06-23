@@ -35,6 +35,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\StockOpnameController;
+use App\Http\Controllers\ReturnablePackageController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\DirectPurchaseController;
 use App\Http\Controllers\ConsignmentController;
@@ -241,6 +242,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/{product}/adjustment', [StockController::class, 'adjustmentForm'])->middleware('permission:manage warehouse')->name('adjustment-form');
         Route::post('/{product}/adjustment', [StockController::class, 'adjustment'])->middleware('permission:manage warehouse')->name('adjustment');
     });
+
+    Route::get('returnable-packages', [ReturnablePackageController::class, 'index'])
+        ->middleware('permission:view returnable packages')
+        ->name('returnable-packages.index');
+    Route::post('returnable-packages', [ReturnablePackageController::class, 'store'])
+        ->middleware('permission:manage returnable packages')
+        ->name('returnable-packages.store');
+    Route::post('returnable-packages/movements', [ReturnablePackageController::class, 'storeMovement'])
+        ->middleware('permission:manage returnable packages')
+        ->name('returnable-packages.movements.store');
     
     // ============= ORDER MANAGEMENT =============
     Route::resource('orders', OrderController::class)->only(['create', 'store'])->middleware('permission:create sales order');

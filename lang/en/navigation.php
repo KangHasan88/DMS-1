@@ -20,6 +20,7 @@ return [
     'stock_management' => 'Stock Management',
     'stock_opnames' => 'Stock Opname',
     'stock_movements' => 'Stock Movements',
+    'returnable_packages' => 'Returnable Packaging',
     'master_data' => 'Master Data',
     'catalog' => 'Catalog',
     'business_relations' => 'Business Relations',
