@@ -112,6 +112,20 @@ class ReturnablePackageController extends Controller
             ->with('success', 'Kategori kemasan berhasil ditambahkan.');
     }
 
+    public function toggleCategory(ReturnablePackageCategory $category)
+    {
+        $category->update([
+            'is_active' => !$category->is_active,
+        ]);
+
+        $message = $category->is_active
+            ? 'Kategori kemasan berhasil diaktifkan.'
+            : 'Kategori kemasan berhasil dinonaktifkan.';
+
+        return redirect()->route('returnable-packages.index')
+            ->with('success', $message);
+    }
+
     public function storeMovement(Request $request)
     {
         $validated = $request->validate([

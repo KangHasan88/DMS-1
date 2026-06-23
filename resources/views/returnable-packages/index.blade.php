@@ -651,6 +651,7 @@
                         <th>Nama</th>
                         <th class="text-end">Sort</th>
                         <th>Status</th>
+                        <th class="text-end">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -662,10 +663,23 @@
                             <td>
                                 <span class="dms-badge {{ $category->is_active ? 'dms-badge-success' : '' }}">{{ $category->is_active ? 'Aktif' : 'Nonaktif' }}</span>
                             </td>
+                            <td class="text-end">
+                                <form method="POST" action="{{ route('returnable-packages.categories.toggle', $category) }}" onsubmit="return confirm('Ubah status kategori {{ $category->name }}?')" style="display: inline-flex;">
+                                    @csrf
+                                    @method('PATCH')
+                                    <button type="submit" class="dms-btn dms-btn-outline" style="min-height: 32px; padding: .35rem .7rem;">
+                                        @if($category->is_active)
+                                            <i class="bi bi-pause-circle"></i> Nonaktifkan
+                                        @else
+                                            <i class="bi bi-play-circle"></i> Aktifkan
+                                        @endif
+                                    </button>
+                                </form>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4">
+                            <td colspan="5">
                                 <div class="returnable-empty">
                                     <i class="bi bi-tags"></i>
                                     <span>Belum ada kategori kemasan.</span>

@@ -252,6 +252,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('returnable-packages/categories', [ReturnablePackageController::class, 'storeCategory'])
         ->middleware('permission:manage returnable packages')
         ->name('returnable-packages.categories.store');
+    Route::patch('returnable-packages/categories/{category}/toggle', [ReturnablePackageController::class, 'toggleCategory'])
+        ->middleware('permission:manage returnable packages')
+        ->name('returnable-packages.categories.toggle');
     Route::post('returnable-packages/movements', [ReturnablePackageController::class, 'storeMovement'])
         ->middleware('permission:manage returnable packages')
         ->name('returnable-packages.movements.store');

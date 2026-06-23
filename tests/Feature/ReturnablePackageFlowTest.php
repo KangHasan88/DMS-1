@@ -98,6 +98,31 @@ class ReturnablePackageFlowTest extends TestCase
             ->assertSee('Jerigen');
     }
 
+    public function test_admin_can_toggle_returnable_package_category_status(): void
+    {
+        $user = $this->actingAdmin();
+        $category = ReturnablePackageCategory::where('code', ReturnablePackage::CATEGORY_GALLON)->firstOrFail();
+
+        $this->actingAs($user)
+            ->patch(route('returnable-packages.categories.toggle', $category))
+            ->assertRedirect(route('returnable-packages.index'))
+            ->assertSessionHasNoErrors();
+
+        $this->assertFalse($category->fresh()->is_active);
+
+        $this->actingAs($user)
+            ->get(route('returnable-packages.index'))
+            ->assertOk()
+            ->assertDontSee('value="' . $category->id . '"');
+
+        $this->actingAs($user)
+            ->patch(route('returnable-packages.categories.toggle', $category))
+            ->assertRedirect(route('returnable-packages.index'))
+            ->assertSessionHasNoErrors();
+
+        $this->assertTrue($category->fresh()->is_active);
+    }
+
     public function test_returnable_package_balance_cannot_go_negative(): void
     {
         $user = $this->actingAdmin();
