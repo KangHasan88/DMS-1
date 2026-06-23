@@ -11,6 +11,7 @@ use App\Models\CompanyBranch;
 use App\Models\CompanyProfile;
 use App\Models\Order;
 use App\Models\User;
+use App\Services\OrderReturnablePackagingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -476,6 +477,8 @@ class DeliveryController extends Controller
                     break;
                 case Delivery::STATUS_COMPLETED:
                     $delivery->completed_at = now();
+                    app(OrderReturnablePackagingService::class)->postDeliveredOrder($delivery->order, auth()->id());
+
                     if ($delivery->order->isPostPaid()) {
                         $delivery->order->admin_notes = ($delivery->order->admin_notes ? $delivery->order->admin_notes . "\n" : '') .
                             now()->format('d/m/Y H:i') . ' - Pengiriman selesai, menunggu pembayaran';
