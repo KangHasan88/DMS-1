@@ -63,6 +63,22 @@
         flex: 0 0 42px;
     }
 
+    .returnable-stat-icon i,
+    .returnable-panel-icon i {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+    }
+
+    .returnable-stat-icon i::before,
+    .returnable-panel-icon i::before {
+        margin: 0;
+        vertical-align: 0;
+    }
+
     .returnable-stat strong {
         display: block;
         color: #061a3d;
