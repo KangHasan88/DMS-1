@@ -10,6 +10,7 @@ use App\Models\StockMovement;
 use App\Models\ActivityLog;
 use App\Models\User;
 use App\Models\Wallet;
+use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -351,6 +352,41 @@ class OrderStockWorkflowTest extends TestCase
         $this->assertSame('INV-KMGTNG202606050001', $order->documentNumber('INV', 'KMG', 'TNG'));
         $this->assertSame('DO-KMGTNG202606050001', $order->documentNumber('DO', 'KMG', 'TNG'));
         $this->assertSame('PI-KURMAI202606050001', $order->documentNumber('PI', 'Kurmigo', 'MAIN'));
+    }
+
+    public function test_edit_order_keeps_inactive_existing_product_visible_without_offering_it_for_new_rows(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
+
+        $admin = User::factory()->create(['is_active' => true]);
+        $admin->assignRole('admin');
+
+        [$order, $inactiveProduct] = $this->createStockOrder(status: Order::STATUS_PENDING_PAYMENT);
+        $order->update(['payment_timing' => Order::PAYMENT_TIMING_PRE_PAID]);
+        $inactiveProduct->update(['is_active' => false]);
+
+        $activeProduct = Product::create([
+            'name' => 'Produk Aktif Baru',
+            'category' => 'Sayur',
+            'price' => 7000,
+            'base_price' => 4000,
+            'is_active' => true,
+        ]);
+        ProductStock::create([
+            'product_id' => $activeProduct->id,
+            'quantity' => 20,
+        ]);
+
+        $response = $this->actingAs($admin)->get(route('orders.edit', $order));
+
+        $response->assertOk()
+            ->assertSee('Bayam')
+            ->assertSee('nonaktif')
+            ->assertSee('Produk ini sedang nonaktif');
+
+        $this->assertTrue($response->viewData('products')->contains('id', $inactiveProduct->id));
+        $this->assertFalse($response->viewData('activeProducts')->contains('id', $inactiveProduct->id));
+        $this->assertTrue($response->viewData('activeProducts')->contains('id', $activeProduct->id));
     }
 
     /**

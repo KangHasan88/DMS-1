@@ -78,17 +78,26 @@
                     </thead>
                     <tbody id="products-tbody">
                         @foreach($order->items as $index => $item)
+                        @php
+                            $selectedProduct = $products->firstWhere('id', $item->product_id);
+                            $selectedProductInactive = $selectedProduct && !$selectedProduct->is_active;
+                        @endphp
                         <tr class="product-row">
                             <td>
                                 <select name="items[{{ $index }}][product_id]" class="form-control product-select" required onchange="updateProductPrice(this, {{ $index }})">
                                     <option value="">-- Pilih Produk --</option>
                                     @foreach($products as $product)
                                         <option value="{{ $product->id }}" data-price="{{ $product->price }}" data-stock="{{ $productsWithStock[$product->id]['stock'] ?? 0 }}" {{ $item->product_id == $product->id ? 'selected' : '' }}>
-                                            {{ $product->name }} ({{ $product->unit->name ?? '-' }}) - Rp {{ number_format($product->price, 0, ',', '.') }}
+                                            {{ $product->name }} ({{ $product->unit->name ?? '-' }}) - Rp {{ number_format($product->price, 0, ',', '.') }}{{ $product->is_active ? '' : ' - nonaktif' }}
                                         </option>
                                     @endforeach
                                 </select>
                                 <input type="hidden" name="items[{{ $index }}][id]" value="{{ $item->id }}">
+                                @if($selectedProductInactive)
+                                    <small class="dms-form-help" style="display: block; margin-top: 0.25rem; color: var(--k-orange); font-weight: 500;">
+                                        Produk ini sedang nonaktif. Item lama tetap ditampilkan untuk menjaga history order. Pilih produk aktif lain jika ingin mengganti item.
+                                    </small>
+                                @endif
                                 <div class="stock-warning" style="display: none; font-size: 0.65rem; color: var(--k-red); margin-top: 0.25rem;"></div>
                             </td>
                             <td>
@@ -210,7 +219,7 @@ function addProductRow() {
         <tr>
             <select name="items[${productIndex}][product_id]" class="form-control product-select" required onchange="updateProductPrice(this, ${productIndex})">
                 <option value="">-- Pilih Produk --</option>
-                @foreach($products as $product)
+                @foreach($activeProducts as $product)
                     <option value="{{ $product->id }}" data-price="{{ $product->price }}" data-stock="{{ $productsWithStock[$product->id]['stock'] ?? 0 }}">
                         {{ $product->name }} ({{ $product->unit->name ?? '-' }}) - Rp {{ number_format($product->price, 0, ',', '.') }}
                     </option>

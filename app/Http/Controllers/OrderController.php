@@ -420,7 +420,14 @@ class OrderController extends Controller
                 ->with('error', 'Order tidak dapat diubah karena sudah selesai/dibatalkan');
         }
         
-        $products = Product::active()->orderBy('name')->get();
+        $order->loadMissing('items.product');
+        $itemProductIds = $order->items->pluck('product_id')->filter()->unique();
+        $products = Product::query()
+            ->where('is_active', true)
+            ->when($itemProductIds->isNotEmpty(), fn ($query) => $query->orWhereIn('id', $itemProductIds))
+            ->orderBy('name')
+            ->get();
+        $activeProducts = $products->where('is_active', true)->values();
         $companyProfile = CompanyProfile::defaultProfile();
         $companyBranches = $this->availableCompanyBranches($companyProfile);
         $defaultCompanyBranchId = $order->company_branch_id ?: $this->defaultCompanyBranchId($companyProfile);
@@ -438,7 +445,7 @@ class OrderController extends Controller
             ];
         }
         
-        return view('orders.edit', compact('order', 'products', 'customers', 'productsWithStock', 'companyBranches', 'defaultCompanyBranchId', 'branchLocked', 'deliveryTimeSlots'));
+        return view('orders.edit', compact('order', 'products', 'activeProducts', 'customers', 'productsWithStock', 'companyBranches', 'defaultCompanyBranchId', 'branchLocked', 'deliveryTimeSlots'));
     }
 
     public function update(Request $request, Order $order)
