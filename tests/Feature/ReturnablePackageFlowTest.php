@@ -98,6 +98,20 @@ class ReturnablePackageFlowTest extends TestCase
             ->assertSee('Jerigen');
     }
 
+    public function test_returnable_package_validation_messages_are_indonesian(): void
+    {
+        $user = $this->actingAdmin();
+
+        $this->actingAs($user)
+            ->post(route('returnable-packages.categories.store'), [
+                'category_code' => 'drum',
+                'category_name' => '',
+            ])
+            ->assertSessionHasErrors([
+                'category_name' => 'nama kategori wajib diisi.',
+            ]);
+    }
+
     public function test_admin_can_toggle_returnable_package_category_status(): void
     {
         $user = $this->actingAdmin();

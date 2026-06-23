@@ -72,7 +72,7 @@ class ReturnablePackageController extends Controller
             'replacement_value' => ['nullable', 'integer', 'min:0'],
             'requires_serial_tracking' => ['nullable', 'boolean'],
             'description' => ['nullable', 'string', 'max:1000'],
-        ]);
+        ], $this->validationMessages(), $this->validationAttributes());
 
         $category = ReturnablePackageCategory::findOrFail($validated['returnable_package_category_id']);
 
@@ -93,10 +93,7 @@ class ReturnablePackageController extends Controller
         $validated = $request->validate([
             'category_code' => ['nullable', 'string', 'max:40', 'unique:returnable_package_categories,code'],
             'category_name' => ['required', 'string', 'max:100', 'unique:returnable_package_categories,name'],
-        ], [], [
-            'category_code' => 'kode kategori',
-            'category_name' => 'nama kategori',
-        ]);
+        ], $this->validationMessages(), $this->validationAttributes());
 
         $code = $validated['category_code'] ?: str($validated['category_name'])->slug('_')->toString();
         $baseCode = $code;
@@ -143,7 +140,7 @@ class ReturnablePackageController extends Controller
             'unit_value' => ['nullable', 'integer', 'min:0'],
             'reference_number' => ['nullable', 'string', 'max:120'],
             'notes' => ['nullable', 'string', 'max:1000'],
-        ]);
+        ], $this->validationMessages(), $this->validationAttributes());
 
         if ($branchScopeId = $this->currentBranchScopeId()) {
             $validated['company_branch_id'] = $branchScopeId;
@@ -166,5 +163,45 @@ class ReturnablePackageController extends Controller
     private function currentBranchScopeId(): ?int
     {
         return Auth::user()?->scopedCompanyBranchId();
+    }
+
+    private function validationMessages(): array
+    {
+        return [
+            'required' => ':attribute wajib diisi.',
+            'exists' => ':attribute tidak valid.',
+            'unique' => ':attribute sudah digunakan.',
+            'string' => ':attribute harus berupa teks.',
+            'integer' => ':attribute harus berupa angka bulat.',
+            'date' => ':attribute harus berupa tanggal yang valid.',
+            'boolean' => ':attribute harus bernilai ya atau tidak.',
+            'min' => ':attribute minimal :min.',
+            'max' => ':attribute maksimal :max karakter.',
+            'in' => ':attribute tidak valid.',
+        ];
+    }
+
+    private function validationAttributes(): array
+    {
+        return [
+            'code' => 'kode',
+            'name' => 'nama kemasan',
+            'returnable_package_category_id' => 'kategori kemasan',
+            'unit' => 'satuan',
+            'replacement_value' => 'nilai pengganti',
+            'requires_serial_tracking' => 'tracking nomor seri',
+            'description' => 'catatan',
+            'category_code' => 'kode kategori',
+            'category_name' => 'nama kategori',
+            'returnable_package_id' => 'kemasan',
+            'customer_id' => 'customer',
+            'company_branch_id' => 'cabang',
+            'movement_type' => 'tipe mutasi',
+            'movement_date' => 'tanggal',
+            'quantity' => 'qty',
+            'unit_value' => 'nilai per unit',
+            'reference_number' => 'nomor referensi',
+            'notes' => 'catatan',
+        ];
     }
 }
