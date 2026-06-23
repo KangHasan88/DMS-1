@@ -158,9 +158,22 @@
                             </span>
                         </td>
                         <td>
-                            <a href="{{ route('journal-entries.show', $journal) }}" class="dms-btn dms-btn-outline dms-btn-sm" title="Detail">
-                                <i class="bi bi-eye"></i>
-                            </a>
+                            <div style="display: flex; gap: 0.4rem; align-items: center;">
+                                <a href="{{ route('journal-entries.show', $journal) }}" class="dms-btn dms-btn-outline dms-btn-sm" title="Detail">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                @can('manage journal entries')
+                                    @if($journal->status === \App\Models\JournalEntry::STATUS_POSTED && !$journal->source_type)
+                                        <form action="{{ route('journal-entries.void', $journal) }}" method="POST" onsubmit="return confirm('Void jurnal ini dan buat jurnal reversal?')" style="display: inline-flex;">
+                                            @csrf
+                                            <input type="hidden" name="void_reason" value="Void dari daftar jurnal">
+                                            <button type="submit" class="dms-btn dms-btn-outline dms-btn-sm" title="Void">
+                                                <i class="bi bi-x-circle"></i>
+                                            </button>
+                                        </form>
+                                    @endif
+                                @endcan
+                            </div>
                         </td>
                     </tr>
                 @empty

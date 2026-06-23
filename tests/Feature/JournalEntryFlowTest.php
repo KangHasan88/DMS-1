@@ -73,6 +73,55 @@ class JournalEntryFlowTest extends TestCase
         $this->assertDatabaseCount('journal_entries', 0);
     }
 
+    public function test_finance_can_void_manual_journal_with_reversal_entry(): void
+    {
+        $finance = $this->userWithRole('finance');
+        [$cash, $capital] = $this->basicAccounts();
+
+        $journal = JournalEntry::create([
+            'journal_number' => JournalEntry::nextJournalNumber(),
+            'journal_date' => now()->toDateString(),
+            'description' => 'Jurnal manual salah input',
+            'status' => JournalEntry::STATUS_POSTED,
+            'debit_total' => 100000,
+            'credit_total' => 100000,
+            'posted_by' => $finance->id,
+            'posted_at' => now(),
+        ]);
+        $journal->lines()->create([
+            'chart_account_id' => $cash->id,
+            'description' => 'Kas masuk',
+            'debit_amount' => 100000,
+            'credit_amount' => 0,
+        ]);
+        $journal->lines()->create([
+            'chart_account_id' => $capital->id,
+            'description' => 'Modal',
+            'debit_amount' => 0,
+            'credit_amount' => 100000,
+        ]);
+
+        $this->actingAs($finance)
+            ->post(route('journal-entries.void', $journal), [
+                'void_reason' => 'Salah akun',
+            ])
+            ->assertRedirect();
+
+        $journal->refresh();
+        $reversal = JournalEntry::with('lines')
+            ->where('source_type', JournalEntry::class)
+            ->where('source_id', $journal->id)
+            ->firstOrFail();
+
+        $this->assertSame(JournalEntry::STATUS_VOID, $journal->status);
+        $this->assertSame('Salah akun', $journal->void_reason);
+        $this->assertSame(JournalEntry::STATUS_POSTED, $reversal->status);
+        $this->assertSame(100000, $reversal->debit_total);
+        $this->assertSame(100000, $reversal->credit_total);
+        $this->assertTrue($reversal->lines->contains(fn ($line) => $line->chart_account_id === $cash->id && $line->credit_amount === 100000));
+        $this->assertTrue($reversal->lines->contains(fn ($line) => $line->chart_account_id === $capital->id && $line->debit_amount === 100000));
+    }
+
     public function test_accounting_menu_shows_journal_entries_for_finance(): void
     {
         $finance = $this->userWithRole('finance');

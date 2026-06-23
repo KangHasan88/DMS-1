@@ -330,6 +330,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('journal-entries', [JournalEntryController::class, 'store'])
         ->middleware('permission:manage journal entries')
         ->name('journal-entries.store');
+    Route::post('journal-entries/{journalEntry}/void', [JournalEntryController::class, 'void'])
+        ->middleware('permission:manage journal entries')
+        ->name('journal-entries.void');
 
     Route::get('general-ledger', [GeneralLedgerController::class, 'index'])
         ->middleware('permission:view general ledger')

@@ -122,6 +122,68 @@ class JournalEntryController extends Controller
         return view('journal-entries.show', compact('journalEntry'));
     }
 
+    public function void(Request $request, JournalEntry $journalEntry)
+    {
+        $this->authorizeBranch($journalEntry);
+
+        $validated = $request->validate([
+            'void_reason' => ['required', 'string', 'max:500'],
+        ]);
+
+        if ($journalEntry->status === JournalEntry::STATUS_VOID) {
+            return back()->with('error', 'Jurnal ini sudah void.');
+        }
+
+        if ($journalEntry->source_type) {
+            return back()->with('error', 'Jurnal otomatis harus dibatalkan dari dokumen sumber.');
+        }
+
+        $journalEntry->loadMissing(['lines', 'companyBranch']);
+
+        $reversal = DB::transaction(function () use ($journalEntry, $validated) {
+            $journalEntry->forceFill([
+                'status' => JournalEntry::STATUS_VOID,
+                'voided_by' => Auth::id(),
+                'voided_at' => now(),
+                'void_reason' => $validated['void_reason'],
+            ])->save();
+
+            $reversal = JournalEntry::create([
+                'journal_number' => JournalEntry::nextJournalNumber($journalEntry->companyBranch),
+                'journal_date' => now()->toDateString(),
+                'description' => 'Reversal ' . $journalEntry->journal_number . ' - ' . $validated['void_reason'],
+                'company_branch_id' => $journalEntry->company_branch_id,
+                'status' => JournalEntry::STATUS_POSTED,
+                'source_type' => JournalEntry::class,
+                'source_id' => $journalEntry->id,
+                'debit_total' => $journalEntry->credit_total,
+                'credit_total' => $journalEntry->debit_total,
+                'posted_by' => Auth::id(),
+                'posted_at' => now(),
+            ]);
+
+            foreach ($journalEntry->lines as $line) {
+                $reversal->lines()->create([
+                    'chart_account_id' => $line->chart_account_id,
+                    'description' => 'Reversal: ' . ($line->description ?: $journalEntry->journal_number),
+                    'debit_amount' => $line->credit_amount,
+                    'credit_amount' => $line->debit_amount,
+                ]);
+            }
+
+            ActivityLog::record('journal_entries', 'voided', 'Jurnal umum di-void dan reversal diposting', $journalEntry, [
+                'journal_number' => $journalEntry->journal_number,
+                'reversal_journal_number' => $reversal->journal_number,
+                'void_reason' => $validated['void_reason'],
+            ]);
+
+            return $reversal;
+        });
+
+        return redirect()->route('journal-entries.show', $reversal)
+            ->with('success', 'Jurnal berhasil di-void dan jurnal reversal berhasil diposting.');
+    }
+
     private function validatedLines(array $inputLines, ?int $branchId): array
     {
         $allowedAccountIds = $this->scopedAccounts($branchId)->pluck('id')->all();
