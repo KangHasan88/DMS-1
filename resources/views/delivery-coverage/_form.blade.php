@@ -50,7 +50,13 @@
             @php($pivot = $depotPivots->get($branch->id)?->pivot)
             <label class="coverage-table-row">
                 <span><input type="checkbox" name="depot_ids[]" value="{{ $branch->id }}" @checked($selectedDepots->contains($branch->id) || ($branchScopeId && $branchScopeId === $branch->id))></span>
-                <span><strong>{{ $branch->name }}</strong><small>{{ $branch->code }} &middot; {{ $branch->address ?: 'Alamat belum diisi' }}</small></span>
+                <span>
+                    <strong>{{ $branch->name }}{{ $branch->is_active ? '' : ' - nonaktif' }}</strong>
+                    <small>{{ $branch->code }} &middot; {{ $branch->address ?: 'Alamat belum diisi' }}</small>
+                    @if(!$branch->is_active)
+                        <small style="color: var(--k-orange); font-weight: 600;">Cabang ini sedang nonaktif, tapi tetap ditampilkan karena masih tersimpan di zona ini.</small>
+                    @endif
+                </span>
                 <span><input type="number" name="depot_priority[{{ $branch->id }}]" class="form-control" min="1" value="{{ old('depot_priority.' . $branch->id, $pivot?->priority ?? ($loop->iteration)) }}"></span>
                 <span><input type="number" name="depot_capacity[{{ $branch->id }}]" class="form-control" min="1" value="{{ old('depot_capacity.' . $branch->id, $pivot?->max_daily_orders) }}" placeholder="Opsional"></span>
             </label>
@@ -66,7 +72,13 @@
                 @forelse($drivers as $driver)
                 <label class="coverage-option">
                     <input type="checkbox" name="driver_ids[]" value="{{ $driver->id }}" @checked($selectedDrivers->contains($driver->id))>
-                    <span><strong>{{ $driver->name }}</strong><small>{{ $driver->companyBranch?->code ?? 'Global' }} &middot; {{ $driver->phone ?: '-' }}</small></span>
+                    <span>
+                        <strong>{{ $driver->name }}{{ $driver->is_active ? '' : ' - nonaktif' }}</strong>
+                        <small>{{ $driver->companyBranch?->code ?? 'Global' }} &middot; {{ $driver->phone ?: '-' }}</small>
+                        @if(!$driver->is_active)
+                            <small style="color: var(--k-orange); font-weight: 600;">Driver ini sedang nonaktif, tapi tetap ditampilkan karena masih tersimpan di zona ini.</small>
+                        @endif
+                    </span>
                 </label>
                 @empty
                 <div class="dms-muted">Belum ada driver aktif.</div>
@@ -80,7 +92,13 @@
                 @forelse($vehicles as $vehicle)
                 <label class="coverage-option">
                     <input type="checkbox" name="vehicle_ids[]" value="{{ $vehicle->id }}" @checked($selectedVehicles->contains($vehicle->id))>
-                    <span><strong>{{ $vehicle->code }} - {{ $vehicle->name }}</strong><small>{{ $vehicle->companyBranch?->code ?? 'Global' }} &middot; {{ $vehicle->plate_number ?: '-' }}</small></span>
+                    <span>
+                        <strong>{{ $vehicle->code }} - {{ $vehicle->name }}{{ $vehicle->is_active ? '' : ' - nonaktif' }}</strong>
+                        <small>{{ $vehicle->companyBranch?->code ?? 'Global' }} &middot; {{ $vehicle->plate_number ?: '-' }}</small>
+                        @if(!$vehicle->is_active)
+                            <small style="color: var(--k-orange); font-weight: 600;">Armada ini sedang nonaktif, tapi tetap ditampilkan karena masih tersimpan di zona ini.</small>
+                        @endif
+                    </span>
                 </label>
                 @empty
                 <div class="dms-muted">Belum ada armada aktif.</div>

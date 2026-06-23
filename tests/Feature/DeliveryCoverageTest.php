@@ -259,6 +259,56 @@ class DeliveryCoverageTest extends TestCase
             ->assertSee('Armada ini sedang nonaktif atau tidak tersedia');
     }
 
+    public function test_edit_coverage_keeps_inactive_depot_driver_and_vehicle_visible(): void
+    {
+        [$branchA] = $this->twoCompanyBranches();
+        $admin = $this->userWithRole('super-admin');
+        $inactiveBranch = CompanyBranch::create([
+            'company_profile_id' => CompanyProfile::defaultProfile()->id,
+            'name' => 'Depo Coverage Nonaktif',
+            'code' => 'DCN',
+            'is_active' => false,
+            'sort_order' => 9,
+        ]);
+        $driver = $this->userWithRole('kurir', [
+            'company_branch_id' => $branchA->id,
+            'name' => 'Driver Coverage Nonaktif',
+            'is_active' => false,
+        ]);
+        $vehicle = $this->vehicle($branchA);
+        $vehicle->update([
+            'name' => 'Armada Coverage Nonaktif',
+            'is_active' => false,
+            'status' => DeliveryVehicle::STATUS_INACTIVE,
+        ]);
+        $zone = DeliveryZone::create([
+            'company_profile_id' => CompanyProfile::defaultProfile()->id,
+            'code' => 'LEGACY-COV',
+            'name' => 'Legacy Coverage',
+            'is_active' => true,
+        ]);
+        $zone->depots()->attach([
+            $branchA->id => ['priority' => 1, 'is_active' => true],
+            $inactiveBranch->id => ['priority' => 2, 'is_active' => true],
+        ]);
+        $zone->drivers()->attach($driver->id);
+        $zone->vehicles()->attach($vehicle->id);
+
+        $response = $this->actingAs($admin)->get(route('delivery-coverage.edit', $zone));
+
+        $response->assertOk()
+            ->assertSee('Depo Coverage Nonaktif - nonaktif')
+            ->assertSee('Cabang ini sedang nonaktif')
+            ->assertSee('Driver Coverage Nonaktif - nonaktif')
+            ->assertSee('Driver ini sedang nonaktif')
+            ->assertSee('Armada Coverage Nonaktif - nonaktif')
+            ->assertSee('Armada ini sedang nonaktif');
+
+        $this->assertTrue($response->viewData('branches')->contains('id', $inactiveBranch->id));
+        $this->assertTrue($response->viewData('drivers')->contains('id', $driver->id));
+        $this->assertTrue($response->viewData('vehicles')->contains('id', $vehicle->id));
+    }
+
     private function shippingAddress(CompanyBranch $branch, string $name): CustomerAddress
     {
         $user = $this->userWithRole('customer', ['company_branch_id' => $branch->id]);

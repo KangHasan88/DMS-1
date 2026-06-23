@@ -227,9 +227,19 @@ class DeliveryCoverageController extends Controller
     private function formData(?DeliveryZone $zone = null): array
     {
         $branchScopeId = $this->currentBranchScopeId();
+        $currentDepotIds = $zone?->depots?->pluck('id')->filter()->unique()->values() ?? collect();
+        $currentDriverIds = $zone?->drivers?->pluck('id')->filter()->unique()->values() ?? collect();
+        $currentVehicleIds = $zone?->vehicles?->pluck('id')->filter()->unique()->values() ?? collect();
+
         $branches = CompanyBranch::query()
             ->where('company_profile_id', CompanyProfile::defaultProfile()->id)
-            ->where('is_active', true)
+            ->where(function ($query) use ($currentDepotIds) {
+                $query->where('is_active', true);
+
+                if ($currentDepotIds->isNotEmpty()) {
+                    $query->orWhereIn('id', $currentDepotIds);
+                }
+            })
             ->when($branchScopeId, fn ($query) => $query->whereKey($branchScopeId))
             ->orderBy('sort_order')
             ->orderBy('name')
@@ -256,14 +266,26 @@ class DeliveryCoverageController extends Controller
         $drivers = User::query()
             ->with('companyBranch')
             ->role('kurir')
-            ->active()
+            ->where(function ($query) use ($currentDriverIds) {
+                $query->active();
+
+                if ($currentDriverIds->isNotEmpty()) {
+                    $query->orWhereIn('id', $currentDriverIds);
+                }
+            })
             ->when($branchScopeId, fn ($query) => $query->where('company_branch_id', $branchScopeId))
             ->orderBy('name')
             ->get();
 
         $vehicles = DeliveryVehicle::query()
             ->with('companyBranch')
-            ->active()
+            ->where(function ($query) use ($currentVehicleIds) {
+                $query->active();
+
+                if ($currentVehicleIds->isNotEmpty()) {
+                    $query->orWhereIn('id', $currentVehicleIds);
+                }
+            })
             ->when($branchScopeId, fn ($query) => $query->forCompanyBranch($branchScopeId))
             ->orderBy('code')
             ->get();
