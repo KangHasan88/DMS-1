@@ -114,6 +114,10 @@ class RemoteModuleProvisioningSigner
     {
         $secret = (string) config('modules.remote_provision_secret', '');
 
+        if ($secret === '') {
+            throw new \RuntimeException('MODULE_REMOTE_PROVISION_SECRET is not configured.');
+        }
+
         if (str_starts_with($secret, 'base64:')) {
             $decoded = base64_decode(substr($secret, 7), true);
 

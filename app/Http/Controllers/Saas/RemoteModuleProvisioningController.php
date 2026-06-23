@@ -8,6 +8,7 @@ use App\Models\SaasModuleTenant;
 use App\Services\Saas\RemoteModuleProvisioningSigner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 
 class RemoteModuleProvisioningController extends Controller
 {
@@ -49,13 +50,48 @@ class RemoteModuleProvisioningController extends Controller
             'operation_id' => $tenant->operation_id,
         ]);
 
+        $callback = $signer->callbackPayload($payload);
+        $callbackResult = $this->sendProvisioningCallback($tenant, $callback);
+
         return response()->json([
             'accepted' => true,
             'tenant_id' => $tenant->tenant_id,
             'tenant_module_id' => $tenant->tenant_module_id,
             'module_key' => $tenant->module_key,
             'status' => $tenant->status,
-            'callback' => $signer->callbackPayload($payload),
+            'callback' => $callback,
+            'callback_dispatched' => $callbackResult['sent'],
         ]);
+    }
+
+    private function sendProvisioningCallback(SaasModuleTenant $tenant, array $callback): array
+    {
+        $url = (string) config('modules.central_provisioning_callback_url', '');
+
+        if ($url === '') {
+            return ['sent' => false, 'status' => 'not_configured'];
+        }
+
+        try {
+            $response = Http::timeout(10)->acceptJson()->post($url, $callback);
+            $result = [
+                'sent' => $response->successful(),
+                'status' => $response->status(),
+                'sent_at' => now()->toISOString(),
+            ];
+        } catch (\Throwable $exception) {
+            $result = [
+                'sent' => false,
+                'status' => 'error',
+                'sent_at' => now()->toISOString(),
+                'error' => $exception->getMessage(),
+            ];
+        }
+
+        $metadata = $tenant->metadata ?? [];
+        $metadata['provisioning_callback'] = $result;
+        $tenant->forceFill(['metadata' => $metadata])->save();
+
+        return $result;
     }
 }

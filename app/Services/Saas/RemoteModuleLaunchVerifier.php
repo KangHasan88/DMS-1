@@ -58,6 +58,10 @@ class RemoteModuleLaunchVerifier
     {
         $secret = (string) config('modules.remote_launch_secret', '');
 
+        if ($secret === '') {
+            throw new \RuntimeException('MODULE_REMOTE_LAUNCH_SECRET is not configured.');
+        }
+
         if (str_starts_with($secret, 'base64:')) {
             $decoded = base64_decode(substr($secret, 7), true);
 
