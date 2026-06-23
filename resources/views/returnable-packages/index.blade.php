@@ -237,6 +237,19 @@
         border-radius: 8px;
     }
 
+    .returnable-page .invalid-feedback,
+    .returnable-page .dms-error {
+        display: block;
+        color: #dc2626;
+        font-size: .78rem;
+        font-weight: 700;
+        margin-top: .35rem;
+    }
+
+    .returnable-page .is-invalid {
+        border-color: #dc2626;
+    }
+
     .returnable-page textarea.form-control {
         min-height: 76px;
     }
