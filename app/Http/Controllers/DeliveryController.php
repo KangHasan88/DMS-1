@@ -283,9 +283,10 @@ class DeliveryController extends Controller
         $this->authorizeKurirDelivery($delivery);
         $this->authorizeBranchDelivery($delivery);
 
-        $delivery->load('order.user', 'order.companyBranch', 'kurir', 'vendor', 'vehicle', 'order.items.product');
+        $delivery->load('order.user', 'order.companyBranch', 'kurir', 'vendor', 'vehicle', 'order.items.product.returnablePackage');
+        $returnablePackagePlan = app(OrderReturnablePackagingService::class)->packagePlan($delivery->order);
         
-        return view('deliveries.show', compact('delivery'));
+        return view('deliveries.show', compact('delivery', 'returnablePackagePlan'));
     }
 
     /**

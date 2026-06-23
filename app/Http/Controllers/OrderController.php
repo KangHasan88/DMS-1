@@ -13,6 +13,7 @@ use App\Models\CustomerAddress;
 use App\Models\CompanyBranch;
 use App\Models\CompanyProfile;
 use App\Models\DeliveryTimeSlot;
+use App\Services\OrderReturnablePackagingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -404,9 +405,10 @@ class OrderController extends Controller
     {
         $this->authorizeCustomerOrder($order);
 
-        $order->load('user', 'items.product', 'delivery', 'companyBranch', 'salesperson', 'createdBy');
+        $order->load('user', 'items.product.returnablePackage', 'delivery', 'companyBranch', 'salesperson', 'createdBy');
+        $returnablePackagePlan = app(OrderReturnablePackagingService::class)->packagePlan($order);
         
-        return view('orders.show', compact('order'));
+        return view('orders.show', compact('order', 'returnablePackagePlan'));
     }
 
     public function edit(Order $order)

@@ -353,6 +353,52 @@
             </table>
         </div>
     </div>
+
+    @if($returnablePackagePlan->isNotEmpty())
+    <div style="margin-top: 2rem;">
+        <h4 style="font-size: 1rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--k-gray-200);">
+            <i class="bi bi-recycle" style="margin-right: 0.5rem; color: var(--k-green);"></i>
+            Rencana Kemasan Kembali
+        </h4>
+
+        <div style="background: #fbfdff; border: 1px solid var(--k-gray-200); border-radius: 10px; overflow: hidden;">
+            <div style="padding: 0.9rem 1rem; color: var(--k-gray-600); font-size: 0.85rem; border-bottom: 1px solid var(--k-gray-200);">
+                Kemasan berikut akan menjadi outstanding customer saat pengiriman selesai.
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="dms-table" style="width: 100%; border-collapse: collapse; margin: 0;">
+                    <thead>
+                        <tr style="background: var(--k-gray-100);">
+                            <th style="padding: 0.75rem; text-align: left;">Kemasan</th>
+                            <th style="padding: 0.75rem; text-align: right;">Qty</th>
+                            <th style="padding: 0.75rem; text-align: right;">Nilai Pengganti</th>
+                            <th style="padding: 0.75rem; text-align: left;">Pemicu Produk</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($returnablePackagePlan as $plan)
+                        <tr style="border-top: 1px solid var(--k-gray-200);">
+                            <td style="padding: 0.75rem;">
+                                <strong>{{ $plan['package']->name }}</strong><br>
+                                <span class="dms-muted">{{ $plan['package']->code }}</span>
+                            </td>
+                            <td style="padding: 0.75rem; text-align: right; font-weight: 700;">
+                                {{ number_format($plan['quantity']) }} {{ $plan['package']->unit }}
+                            </td>
+                            <td style="padding: 0.75rem; text-align: right;">
+                                Rp {{ number_format($plan['quantity'] * $plan['package']->replacement_value, 0, ',', '.') }}
+                            </td>
+                            <td style="padding: 0.75rem;">
+                                {{ $plan['items']->pluck('product_name')->unique()->join(', ') }}
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    @endif
     
     <!-- Notes Section -->
     @if($order->notes || $order->admin_notes)
