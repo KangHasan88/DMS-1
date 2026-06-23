@@ -67,10 +67,11 @@ class DeliveryVehicleController extends Controller
     {
         $this->authorizeBranchVehicle($deliveryVehicle);
 
-        $companyBranches = $this->availableCompanyBranches();
-        $branchLocked = (bool) $this->currentBranchScopeId();
-        $drivers = $this->availableDrivers();
         $deliveryVehicle->load('activeDriverAssignment.driver');
+
+        $companyBranches = $this->availableCompanyBranches($deliveryVehicle->company_branch_id);
+        $branchLocked = (bool) $this->currentBranchScopeId();
+        $drivers = $this->availableDrivers($deliveryVehicle->activeDriverAssignment?->driver_id);
 
         return view('delivery-vehicles.edit', compact('deliveryVehicle', 'companyBranches', 'branchLocked', 'drivers'));
     }
@@ -117,11 +118,17 @@ class DeliveryVehicleController extends Controller
         ];
     }
 
-    private function availableDrivers()
+    private function availableDrivers(?int $currentDriverId = null)
     {
         return User::with('companyBranch')
             ->role('kurir')
-            ->active()
+            ->where(function ($query) use ($currentDriverId) {
+                $query->active();
+
+                if ($currentDriverId) {
+                    $query->orWhere('id', $currentDriverId);
+                }
+            })
             ->when($this->currentBranchScopeId(), fn ($query, $branchId) => $query->where('company_branch_id', $branchId))
             ->orderBy('name')
             ->get();
@@ -144,16 +151,16 @@ class DeliveryVehicleController extends Controller
             return;
         }
 
+        if ($currentAssignment && (int) $currentAssignment->driver_id === (int) $driverId) {
+            return;
+        }
+
         $driver = User::role('kurir')->active()->findOrFail($driverId);
 
         if ($vehicle->company_branch_id && $driver->company_branch_id && (int) $vehicle->company_branch_id !== (int) $driver->company_branch_id) {
             throw ValidationException::withMessages([
                 'primary_driver_id' => 'Driver dan armada harus berada pada cabang yang sama.',
             ]);
-        }
-
-        if ($currentAssignment && (int) $currentAssignment->driver_id === (int) $driverId) {
-            return;
         }
 
         DriverVehicleAssignment::active()
@@ -183,9 +190,17 @@ class DeliveryVehicleController extends Controller
         return auth()->user()?->scopedCompanyBranchId();
     }
 
-    private function availableCompanyBranches()
+    private function availableCompanyBranches(?int $currentBranchId = null)
     {
-        $query = CompanyProfile::defaultProfile()->activeBranches();
+        $query = CompanyProfile::defaultProfile()
+            ->branches()
+            ->where(function ($query) use ($currentBranchId) {
+                $query->where('is_active', true);
+
+                if ($currentBranchId) {
+                    $query->orWhere('id', $currentBranchId);
+                }
+            });
 
         if ($branchScopeId = $this->currentBranchScopeId()) {
             $query->whereKey($branchScopeId);

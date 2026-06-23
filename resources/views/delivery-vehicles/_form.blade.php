@@ -1,3 +1,10 @@
+@php
+    $selectedBranchId = old('company_branch_id', $vehicle?->company_branch_id);
+    $selectedBranch = $companyBranches->firstWhere('id', (int) $selectedBranchId);
+    $selectedDriverId = old('primary_driver_id', $vehicle?->activeDriverAssignment?->driver_id);
+    $selectedDriver = $drivers->firstWhere('id', (int) $selectedDriverId);
+@endphp
+
 <form action="{{ $action }}" method="POST">
     @csrf
     @if($method !== 'POST')
@@ -11,12 +18,15 @@
                 <option value="">Global / Semua Cabang</option>
                 @foreach($companyBranches as $branch)
                     <option value="{{ $branch->id }}" {{ (string) old('company_branch_id', $vehicle?->company_branch_id) === (string) $branch->id ? 'selected' : '' }}>
-                        {{ $branch->name }} - {{ $branch->code }}
+                        {{ $branch->name }} - {{ $branch->code }}{{ $branch->is_active ? '' : ' - nonaktif' }}
                     </option>
                 @endforeach
             </select>
             @if($branchLocked)
                 <input type="hidden" name="company_branch_id" value="{{ $companyBranches->first()?->id }}">
+            @endif
+            @if($selectedBranch && !$selectedBranch->is_active)
+                <small class="dms-form-help" style="color: var(--k-orange); font-weight: 600;">Cabang ini sedang nonaktif, tapi tetap ditampilkan karena masih tersimpan di armada ini.</small>
             @endif
             <small class="dms-form-help">Pilih cabang pemilik armada. Kosongkan hanya jika armada dipakai lintas cabang.</small>
             @error('company_branch_id') <span class="dms-error">{{ $message }}</span> @enderror
@@ -77,10 +87,13 @@
                 <option value="">-- Belum ditetapkan --</option>
                 @foreach($drivers as $driver)
                     <option value="{{ $driver->id }}" {{ (string) old('primary_driver_id', $vehicle?->activeDriverAssignment?->driver_id) === (string) $driver->id ? 'selected' : '' }}>
-                        {{ $driver->name }} - {{ $driver->companyBranch->code ?? 'Global' }}
+                        {{ $driver->name }} - {{ $driver->companyBranch->code ?? 'Global' }}{{ $driver->is_active ? '' : ' - nonaktif' }}
                     </option>
                 @endforeach
             </select>
+            @if($selectedDriver && !$selectedDriver->is_active)
+                <small class="dms-form-help" style="color: var(--k-orange); font-weight: 600;">Driver ini sedang nonaktif, tapi tetap ditampilkan karena masih menjadi driver utama armada ini.</small>
+            @endif
             <small class="dms-form-help">Armada ini otomatis dipilih saat driver ditugaskan. Perubahan tetap menyimpan riwayat assignment.</small>
             @error('primary_driver_id') <span class="dms-error">{{ $message }}</span> @enderror
         </div>
