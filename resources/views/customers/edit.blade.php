@@ -3,6 +3,11 @@
 @section('page-title', 'Edit Pelanggan')
 @section('breadcrumb', 'Pelanggan / Edit')
 
+@php
+    $selectedCustomerType = old('customer_type', $customer->customer_type);
+    $currentCustomerType = $customerTypes->firstWhere('code', $selectedCustomerType);
+@endphp
+
 @section('content')
 <div class="dms-card customer-form-card">
     <div class="dms-form-header">
@@ -67,9 +72,16 @@
                         <label class="form-label">Tipe Pelanggan <span class="dms-required">*</span></label>
                         <select name="customer_type" class="form-control" required>
                             @foreach($customerTypes as $type)
-                            <option value="{{ $type->code }}" {{ old('customer_type', $customer->customer_type) == $type->code ? 'selected' : '' }}>{{ $type->name }}</option>
+                            <option value="{{ $type->code }}" {{ $selectedCustomerType == $type->code ? 'selected' : '' }}>
+                                {{ $type->name }}{{ $type->is_active ? '' : ' - nonaktif' }}
+                            </option>
                             @endforeach
                         </select>
+                        @if($selectedCustomerType && (!$currentCustomerType || !$currentCustomerType->is_active))
+                            <small class="dms-form-help" style="color: var(--k-orange); font-weight: 600;">
+                                Tipe pelanggan tersimpan belum ada atau sedang nonaktif, tapi tetap ditampilkan karena sudah dipakai pelanggan ini.
+                            </small>
+                        @endif
                         <small class="dms-form-help">
                             <a href="{{ route('customer-types.index') }}">Kelola tipe pelanggan</a>
                         </small>

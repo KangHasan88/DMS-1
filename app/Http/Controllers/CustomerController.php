@@ -95,7 +95,15 @@ class CustomerController extends Controller
                 'required',
                 'string',
                 'max:100',
-                Rule::exists('customer_types', 'code')->where('is_active', true),
+                function ($attribute, $value, $fail) use ($customer) {
+                    if ($value === $customer->customer_type) {
+                        return;
+                    }
+
+                    if (! CustomerType::active()->where('code', $value)->exists()) {
+                        $fail('Tipe pelanggan harus aktif.');
+                    }
+                },
             ],
             'payment_term' => 'nullable|in:cash,credit',
             'credit_limit' => 'nullable|integer|min:0',
@@ -163,7 +171,17 @@ class CustomerController extends Controller
     {
         $this->authorizeCustomerBranch($customer);
 
-        $customerTypes = CustomerType::active()->orderBy('sort_order')->orderBy('name')->get();
+        $customerTypes = CustomerType::query()
+            ->where(function ($query) use ($customer) {
+                $query->active();
+
+                if ($customer->customer_type) {
+                    $query->orWhere('code', $customer->customer_type);
+                }
+            })
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
         $companyBranches = $this->availableCompanyBranches();
         $defaultCompanyBranchId = $customer->company_branch_id ?: $this->defaultCompanyBranchId();
         $branchLocked = (bool) $this->currentBranchScopeId();
@@ -202,7 +220,15 @@ class CustomerController extends Controller
                 'required',
                 'string',
                 'max:100',
-                Rule::exists('customer_types', 'code')->where('is_active', true),
+                function ($attribute, $value, $fail) use ($customer) {
+                    if ($value === $customer->customer_type) {
+                        return;
+                    }
+
+                    if (! CustomerType::active()->where('code', $value)->exists()) {
+                        $fail('Tipe pelanggan harus aktif.');
+                    }
+                },
             ],
             'payment_term' => 'nullable|in:cash,credit',
             'credit_limit' => 'nullable|integer|min:0',
