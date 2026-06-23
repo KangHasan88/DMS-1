@@ -121,12 +121,16 @@
         display: grid;
         grid-template-columns: minmax(0, .8fr) minmax(0, 1fr) auto;
         gap: .65rem;
-        align-items: end;
+        align-items: start;
         margin-bottom: .9rem;
         padding: .85rem;
         border: 1px solid var(--k-gray-200, #dbe4f0);
         border-radius: 10px;
         background: #fbfdff;
+    }
+
+    .returnable-mini-form .returnable-mini-action {
+        padding-top: 1.55rem;
     }
 
     .returnable-panel-icon {
@@ -637,9 +641,11 @@
                     <input type="text" name="category_name" value="{{ old('category_name') }}" class="form-control @error('category_name') is-invalid @enderror" placeholder="Jerigen">
                     @error('category_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
-                <button type="submit" class="dms-btn dms-btn-primary">
-                    <i class="bi bi-plus-circle"></i> Tambah
-                </button>
+                <div class="returnable-mini-action">
+                    <button type="submit" class="dms-btn dms-btn-primary">
+                        <i class="bi bi-plus-circle"></i> Tambah
+                    </button>
+                </div>
             </form>
         </div>
 

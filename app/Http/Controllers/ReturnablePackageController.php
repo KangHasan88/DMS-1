@@ -93,6 +93,9 @@ class ReturnablePackageController extends Controller
         $validated = $request->validate([
             'category_code' => ['nullable', 'string', 'max:40', 'unique:returnable_package_categories,code'],
             'category_name' => ['required', 'string', 'max:100', 'unique:returnable_package_categories,name'],
+        ], [], [
+            'category_code' => 'kode kategori',
+            'category_name' => 'nama kategori',
         ]);
 
         $code = $validated['category_code'] ?: str($validated['category_name'])->slug('_')->toString();
