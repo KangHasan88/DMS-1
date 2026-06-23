@@ -236,10 +236,34 @@ class PurchaseOrderController extends Controller
                 ->with('error', 'PO tidak dapat diedit karena sudah diproses');
         }
         
-        $suppliers = Supplier::active()->orderBy('name')->get();
-        $products = Product::active()->orderBy('name')->get();
+        $purchaseOrder->loadMissing('supplier', 'items.product');
+
+        $currentSupplierIds = collect([$purchaseOrder->supplier_id])->filter();
+        $currentProductIds = $purchaseOrder->items->pluck('product_id')->filter()->unique()->values();
+
+        $suppliers = Supplier::query()
+            ->where(function ($query) use ($currentSupplierIds) {
+                $query->active();
+
+                if ($currentSupplierIds->isNotEmpty()) {
+                    $query->orWhereIn('id', $currentSupplierIds);
+                }
+            })
+            ->orderBy('name')
+            ->get();
+        $products = Product::query()
+            ->where(function ($query) use ($currentProductIds) {
+                $query->active();
+
+                if ($currentProductIds->isNotEmpty()) {
+                    $query->orWhereIn('id', $currentProductIds);
+                }
+            })
+            ->orderBy('name')
+            ->get();
+        $activeProducts = $products->where('is_active', true)->values();
         
-        return view('purchase-orders.edit', compact('purchaseOrder', 'suppliers', 'products'));
+        return view('purchase-orders.edit', compact('purchaseOrder', 'suppliers', 'products', 'activeProducts'));
     }
 
     /**
