@@ -28,14 +28,6 @@ class SalesCoverageController extends Controller
 
         $selectedBranchId = $branchScopeId ?: ($request->filled('company_branch_id') ? (int) $request->company_branch_id : null);
 
-        $territories = SalesTerritory::query()
-            ->withCount(['activeCustomerAssignments as active_customers_count'])
-            ->when($selectedBranchId, fn ($query) => $query->where('company_branch_id', $selectedBranchId))
-            ->orderBy('company_branch_id')
-            ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get();
-
         $assignments = CustomerSalesAssignment::query()
             ->with('customer.companyBranch', 'salesperson.companyBranch', 'salesTerritory', 'companyBranch')
             ->active()
@@ -44,6 +36,33 @@ class SalesCoverageController extends Controller
             ->when($request->filled('sales_territory_id'), fn ($query) => $query->where('sales_territory_id', $request->sales_territory_id))
             ->orderByDesc('start_date')
             ->paginate($request->get('per_page', 10));
+
+        $assignmentTerritoryIds = $assignments->getCollection()
+            ->pluck('sales_territory_id')
+            ->filter()
+            ->unique()
+            ->values();
+        $requestedTerritoryId = $request->filled('sales_territory_id') ? (int) $request->sales_territory_id : null;
+
+        $territories = SalesTerritory::query()
+            ->withCount(['activeCustomerAssignments as active_customers_count'])
+            ->when($selectedBranchId, fn ($query) => $query->where('company_branch_id', $selectedBranchId))
+            ->where(function ($query) use ($assignmentTerritoryIds, $requestedTerritoryId) {
+                $query->active();
+
+                if ($assignmentTerritoryIds->isNotEmpty()) {
+                    $query->orWhereIn('id', $assignmentTerritoryIds);
+                }
+
+                if ($requestedTerritoryId) {
+                    $query->orWhere('id', $requestedTerritoryId);
+                }
+            })
+            ->orderBy('company_branch_id')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+        $activeTerritories = $territories->where('is_active', true)->values();
 
         $customers = Customer::query()
             ->with('companyBranch', 'activeSalesAssignment')
@@ -68,6 +87,7 @@ class SalesCoverageController extends Controller
         return view('sales-coverage.index', compact(
             'assignments',
             'territories',
+            'activeTerritories',
             'customers',
             'salespeople',
             'companyBranches',
@@ -109,7 +129,7 @@ class SalesCoverageController extends Controller
         $validated = $request->validate([
             'customer_id' => ['required', 'exists:customers,id'],
             'salesperson_id' => ['required', 'exists:users,id'],
-            'sales_territory_id' => ['nullable', 'exists:sales_territories,id'],
+            'sales_territory_id' => ['nullable', Rule::exists('sales_territories', 'id')->where('is_active', true)],
             'start_date' => ['required', 'date'],
             'assignment_type' => ['required', 'in:permanent,temporary'],
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date', 'after_or_equal:today'],
@@ -176,7 +196,18 @@ class SalesCoverageController extends Controller
         $this->ensureBranchIsAllowed((int) $assignment->company_branch_id);
 
         $validated = $request->validate([
-            'sales_territory_id' => ['nullable', 'exists:sales_territories,id'],
+            'sales_territory_id' => [
+                'nullable',
+                function ($attribute, $value, $fail) use ($assignment) {
+                    if ((int) $value === (int) $assignment->sales_territory_id) {
+                        return;
+                    }
+
+                    if (! SalesTerritory::active()->whereKey($value)->exists()) {
+                        $fail('Area sales harus aktif.');
+                    }
+                },
+            ],
             'assignment_type' => ['required', 'in:permanent,temporary'],
             'end_date' => ['nullable', 'date', 'after_or_equal:today'],
             'notes' => ['nullable', 'string'],

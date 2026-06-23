@@ -43,7 +43,7 @@
                     <option value="">Semua Area</option>
                     @foreach($territories as $territory)
                         <option value="{{ $territory->id }}" {{ (string) request('sales_territory_id') === (string) $territory->id ? 'selected' : '' }}>
-                            {{ $territory->code }} - {{ $territory->name }}
+                            {{ $territory->code }} - {{ $territory->name }}{{ $territory->is_active ? '' : ' - nonaktif' }}
                         </option>
                     @endforeach
                 </select>
@@ -97,7 +97,7 @@
                         <label class="form-label">Area</label>
                         <select name="sales_territory_id" class="form-control">
                             <option value="">Tanpa area</option>
-                            @foreach($territories as $territory)
+                            @foreach($activeTerritories as $territory)
                                 <option value="{{ $territory->id }}">
                                     {{ $territory->code }} - {{ $territory->name }}
                                 </option>
@@ -176,7 +176,7 @@
         <div class="sales-summary-heading">
             <div>
                 <strong>Ringkasan Area Sales</strong>
-                <span>{{ $territories->count() }} area aktif</span>
+                <span>{{ $activeTerritories->count() }} area aktif</span>
             </div>
             <button type="button" class="sales-summary-toggle" data-sales-summary-toggle aria-expanded="true">
                 <i class="bi bi-chevron-up"></i>
@@ -192,7 +192,7 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse($territories as $territory)
+                @forelse($activeTerritories as $territory)
                     <tr>
                         <td><span class="sales-area-code">{{ $territory->code }}</span></td>
                         <td>{{ $territory->name }}</td>
@@ -236,7 +236,9 @@
                     <td>
                         @if($assignment->salesTerritory)
                             <span class="dms-badge dms-badge-info">{{ $assignment->salesTerritory->code }}</span>
-                            <div class="dms-muted">{{ $assignment->salesTerritory->name }}</div>
+                            <div class="dms-muted">
+                                {{ $assignment->salesTerritory->name }}{{ $assignment->salesTerritory->is_active ? '' : ' - nonaktif' }}
+                            </div>
                         @else
                             -
                         @endif
@@ -287,10 +289,13 @@
                                         @foreach($territories as $territory)
                                             @continue((int) $territory->company_branch_id !== (int) $assignment->company_branch_id)
                                             <option value="{{ $territory->id }}" {{ (string) $assignment->sales_territory_id === (string) $territory->id ? 'selected' : '' }}>
-                                                {{ $territory->code }} - {{ $territory->name }}
+                                                {{ $territory->code }} - {{ $territory->name }}{{ $territory->is_active ? '' : ' - nonaktif' }}
                                             </option>
                                         @endforeach
                                     </select>
+                                    @if($assignment->salesTerritory && !$assignment->salesTerritory->is_active)
+                                        <small class="dms-form-help" style="color: var(--k-orange); font-weight: 600;">Area sales ini sedang nonaktif, tapi tetap ditampilkan karena masih tersimpan di assignment ini.</small>
+                                    @endif
                                 </div>
                                 <div>
                                     <label class="form-label">Tipe Assignment</label>
