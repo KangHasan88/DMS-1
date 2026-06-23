@@ -1,7 +1,12 @@
-@extends('layouts.sidebar')
+﻿@extends('layouts.sidebar')
 
 @section('page-title', 'Edit User')
 @section('breadcrumb', 'Users / Edit')
+
+@php
+    $selectedCompanyBranchId = old('company_branch_id', $user->company_branch_id);
+    $selectedCompanyBranch = $companyBranches->firstWhere('id', (int) $selectedCompanyBranchId);
+@endphp
 
 @section('content')
 <div class="dms-card">
@@ -124,10 +129,13 @@
                                 <option value="">Semua cabang / pusat</option>
                                 @foreach($companyBranches as $branch)
                                     <option value="{{ $branch->id }}" {{ old('company_branch_id', $user->company_branch_id) == $branch->id ? 'selected' : '' }}>
-                                        {{ $branch->name }}{{ $branch->code ? ' - '.$branch->code : '' }}
+                                        {{ $branch->name }}{{ $branch->code ? ' - '.$branch->code : '' }}{{ $branch->is_active ? '' : ' - nonaktif' }}
                                     </option>
                                 @endforeach
                             </select>
+                            @if($selectedCompanyBranch && !$selectedCompanyBranch->is_active)
+                                <small style="color: var(--k-orange); font-size: 0.75rem; font-weight: 600;">Cabang ini sedang nonaktif, tapi tetap ditampilkan karena masih tersimpan di user ini.</small>
+                            @endif
                             <small style="color: var(--dms-gray-500);">Kosongkan untuk Super Admin/HQ. Isi untuk admin atau staff per cabang.</small>
                             @error('company_branch_id') <span style="color: var(--dms-danger); font-size: 0.75rem;">{{ $message }}</span> @enderror
                         </div>
@@ -344,7 +352,7 @@ Swal.fire({
 Swal.fire({
     icon: 'error',
     title: 'Validasi Gagal',
-    html: '<ul style="text-align: left; max-height: 200px; overflow-y: auto;">@foreach($errors->all() as $error)<li>� {{ $error }}</li>@endforeach</ul>',
+    html: '<ul style="text-align: left; max-height: 200px; overflow-y: auto;">@foreach($errors->all() as $error)<li>• {{ $error }}</li>@endforeach</ul>',
     confirmButtonColor: '#3085d6',
     confirmButtonText: 'OK'
 });

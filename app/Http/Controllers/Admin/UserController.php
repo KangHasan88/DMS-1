@@ -133,7 +133,7 @@ class UserController extends Controller
             ->where('id', '!=', $user->id)
             ->when($branchScope, fn ($query) => $query->where('company_branch_id', $branchScope))
             ->get();
-        $companyBranches = $this->availableBranches();
+        $companyBranches = $this->availableBranches($user->company_branch_id);
         
         return view('admin.users.edit', compact('user', 'roles', 'supervisors', 'companyBranches'));
     }
@@ -259,9 +259,17 @@ class UserController extends Controller
             ->get();
     }
 
-    private function availableBranches()
+    private function availableBranches(?int $currentBranchId = null)
     {
-        $branches = CompanyProfile::defaultProfile()->activeBranches();
+        $branches = CompanyProfile::defaultProfile()
+            ->branches()
+            ->where(function ($query) use ($currentBranchId) {
+                $query->where('is_active', true);
+
+                if ($currentBranchId) {
+                    $query->orWhere('id', $currentBranchId);
+                }
+            });
         $branchScope = auth()->user()?->scopedCompanyBranchId();
 
         return $branches

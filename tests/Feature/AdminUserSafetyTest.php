@@ -101,6 +101,28 @@ class AdminUserSafetyTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_edit_user_keeps_inactive_existing_branch_visible(): void
+    {
+        $admin = $this->userWithRole('admin');
+        $company = CompanyProfile::defaultProfile();
+        $inactiveBranch = CompanyBranch::create([
+            'company_profile_id' => $company->id,
+            'name' => 'Cabang Legacy',
+            'code' => 'LGY',
+            'is_active' => false,
+            'sort_order' => 99,
+        ]);
+        $user = $this->userWithRole('sales', ['company_branch_id' => $inactiveBranch->id]);
+
+        $response = $this->actingAs($admin)->get(route('admin.users.edit', $user));
+
+        $response->assertOk()
+            ->assertSee('Cabang Legacy - LGY - nonaktif')
+            ->assertSee('Cabang ini sedang nonaktif');
+
+        $this->assertTrue($response->viewData('companyBranches')->contains('id', $inactiveBranch->id));
+    }
+
     private function userWithRole(string $role, array $attributes = []): User
     {
         $user = User::factory()->create(array_merge(['is_active' => true], $attributes));
