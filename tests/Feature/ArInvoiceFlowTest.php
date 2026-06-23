@@ -54,6 +54,7 @@ class ArInvoiceFlowTest extends TestCase
 
         $this->assertSame(50000, $journal->debit_total);
         $this->assertSame(50000, $journal->credit_total);
+        $this->assertStringContainsString('-' . strtoupper(substr($order->companyBranch->code, 0, 3)) . '-', $journal->journal_number);
         $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1102' && $line->debit_amount === 50000));
         $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '4101' && $line->credit_amount === 50000));
 

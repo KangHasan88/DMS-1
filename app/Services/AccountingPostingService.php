@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ApInvoice;
 use App\Models\ArInvoice;
 use App\Models\ChartAccount;
+use App\Models\CompanyBranch;
 use App\Models\CustomerPayment;
 use App\Models\JournalEntry;
 use App\Models\SupplierPayment;
@@ -30,7 +31,7 @@ class AccountingPostingService
             sourceId: $invoice->id,
             date: $invoice->invoice_date?->toDateString() ?? now()->toDateString(),
             description: 'AR Invoice ' . $invoice->invoice_number,
-            branchId: $invoice->company_branch_id,
+            branch: $invoice->companyBranch,
             postedBy: $postedBy,
             lines: [
                 [$receivable, $amount, 0, 'Piutang dari ' . $invoice->invoice_number],
@@ -57,7 +58,7 @@ class AccountingPostingService
             sourceId: $payment->id,
             date: $payment->payment_date?->toDateString() ?? now()->toDateString(),
             description: 'Pembayaran customer ' . $payment->payment_number,
-            branchId: $payment->company_branch_id,
+            branch: $payment->companyBranch,
             postedBy: $postedBy,
             lines: [
                 [$cash, $amount, 0, 'Kas diterima dari ' . $payment->payment_number],
@@ -84,7 +85,7 @@ class AccountingPostingService
             sourceId: $invoice->id,
             date: $invoice->invoice_date?->toDateString() ?? now()->toDateString(),
             description: 'AP Invoice ' . $invoice->invoice_number,
-            branchId: $invoice->company_branch_id,
+            branch: $invoice->companyBranch,
             postedBy: $postedBy,
             lines: [
                 [$inventory, $amount, 0, 'Persediaan dari ' . $invoice->invoice_number],
@@ -111,7 +112,7 @@ class AccountingPostingService
             sourceId: $payment->id,
             date: $payment->payment_date?->toDateString() ?? now()->toDateString(),
             description: 'Pembayaran supplier ' . $payment->payment_number,
-            branchId: $payment->company_branch_id,
+            branch: $payment->companyBranch,
             postedBy: $postedBy,
             lines: [
                 [$payable, $amount, 0, 'Pelunasan hutang ' . $payment->payment_number],
@@ -125,7 +126,7 @@ class AccountingPostingService
         int $sourceId,
         string $date,
         string $description,
-        ?int $branchId,
+        ?CompanyBranch $branch,
         ?User $postedBy,
         array $lines,
     ): JournalEntry {
@@ -137,10 +138,10 @@ class AccountingPostingService
         }
 
         $journal = JournalEntry::create([
-            'journal_number' => JournalEntry::nextJournalNumber(),
+            'journal_number' => JournalEntry::nextJournalNumber($branch),
             'journal_date' => $date,
             'description' => $description,
-            'company_branch_id' => $branchId,
+            'company_branch_id' => $branch?->id,
             'status' => JournalEntry::STATUS_POSTED,
             'source_type' => $sourceType,
             'source_id' => $sourceId,
