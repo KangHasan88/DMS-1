@@ -68,7 +68,7 @@ class ProductController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'category' => ['nullable', 'string', 'max:100', Rule::exists('product_categories', 'name')->where('is_active', true)],
+            'category' => ['nullable', 'string', 'max:100', $this->activeProductCategoryRule()],
             'unit_id' => 'required|exists:units,id',
             'returnable_package_id' => 'nullable|exists:returnable_packages,id',
             'returnable_package_quantity_per_unit' => 'nullable|integer|min:0',
@@ -133,7 +133,7 @@ class ProductController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'category' => ['nullable', 'string', 'max:100', Rule::exists('product_categories', 'name')->where('is_active', true)],
+            'category' => ['nullable', 'string', 'max:100', $this->activeProductCategoryRule($product->category)],
             'unit_id' => 'required|exists:units,id',
             'returnable_package_id' => 'nullable|exists:returnable_packages,id',
             'returnable_package_quantity_per_unit' => 'nullable|integer|min:0',
@@ -271,5 +271,24 @@ class ProductController extends Controller
         $validated['returnable_package_default_flow'] = $defaultFlow ?: Product::PACKAGING_FLOW_RETURNABLE;
 
         return $validated;
+    }
+
+    private function activeProductCategoryRule(?string $currentCategory = null): \Closure
+    {
+        return function (string $attribute, mixed $value, \Closure $fail) use ($currentCategory) {
+            if ($value === null || $value === '') {
+                return;
+            }
+
+            $isActiveMaster = ProductCategory::where('name', $value)
+                ->where('is_active', true)
+                ->exists();
+
+            if ($isActiveMaster || ($currentCategory && $value === $currentCategory)) {
+                return;
+            }
+
+            $fail('Kategori produk harus dipilih dari master kategori aktif.');
+        };
     }
 }

@@ -4,6 +4,11 @@
 @section('breadcrumb', 'Products / Edit')
 
 @section('content')
+@php
+    $selectedCategory = old('category', $product->category);
+    $categoryIsUnmatched = filled($selectedCategory) && !$categories->contains('name', $selectedCategory);
+@endphp
+
 <div class="dms-card">
     <div class="dms-form-header">
         <h3 class="dms-form-title">Edit Produk</h3>
@@ -63,6 +68,9 @@
                         <label class="form-label">Kategori</label>
                         <select name="category" class="form-control">
                             <option value="">-- Pilih Kategori --</option>
+                            @if($categoryIsUnmatched)
+                                <option value="{{ $selectedCategory }}" selected>{{ $selectedCategory }} (belum ada / nonaktif)</option>
+                            @endif
                             @foreach($categories as $category)
                                 <option value="{{ $category->name }}" {{ old('category', $product->category) == $category->name ? 'selected' : '' }}>
                                     {{ $category->name }}
@@ -73,6 +81,11 @@
                             <i class="bi bi-info-circle"></i>
                             <a href="{{ route('product-categories.index') }}" target="_blank" style="color: var(--k-green);">Kelola kategori produk</a>
                         </small>
+                        @if($categoryIsUnmatched)
+                            <small class="dms-form-help" style="display: block; margin-top: 0.25rem; color: var(--k-orange); font-weight: 500;">
+                                Kategori tersimpan belum ada atau sedang nonaktif di master kategori produk. Tambahkan/aktifkan di master, atau pilih kategori aktif lain.
+                            </small>
+                        @endif
                         @error('category') <span class="dms-error">{{ $message }}</span> @enderror
                     </div>
 
@@ -99,7 +112,7 @@
 
                     <div class="form-group dms-form-span-2">
                         <div style="padding: 1rem; background: var(--k-gray-50); border: 1px solid var(--k-gray-200); border-radius: 10px;">
-                            <label class="form-label" style="font-weight: 600;">Profil Kemasan Kembali</label>
+                            <label class="form-label" style="font-weight: 600;">Kemasan Kembali</label>
                             <div class="dms-form-grid">
                                 <div class="form-group">
                                     <label class="form-label">Jenis Kemasan</label>

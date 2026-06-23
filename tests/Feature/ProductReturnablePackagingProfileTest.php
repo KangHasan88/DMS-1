@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Product;
+use App\Models\ProductCategory;
 use App\Models\ReturnablePackage;
 use App\Models\Unit;
 use App\Models\User;
@@ -117,6 +118,89 @@ class ProductReturnablePackagingProfileTest extends TestCase
         $this->assertNull($product->returnable_package_id);
         $this->assertSame(0, $product->returnable_package_quantity_per_unit);
         $this->assertNull($product->returnable_package_default_flow);
+    }
+
+    public function test_product_with_legacy_category_can_be_updated_without_reselecting_category(): void
+    {
+        $user = $this->actingAdmin();
+        $unit = Unit::create([
+            'code' => 'PCS',
+            'name' => 'Pieces',
+            'symbol' => 'pcs',
+            'category' => 'unit',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+        $product = Product::create([
+            'name' => 'Produk Legacy',
+            'category' => 'Minuman',
+            'unit_id' => $unit->id,
+            'price' => 10000,
+            'base_price' => 8000,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('products.edit', $product))
+            ->assertOk()
+            ->assertSee('Minuman (belum ada / nonaktif)')
+            ->assertSee('Kategori tersimpan belum ada atau sedang nonaktif');
+
+        $this->actingAs($user)
+            ->put(route('products.update', $product), [
+                'name' => 'Produk Legacy Update',
+                'category' => 'Minuman',
+                'unit_id' => $unit->id,
+                'price' => 11000,
+                'base_price' => 8000,
+                'is_active' => 1,
+            ])
+            ->assertRedirect(route('products.index'))
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'name' => 'Produk Legacy Update',
+            'category' => 'Minuman',
+        ]);
+    }
+
+    public function test_product_category_must_be_active_master_when_changed(): void
+    {
+        $user = $this->actingAdmin();
+        $unit = Unit::create([
+            'code' => 'BOX',
+            'name' => 'Box',
+            'symbol' => 'box',
+            'category' => 'unit',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+        ProductCategory::create([
+            'name' => 'Minuman',
+            'slug' => 'minuman',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+        $product = Product::create([
+            'name' => 'Produk Kategori',
+            'category' => 'Minuman',
+            'unit_id' => $unit->id,
+            'price' => 10000,
+            'base_price' => 8000,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->put(route('products.update', $product), [
+                'name' => 'Produk Kategori',
+                'category' => 'Kategori Tidak Ada',
+                'unit_id' => $unit->id,
+                'price' => 10000,
+                'base_price' => 8000,
+                'is_active' => 1,
+            ])
+            ->assertSessionHasErrors('category');
     }
 
     private function actingAdmin(): User

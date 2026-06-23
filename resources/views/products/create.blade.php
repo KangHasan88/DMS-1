@@ -64,6 +64,11 @@
                             <i class="bi bi-info-circle"></i>
                             <a href="{{ route('product-categories.index') }}" target="_blank" style="color: var(--k-green);">Kelola kategori produk</a>
                         </small>
+                        @if($categories->isEmpty())
+                            <small class="dms-form-help" style="display: block; margin-top: 0.25rem; color: var(--k-orange); font-weight: 500;">
+                                Belum ada kategori produk aktif. Tambahkan master kategori produk dulu agar produk bisa dikelompokkan rapi.
+                            </small>
+                        @endif
                         @error('category') <span class="dms-error">{{ $message }}</span> @enderror
                     </div>
 
@@ -90,7 +95,7 @@
 
                     <div class="form-group dms-form-span-2">
                         <div style="padding: 1rem; background: var(--k-gray-50); border: 1px solid var(--k-gray-200); border-radius: 10px;">
-                            <label class="form-label" style="font-weight: 600;">Profil Kemasan Kembali</label>
+                            <label class="form-label" style="font-weight: 600;">Kemasan Kembali</label>
                             <div class="dms-form-grid">
                                 <div class="form-group">
                                     <label class="form-label">Jenis Kemasan</label>
