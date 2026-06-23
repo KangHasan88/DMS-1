@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ReturnablePackage extends Model
@@ -14,6 +15,7 @@ class ReturnablePackage extends Model
         'code',
         'name',
         'category',
+        'returnable_package_category_id',
         'unit',
         'replacement_value',
         'requires_serial_tracking',
@@ -50,6 +52,11 @@ class ReturnablePackage extends Model
         return $this->hasMany(ReturnablePackageBalance::class);
     }
 
+    public function categoryMaster(): BelongsTo
+    {
+        return $this->belongsTo(ReturnablePackageCategory::class, 'returnable_package_category_id');
+    }
+
     public function movements(): HasMany
     {
         return $this->hasMany(ReturnablePackageMovement::class);
@@ -57,7 +64,9 @@ class ReturnablePackage extends Model
 
     public function getCategoryLabelAttribute(): string
     {
-        return self::CATEGORY_LIST[$this->category] ?? str($this->category)->headline()->toString();
+        return $this->categoryMaster?->name
+            ?? self::CATEGORY_LIST[$this->category]
+            ?? str($this->category)->headline()->toString();
     }
 
     public function scopeActive($query)

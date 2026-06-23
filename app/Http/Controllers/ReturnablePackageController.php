@@ -6,6 +6,7 @@ use App\Models\CompanyBranch;
 use App\Models\Customer;
 use App\Models\ReturnablePackage;
 use App\Models\ReturnablePackageBalance;
+use App\Models\ReturnablePackageCategory;
 use App\Models\ReturnablePackageMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -43,7 +44,7 @@ class ReturnablePackageController extends Controller
             ->get();
         $companyBranches = CompanyBranch::where('is_active', true)->orderBy('name')->get();
         $canFilterBranches = !$this->currentBranchScopeId();
-        $categories = ReturnablePackage::CATEGORY_LIST;
+        $categories = ReturnablePackageCategory::active()->orderBy('sort_order')->orderBy('name')->get();
         $movementTypes = ReturnablePackageMovement::TYPE_LIST;
 
         return view('returnable-packages.index', compact(
@@ -64,15 +65,18 @@ class ReturnablePackageController extends Controller
         $validated = $request->validate([
             'code' => ['required', 'string', 'max:40', 'unique:returnable_packages,code'],
             'name' => ['required', 'string', 'max:150'],
-            'category' => ['required', 'in:' . implode(',', array_keys(ReturnablePackage::CATEGORY_LIST))],
+            'returnable_package_category_id' => ['required', 'exists:returnable_package_categories,id'],
             'unit' => ['required', 'string', 'max:30'],
             'replacement_value' => ['nullable', 'integer', 'min:0'],
             'requires_serial_tracking' => ['nullable', 'boolean'],
             'description' => ['nullable', 'string', 'max:1000'],
         ]);
 
+        $category = ReturnablePackageCategory::findOrFail($validated['returnable_package_category_id']);
+
         ReturnablePackage::create([
             ...$validated,
+            'category' => $category->code,
             'replacement_value' => (int) ($validated['replacement_value'] ?? 0),
             'requires_serial_tracking' => (bool) ($validated['requires_serial_tracking'] ?? false),
             'is_active' => true,
@@ -80,6 +84,32 @@ class ReturnablePackageController extends Controller
 
         return redirect()->route('returnable-packages.index')
             ->with('success', 'Master kemasan berhasil dibuat.');
+    }
+
+    public function storeCategory(Request $request)
+    {
+        $validated = $request->validate([
+            'category_code' => ['nullable', 'string', 'max:40', 'unique:returnable_package_categories,code'],
+            'category_name' => ['required', 'string', 'max:100', 'unique:returnable_package_categories,name'],
+        ]);
+
+        $code = $validated['category_code'] ?: str($validated['category_name'])->slug('_')->toString();
+        $baseCode = $code;
+        $suffix = 2;
+
+        while (ReturnablePackageCategory::where('code', $code)->exists()) {
+            $code = $baseCode . '_' . $suffix++;
+        }
+
+        ReturnablePackageCategory::create([
+            'code' => $code,
+            'name' => $validated['category_name'],
+            'is_active' => true,
+            'sort_order' => (int) ReturnablePackageCategory::max('sort_order') + 1,
+        ]);
+
+        return redirect()->route('returnable-packages.index')
+            ->with('success', 'Kategori kemasan berhasil ditambahkan.');
     }
 
     public function storeMovement(Request $request)

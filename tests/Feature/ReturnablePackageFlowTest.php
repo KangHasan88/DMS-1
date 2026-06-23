@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Customer;
 use App\Models\ReturnablePackage;
 use App\Models\ReturnablePackageBalance;
+use App\Models\ReturnablePackageCategory;
 use App\Models\ReturnablePackageMovement;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
@@ -19,12 +20,13 @@ class ReturnablePackageFlowTest extends TestCase
     {
         $user = $this->actingAdmin();
         $customer = $this->customer('Toko Aqua Sejahtera', '081300000001');
+        $category = ReturnablePackageCategory::where('code', ReturnablePackage::CATEGORY_GALLON)->firstOrFail();
 
         $this->actingAs($user)
             ->post(route('returnable-packages.store'), [
                 'code' => 'GAL19',
                 'name' => 'Galon 19L',
-                'category' => ReturnablePackage::CATEGORY_GALLON,
+                'returnable_package_category_id' => $category->id,
                 'unit' => 'pcs',
                 'replacement_value' => 50000,
             ])
@@ -69,6 +71,31 @@ class ReturnablePackageFlowTest extends TestCase
             ->assertSee('Kemasan Kembali')
             ->assertSee('Galon 19L')
             ->assertSee('Toko Aqua Sejahtera');
+    }
+
+    public function test_admin_can_create_returnable_package_category(): void
+    {
+        $user = $this->actingAdmin();
+
+        $this->actingAs($user)
+            ->post(route('returnable-packages.categories.store'), [
+                'category_code' => 'jerigen',
+                'category_name' => 'Jerigen',
+            ])
+            ->assertRedirect(route('returnable-packages.index'))
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('returnable_package_categories', [
+            'code' => 'jerigen',
+            'name' => 'Jerigen',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('returnable-packages.index'))
+            ->assertOk()
+            ->assertSee('Kategori Kemasan')
+            ->assertSee('Jerigen');
     }
 
     public function test_returnable_package_balance_cannot_go_negative(): void

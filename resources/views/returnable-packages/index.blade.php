@@ -117,6 +117,18 @@
         border-bottom: 1px solid var(--k-gray-100, #edf2f7);
     }
 
+    .returnable-mini-form {
+        display: grid;
+        grid-template-columns: minmax(0, .8fr) minmax(0, 1fr) auto;
+        gap: .65rem;
+        align-items: end;
+        margin-bottom: .9rem;
+        padding: .85rem;
+        border: 1px solid var(--k-gray-200, #dbe4f0);
+        border-radius: 10px;
+        background: #fbfdff;
+    }
+
     .returnable-panel-icon {
         width: 34px;
         height: 34px;
@@ -237,7 +249,8 @@
 
     @media (max-width: 760px) {
         .returnable-summary,
-        .returnable-form-grid {
+        .returnable-form-grid,
+        .returnable-mini-form {
             grid-template-columns: 1fr;
         }
 
@@ -316,12 +329,12 @@
                     </div>
                     <div>
                         <label class="form-label">Kategori</label>
-                        <select name="category" class="form-control @error('category') is-invalid @enderror">
-                            @foreach($categories as $value => $label)
-                                <option value="{{ $value }}" @selected(old('category') === $value)>{{ $label }}</option>
+                        <select name="returnable_package_category_id" class="form-control @error('returnable_package_category_id') is-invalid @enderror">
+                            @foreach($categories as $category)
+                                <option value="{{ $category->id }}" @selected((string) old('returnable_package_category_id') === (string) $category->id)>{{ $category->name }}</option>
                             @endforeach
                         </select>
-                        @error('category')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        @error('returnable_package_category_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="returnable-span-2">
                         <label class="form-label">Nama Kemasan</label>
@@ -593,6 +606,69 @@
                                 <div class="returnable-empty">
                                     <i class="bi bi-recycle"></i>
                                     <span>Belum ada master kemasan.</span>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="returnable-data-card">
+        <div class="returnable-data-header">
+            <div>
+                <h2 class="returnable-data-title">Kategori Kemasan</h2>
+                <p class="returnable-data-subtitle">Master kategori untuk pengelompokan galon, botol, tabung, krat, dan kemasan lain.</p>
+            </div>
+            <span class="returnable-count-badge">{{ number_format($categories->count()) }} kategori</span>
+        </div>
+
+        <div style="padding: 1rem 1.15rem 0;">
+            <form method="POST" action="{{ route('returnable-packages.categories.store') }}" class="returnable-mini-form">
+                @csrf
+                <div>
+                    <label class="form-label">Kode</label>
+                    <input type="text" name="category_code" value="{{ old('category_code') }}" class="form-control @error('category_code') is-invalid @enderror" placeholder="jerigen">
+                    @error('category_code')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+                <div>
+                    <label class="form-label">Nama Kategori</label>
+                    <input type="text" name="category_name" value="{{ old('category_name') }}" class="form-control @error('category_name') is-invalid @enderror" placeholder="Jerigen">
+                    @error('category_name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+                <button type="submit" class="dms-btn dms-btn-primary">
+                    <i class="bi bi-plus-circle"></i> Tambah
+                </button>
+            </form>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table dms-table align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Kode</th>
+                        <th>Nama</th>
+                        <th class="text-end">Sort</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($categories as $category)
+                        <tr>
+                            <td><strong>{{ $category->code }}</strong></td>
+                            <td>{{ $category->name }}</td>
+                            <td class="text-end">{{ $category->sort_order }}</td>
+                            <td>
+                                <span class="dms-badge {{ $category->is_active ? 'dms-badge-success' : '' }}">{{ $category->is_active ? 'Aktif' : 'Nonaktif' }}</span>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4">
+                                <div class="returnable-empty">
+                                    <i class="bi bi-tags"></i>
+                                    <span>Belum ada kategori kemasan.</span>
                                 </div>
                             </td>
                         </tr>
