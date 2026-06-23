@@ -242,7 +242,7 @@
         display: block;
         color: #dc2626;
         font-size: .78rem;
-        font-weight: 700;
+        font-weight: 500;
         margin-top: .35rem;
     }
 
