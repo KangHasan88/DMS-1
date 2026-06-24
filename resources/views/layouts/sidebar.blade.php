@@ -180,6 +180,96 @@
             z-index: 2;
         }
 
+        .sidebar-search {
+            padding: 0 0.75rem 0.75rem;
+            position: sticky;
+            top: 0;
+            z-index: 4;
+            background: rgba(255, 255, 255, 0.98);
+        }
+
+        .sidebar-search-control {
+            position: relative;
+        }
+
+        .sidebar-search-control i {
+            position: absolute;
+            left: 0.76rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--k-gray-400);
+            font-size: 0.86rem;
+            pointer-events: none;
+        }
+
+        .sidebar-search-input {
+            width: 100%;
+            border: 1px solid var(--k-gray-200);
+            background: var(--k-white);
+            border-radius: 8px;
+            color: var(--k-gray-800);
+            font-size: var(--k-font-sm);
+            font-weight: 600;
+            outline: none;
+            padding: 0.56rem 2.35rem 0.56rem 2.15rem;
+            box-shadow: var(--k-shadow-sm);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .sidebar-search-input::placeholder {
+            color: var(--k-gray-400);
+            font-weight: 500;
+        }
+
+        .sidebar-search-input:focus {
+            border-color: var(--k-blue);
+            box-shadow: 0 0 0 3px rgba(18, 59, 122, 0.10);
+        }
+
+        .sidebar-search-clear {
+            position: absolute;
+            right: 0.38rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 1.65rem;
+            height: 1.65rem;
+            border: 0;
+            border-radius: 50%;
+            background: transparent;
+            color: var(--k-gray-400);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .sidebar-search-clear:hover {
+            background: var(--k-gray-100);
+            color: var(--k-blue);
+        }
+
+        .sidebar-search-clear.is-visible {
+            display: flex;
+        }
+
+        .sidebar-menu-empty {
+            display: none;
+            margin: 0 0.75rem 0.75rem;
+            padding: 0.8rem 0.7rem;
+            border: 1px dashed var(--k-gray-300);
+            border-radius: 8px;
+            color: var(--k-gray-500);
+            font-size: var(--k-font-sm);
+            font-weight: 600;
+            text-align: center;
+            background: var(--k-gray-50);
+        }
+
+        .sidebar-menu-empty.is-visible {
+            display: block;
+        }
+
         .nav-section {
             margin-bottom: 0.9rem;
         }
@@ -1152,6 +1242,17 @@
                 </a>
             </div>
 
+            <div class="sidebar-search">
+                <div class="sidebar-search-control">
+                    <i class="bi bi-search"></i>
+                    <input type="search" id="sidebarMenuSearch" class="sidebar-search-input" placeholder="Cari menu..." autocomplete="off">
+                    <button type="button" id="sidebarMenuSearchClear" class="sidebar-search-clear" aria-label="Bersihkan pencarian">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+            <div id="sidebarMenuEmpty" class="sidebar-menu-empty">Menu tidak ditemukan</div>
+
             <!-- Navigation Menu -->
             <div class="nav-menu">
                 @php
@@ -1715,6 +1816,9 @@
                 return;
             }
 
+            const searchInput = document.getElementById('sidebarMenuSearch');
+            const searchClear = document.getElementById('sidebarMenuSearchClear');
+            const emptyState = document.getElementById('sidebarMenuEmpty');
             const savedScrollTop = localStorage.getItem(sidebarScrollKey);
             const activeNavLink = sidebar.querySelector('.nav-link.active');
 
@@ -1729,6 +1833,59 @@
             sidebar.querySelectorAll('.nav-link').forEach(function(link) {
                 link.addEventListener('click', rememberSidebarScroll);
             });
+
+            function filterSidebarMenu() {
+                if (!searchInput) {
+                    return;
+                }
+
+                const keyword = searchInput.value.trim().toLowerCase();
+                let visibleItems = 0;
+
+                sidebar.querySelectorAll('.nav-section').forEach(function(section) {
+                    let sectionHasVisibleItem = false;
+
+                    section.querySelectorAll('.nav-item').forEach(function(item) {
+                        const label = item.textContent.replace(/\s+/g, ' ').trim().toLowerCase();
+                        const isMatch = !keyword || label.includes(keyword);
+                        item.style.display = isMatch ? '' : 'none';
+
+                        if (isMatch) {
+                            sectionHasVisibleItem = true;
+                            visibleItems += 1;
+                        }
+                    });
+
+                    section.style.display = sectionHasVisibleItem ? '' : 'none';
+                });
+
+                if (searchClear) {
+                    searchClear.classList.toggle('is-visible', keyword.length > 0);
+                }
+
+                if (emptyState) {
+                    emptyState.classList.toggle('is-visible', keyword.length > 0 && visibleItems === 0);
+                }
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener('input', filterSidebarMenu);
+                searchInput.addEventListener('keydown', function(event) {
+                    if (event.key === 'Escape') {
+                        searchInput.value = '';
+                        filterSidebarMenu();
+                        searchInput.blur();
+                    }
+                });
+            }
+
+            if (searchClear && searchInput) {
+                searchClear.addEventListener('click', function() {
+                    searchInput.value = '';
+                    filterSidebarMenu();
+                    searchInput.focus();
+                });
+            }
         });
 
         document.addEventListener('click', function(event) {
