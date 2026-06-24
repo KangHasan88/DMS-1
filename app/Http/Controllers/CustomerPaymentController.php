@@ -32,12 +32,17 @@ class CustomerPaymentController extends Controller
             });
         }
 
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
         $payments = $query->paginate($request->get('per_page', 10))->withQueryString();
         $companyBranches = CompanyBranch::where('is_active', true)->orderBy('name')->get();
         $branchScopeId = $this->currentBranchScopeId();
         $canFilterBranches = !$branchScopeId;
+        $statuses = CustomerPayment::STATUS_LIST;
 
-        return view('customer-payments.index', compact('payments', 'companyBranches', 'branchScopeId', 'canFilterBranches'));
+        return view('customer-payments.index', compact('payments', 'companyBranches', 'branchScopeId', 'canFilterBranches', 'statuses'));
     }
 
     public function store(Request $request)

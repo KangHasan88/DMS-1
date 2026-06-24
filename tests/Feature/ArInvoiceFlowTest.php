@@ -208,6 +208,12 @@ class ArInvoiceFlowTest extends TestCase
         $this->assertSame(JournalEntry::STATUS_VOID, $originalJournal->fresh()->status);
         $this->assertSame(20000, $reversal->debit_total);
         $this->assertSame(20000, $reversal->credit_total);
+
+        $this->actingAs($finance)
+            ->get(route('customer-payments.index', ['status' => CustomerPayment::STATUS_VOID]))
+            ->assertOk()
+            ->assertSee($payment->payment_number)
+            ->assertSee('Void');
     }
 
     public function test_finance_can_void_unpaid_ar_invoice_with_reversal_entry(): void

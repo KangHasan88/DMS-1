@@ -207,6 +207,12 @@ class ApInvoiceFlowTest extends TestCase
         $this->assertSame(JournalEntry::STATUS_VOID, $originalJournal->fresh()->status);
         $this->assertSame(20000, $reversal->debit_total);
         $this->assertSame(20000, $reversal->credit_total);
+
+        $this->actingAs($finance)
+            ->get(route('supplier-payments.index', ['status' => SupplierPayment::STATUS_VOID]))
+            ->assertOk()
+            ->assertSee($payment->payment_number)
+            ->assertSee('Void');
     }
 
     public function test_finance_can_void_unpaid_ap_invoice_with_reversal_entry(): void

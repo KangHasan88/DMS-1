@@ -22,6 +22,14 @@
             <button type="submit" class="dms-btn dms-btn-primary">Cari</button>
         </form>
         <div class="dms-toolbar-actions">
+            <select name="status" onchange="window.location.href = this.value" class="form-control">
+                <option value="{{ route('customer-payments.index', array_merge(request()->except('status'), ['status' => null])) }}">Semua Status</option>
+                @foreach($statuses as $key => $label)
+                    <option value="{{ route('customer-payments.index', array_merge(request()->except('status'), ['status' => $key])) }}" {{ request('status') === $key ? 'selected' : '' }}>
+                        {{ $label }}
+                    </option>
+                @endforeach
+            </select>
             @if($canFilterBranches)
                 <select name="company_branch_id" onchange="window.location.href = this.value" class="form-control">
                     <option value="{{ route('customer-payments.index', array_merge(request()->except('company_branch_id'), ['company_branch_id' => null])) }}">Semua Cabang</option>
@@ -47,12 +55,13 @@
                     <th>Total</th>
                     <th>Belum Dialokasi</th>
                     <th>Status</th>
+                    <th>Alokasi</th>
                     <th style="width: 120px;">Aksi</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($payments as $payment)
-                    <tr>
+                    <tr @if($payment->status === \App\Models\CustomerPayment::STATUS_VOID) style="color: var(--k-gray-500);" @endif>
                         <td><strong>{{ $payment->payment_number }}</strong></td>
                         <td>{{ $payment->customer?->name ?? $payment->customerUser?->name ?? '-' }}</td>
                         <td>{{ $payment->payment_date?->format('d M Y') }}</td>
@@ -60,6 +69,11 @@
                         <td>{{ $payment->reference_number ?? '-' }}</td>
                         <td class="dms-money">Rp {{ number_format($payment->amount, 0, ',', '.') }}</td>
                         <td class="dms-money">Rp {{ number_format($payment->unallocated_amount, 0, ',', '.') }}</td>
+                        <td>
+                            <span class="dms-badge dms-badge-{{ $payment->status_badge }}">
+                                {{ $payment->status_label }}
+                            </span>
+                        </td>
                         <td>
                             <span class="dms-badge dms-badge-{{ $payment->is_fully_allocated ? 'success' : 'warning' }}">
                                 {{ $payment->is_fully_allocated ? 'Teralokasi' : 'Sisa Saldo' }}
@@ -73,7 +87,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="9" class="dms-empty">
+                        <td colspan="10" class="dms-empty">
                             <i class="bi bi-cash-coin"></i>
                             <p>Belum ada pembayaran customer</p>
                         </td>

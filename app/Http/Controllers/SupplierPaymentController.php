@@ -30,10 +30,15 @@ class SupplierPaymentController extends Controller
             });
         }
 
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
         $payments = $query->paginate($request->get('per_page', 10))->withQueryString();
         $suppliers = Supplier::active()->orderBy('name')->get();
+        $statuses = SupplierPayment::STATUS_LIST;
 
-        return view('supplier-payments.index', compact('payments', 'suppliers'));
+        return view('supplier-payments.index', compact('payments', 'suppliers', 'statuses'));
     }
 
     public function store(Request $request)
