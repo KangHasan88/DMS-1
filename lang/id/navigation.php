@@ -37,6 +37,7 @@ return [
     'reports' => 'Laporan',
     'ar_invoices' => 'Invoice AR',
     'ap_invoices' => 'Invoice AP',
+    'ap_debit_notes' => 'Debit Note AP',
     'customer_payments' => 'Pembayaran Customer',
     'supplier_payments' => 'Pembayaran Supplier',
     'ar_aging' => 'Umur Piutang',

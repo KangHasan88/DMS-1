@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\ApInvoice;
+use App\Models\ApDebitNote;
 use App\Models\ArInvoice;
 use App\Models\ActivityLog;
 use App\Models\ChartAccount;
@@ -123,6 +124,34 @@ class AccountingPostingService
             lines: [
                 [$payable, $amount, 0, 'Pelunasan hutang ' . $payment->payment_number],
                 [$cash, 0, $amount, 'Kas keluar untuk ' . $payment->payment_number],
+            ],
+        );
+    }
+
+    public function postApDebitNote(ApDebitNote $debitNote, ?User $postedBy = null): JournalEntry
+    {
+        $existing = $this->existingJournal(ApDebitNote::class, $debitNote->id);
+
+        if ($existing) {
+            return $existing;
+        }
+
+        $debitNote->loadMissing('companyBranch');
+        $payable = $this->account('2101', 'Hutang Usaha', ChartAccount::TYPE_LIABILITY);
+        $purchaseAdjustment = $this->account('5102', 'Koreksi Pembelian', ChartAccount::TYPE_EXPENSE);
+        $amount = (int) $debitNote->amount;
+        app(AccountingPeriodLockService::class)->assertOpen($debitNote->note_date?->toDateString() ?? now()->toDateString(), $debitNote->company_branch_id);
+
+        return $this->journal(
+            sourceType: ApDebitNote::class,
+            sourceId: $debitNote->id,
+            date: $debitNote->note_date?->toDateString() ?? now()->toDateString(),
+            description: 'AP Debit Note ' . $debitNote->note_number,
+            branch: $debitNote->companyBranch,
+            postedBy: $postedBy,
+            lines: [
+                [$payable, $amount, 0, 'Pengurang hutang ' . $debitNote->note_number],
+                [$purchaseAdjustment, 0, $amount, 'Koreksi pembelian ' . $debitNote->note_number],
             ],
         );
     }

@@ -24,6 +24,7 @@ class ApInvoice extends Model
         'subtotal',
         'total_amount',
         'paid_amount',
+        'debit_note_amount',
         'outstanding_amount',
         'notes',
         'issued_by',
@@ -39,6 +40,7 @@ class ApInvoice extends Model
         'subtotal' => 'integer',
         'total_amount' => 'integer',
         'paid_amount' => 'integer',
+        'debit_note_amount' => 'integer',
         'outstanding_amount' => 'integer',
         'issued_at' => 'datetime',
         'voided_at' => 'datetime',
@@ -96,6 +98,11 @@ class ApInvoice extends Model
         return $this->hasMany(SupplierPaymentAllocation::class);
     }
 
+    public function debitNotes(): HasMany
+    {
+        return $this->hasMany(ApDebitNote::class);
+    }
+
     public function getStatusLabelAttribute(): string
     {
         return self::STATUS_LIST[$this->status] ?? str($this->status)->headline()->toString();
@@ -119,7 +126,7 @@ class ApInvoice extends Model
             return;
         }
 
-        $outstanding = max(0, (int) $this->total_amount - (int) $this->paid_amount);
+        $outstanding = max(0, (int) $this->total_amount - (int) $this->paid_amount - (int) $this->debit_note_amount);
         $status = self::STATUS_ISSUED;
 
         if ($outstanding <= 0) {
@@ -175,6 +182,7 @@ class ApInvoice extends Model
                 'subtotal' => $purchaseOrder->subtotal,
                 'total_amount' => $purchaseOrder->total,
                 'paid_amount' => 0,
+                'debit_note_amount' => 0,
                 'outstanding_amount' => $purchaseOrder->total,
                 'notes' => 'Dibuat dari PO ' . $purchaseOrder->po_number,
                 'issued_by' => $issuer?->id,
@@ -210,12 +218,16 @@ class ApInvoice extends Model
             throw new \InvalidArgumentException('Invoice AP ini sudah void.');
         }
 
-        $this->loadMissing(['paymentAllocations.supplierPayment']);
+        $this->loadMissing(['paymentAllocations.supplierPayment', 'debitNotes']);
         $hasActivePayment = $this->paymentAllocations
             ->contains(fn (SupplierPaymentAllocation $allocation) => $allocation->supplierPayment?->status !== SupplierPayment::STATUS_VOID);
 
         if ($hasActivePayment) {
             throw new \InvalidArgumentException('Void pembayaran supplier terlebih dahulu sebelum void AP Invoice.');
+        }
+
+        if ($this->debitNotes->contains(fn (ApDebitNote $debitNote) => $debitNote->status !== ApDebitNote::STATUS_VOID)) {
+            throw new \InvalidArgumentException('Void debit note AP terlebih dahulu sebelum void AP Invoice.');
         }
 
         return DB::transaction(function () use ($reason, $voidedBy) {

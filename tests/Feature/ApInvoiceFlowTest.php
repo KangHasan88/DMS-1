@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ApInvoice;
+use App\Models\ApDebitNote;
 use App\Models\ChartAccount;
 use App\Models\CompanyBranch;
 use App\Models\CompanyProfile;
@@ -125,6 +126,84 @@ class ApInvoiceFlowTest extends TestCase
         $this->assertSame(25000, $journal->credit_total);
         $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '2101' && $line->debit_amount === 25000));
         $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1110' && $line->credit_amount === 25000));
+    }
+
+    public function test_finance_can_post_ap_debit_note_and_reduce_invoice_outstanding(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ap-debit-note@example.test');
+        [$purchaseOrder] = $this->receivedPurchaseOrder();
+        $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, $finance);
+
+        $this->actingAs($finance)
+            ->post(route('ap-debit-notes.store'), [
+                'ap_invoice_id' => $invoice->id,
+                'note_date' => now()->toDateString(),
+                'reason_type' => ApDebitNote::REASON_PURCHASE_RETURN,
+                'amount' => 15000,
+                'reference_number' => 'RTR-SUP-001',
+                'notes' => 'Retur barang rusak',
+            ])
+            ->assertRedirect(route('ap-invoices.show', $invoice->fresh()));
+
+        $invoice->refresh();
+        $debitNote = ApDebitNote::firstOrFail();
+
+        $this->assertSame(15000, $debitNote->amount);
+        $this->assertSame(ApDebitNote::STATUS_POSTED, $debitNote->status);
+        $this->assertSame(15000, $invoice->debit_note_amount);
+        $this->assertSame(45000, $invoice->outstanding_amount);
+        $this->assertSame(ApInvoice::STATUS_ISSUED, $invoice->status);
+
+        $journal = JournalEntry::with('lines.account')
+            ->where('source_type', ApDebitNote::class)
+            ->where('source_id', $debitNote->id)
+            ->firstOrFail();
+
+        $this->assertSame(15000, $journal->debit_total);
+        $this->assertSame(15000, $journal->credit_total);
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '2101' && $line->debit_amount === 15000));
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '5102' && $line->credit_amount === 15000));
+
+        $this->actingAs($finance)
+            ->get(route('ap-debit-notes.index'))
+            ->assertOk()
+            ->assertSee($debitNote->note_number)
+            ->assertSee('Retur Pembelian');
+    }
+
+    public function test_ap_debit_note_can_be_voided_and_restores_invoice_outstanding(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ap-debit-note-void@example.test');
+        [$purchaseOrder] = $this->receivedPurchaseOrder();
+        $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, $finance);
+        $debitNote = ApDebitNote::postForInvoice($invoice, [
+            'note_date' => now()->toDateString(),
+            'reason_type' => ApDebitNote::REASON_PRICE_ADJUSTMENT,
+            'amount' => 10000,
+        ], $finance);
+
+        $this->actingAs($finance)
+            ->post(route('ap-debit-notes.void', $debitNote), [
+                'void_reason' => 'Salah koreksi',
+            ])
+            ->assertRedirect(route('ap-invoices.show', $invoice));
+
+        $invoice->refresh();
+        $debitNote->refresh();
+        $originalJournal = JournalEntry::where('source_type', ApDebitNote::class)
+            ->where('source_id', $debitNote->id)
+            ->firstOrFail();
+        $reversal = JournalEntry::where('source_type', JournalEntry::class)
+            ->where('source_id', $originalJournal->id)
+            ->firstOrFail();
+
+        $this->assertSame(ApDebitNote::STATUS_VOID, $debitNote->status);
+        $this->assertSame('Salah koreksi', $debitNote->void_reason);
+        $this->assertSame(0, $invoice->debit_note_amount);
+        $this->assertSame(60000, $invoice->outstanding_amount);
+        $this->assertSame(JournalEntry::STATUS_VOID, $originalJournal->fresh()->status);
+        $this->assertSame(10000, $reversal->debit_total);
+        $this->assertSame(10000, $reversal->credit_total);
     }
 
     public function test_full_supplier_payment_marks_ap_invoice_paid(): void

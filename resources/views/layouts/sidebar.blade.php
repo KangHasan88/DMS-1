@@ -1415,6 +1415,12 @@
                                 <span>{{ __('navigation.ap_invoices') }}</span>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{ route('ap-debit-notes.index') }}" class="nav-link {{ request()->routeIs('ap-debit-notes.*') ? 'active' : '' }}">
+                                <i class="bi bi-receipt-cutoff"></i>
+                                <span>{{ __('navigation.ap_debit_notes') }}</span>
+                            </a>
+                        </li>
                         @endcan
                         @can('view payment')
                         <li class="nav-item">

@@ -81,6 +81,8 @@ class ApInvoiceController extends Controller
             'supplier',
             'issuedBy',
             'paymentAllocations.supplierPayment.paidBy',
+            'debitNotes.postedBy',
+            'debitNotes.voidedBy',
         ]);
 
         return view('ap-invoices.show', compact('apInvoice'));

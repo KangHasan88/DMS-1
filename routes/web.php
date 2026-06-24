@@ -17,6 +17,7 @@ use App\Http\Controllers\SupplierCategoryController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\ArInvoiceController;
 use App\Http\Controllers\ApInvoiceController;
+use App\Http\Controllers\ApDebitNoteController;
 use App\Http\Controllers\CustomerPaymentController;
 use App\Http\Controllers\SupplierPaymentController;
 use App\Http\Controllers\AccountingPeriodLockController;
@@ -300,6 +301,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('ap-invoices/{apInvoice}/void', [ApInvoiceController::class, 'void'])
         ->middleware('permission:create invoice')
         ->name('ap-invoices.void');
+
+    Route::resource('ap-debit-notes', ApDebitNoteController::class)
+        ->only(['index', 'show'])
+        ->middleware('permission:view invoice');
+    Route::post('ap-debit-notes', [ApDebitNoteController::class, 'store'])
+        ->middleware('permission:create invoice')
+        ->name('ap-debit-notes.store');
+    Route::post('ap-debit-notes/{apDebitNote}/void', [ApDebitNoteController::class, 'void'])
+        ->middleware('permission:create invoice')
+        ->name('ap-debit-notes.void');
 
     // ============= CUSTOMER PAYMENT MANAGEMENT =============
     Route::resource('customer-payments', CustomerPaymentController::class)

@@ -37,6 +37,7 @@ return [
     'reports' => 'Reports',
     'ar_invoices' => 'AR Invoices',
     'ap_invoices' => 'AP Invoices',
+    'ap_debit_notes' => 'AP Debit Notes',
     'customer_payments' => 'Customer Payments',
     'supplier_payments' => 'Supplier Payments',
     'ar_aging' => 'AR Aging',
