@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ApInvoice;
 use App\Models\ApDebitNote;
 use App\Models\ArInvoice;
+use App\Models\ArCreditNote;
 use App\Models\ActivityLog;
 use App\Models\ChartAccount;
 use App\Models\CompanyBranch;
@@ -68,6 +69,34 @@ class AccountingPostingService
             lines: [
                 [$cash, $amount, 0, 'Kas diterima dari ' . $payment->payment_number],
                 [$receivable, 0, $amount, 'Pelunasan piutang ' . $payment->payment_number],
+            ],
+        );
+    }
+
+    public function postArCreditNote(ArCreditNote $creditNote, ?User $postedBy = null): JournalEntry
+    {
+        $existing = $this->existingJournal(ArCreditNote::class, $creditNote->id);
+
+        if ($existing) {
+            return $existing;
+        }
+
+        $creditNote->loadMissing('companyBranch');
+        $salesAdjustment = $this->account('4102', 'Retur dan Koreksi Penjualan', ChartAccount::TYPE_REVENUE);
+        $receivable = $this->account('1102', 'Piutang Usaha', ChartAccount::TYPE_ASSET);
+        $amount = (int) $creditNote->amount;
+        app(AccountingPeriodLockService::class)->assertOpen($creditNote->note_date?->toDateString() ?? now()->toDateString(), $creditNote->company_branch_id);
+
+        return $this->journal(
+            sourceType: ArCreditNote::class,
+            sourceId: $creditNote->id,
+            date: $creditNote->note_date?->toDateString() ?? now()->toDateString(),
+            description: 'AR Credit Note ' . $creditNote->note_number,
+            branch: $creditNote->companyBranch,
+            postedBy: $postedBy,
+            lines: [
+                [$salesAdjustment, $amount, 0, 'Koreksi penjualan ' . $creditNote->note_number],
+                [$receivable, 0, $amount, 'Pengurang piutang ' . $creditNote->note_number],
             ],
         );
     }

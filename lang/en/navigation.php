@@ -36,6 +36,7 @@ return [
     'trial_balance' => 'Trial Balance',
     'reports' => 'Reports',
     'ar_invoices' => 'AR Invoices',
+    'ar_credit_notes' => 'AR Credit Notes',
     'ap_invoices' => 'AP Invoices',
     'ap_debit_notes' => 'AP Debit Notes',
     'customer_payments' => 'Customer Payments',

@@ -36,6 +36,7 @@ return [
     'trial_balance' => 'Neraca Saldo',
     'reports' => 'Laporan',
     'ar_invoices' => 'Invoice AR',
+    'ar_credit_notes' => 'Credit Note AR',
     'ap_invoices' => 'Invoice AP',
     'ap_debit_notes' => 'Debit Note AP',
     'customer_payments' => 'Pembayaran Customer',

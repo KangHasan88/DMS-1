@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ArInvoice;
+use App\Models\ArCreditNote;
 use App\Models\ChartAccount;
 use App\Models\CompanyBranch;
 use App\Models\CompanyProfile;
@@ -126,6 +127,84 @@ class ArInvoiceFlowTest extends TestCase
         $this->assertSame(20000, $journal->credit_total);
         $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1110' && $line->debit_amount === 20000));
         $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1102' && $line->credit_amount === 20000));
+    }
+
+    public function test_finance_can_post_ar_credit_note_and_reduce_invoice_outstanding(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ar-credit-note@example.test');
+        [$order] = $this->deliveredOrder();
+        $invoice = ArInvoice::issueFromOrder($order, $finance);
+
+        $this->actingAs($finance)
+            ->post(route('ar-credit-notes.store'), [
+                'ar_invoice_id' => $invoice->id,
+                'note_date' => now()->toDateString(),
+                'reason_type' => ArCreditNote::REASON_SALES_RETURN,
+                'amount' => 12000,
+                'reference_number' => 'RTR-CUST-001',
+                'notes' => 'Retur barang rusak',
+            ])
+            ->assertRedirect(route('ar-invoices.show', $invoice->fresh()));
+
+        $invoice->refresh();
+        $creditNote = ArCreditNote::firstOrFail();
+
+        $this->assertSame(12000, $creditNote->amount);
+        $this->assertSame(ArCreditNote::STATUS_POSTED, $creditNote->status);
+        $this->assertSame(12000, $invoice->credit_note_amount);
+        $this->assertSame(38000, $invoice->outstanding_amount);
+        $this->assertSame(ArInvoice::STATUS_ISSUED, $invoice->status);
+
+        $journal = JournalEntry::with('lines.account')
+            ->where('source_type', ArCreditNote::class)
+            ->where('source_id', $creditNote->id)
+            ->firstOrFail();
+
+        $this->assertSame(12000, $journal->debit_total);
+        $this->assertSame(12000, $journal->credit_total);
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '4102' && $line->debit_amount === 12000));
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1102' && $line->credit_amount === 12000));
+
+        $this->actingAs($finance)
+            ->get(route('ar-credit-notes.index'))
+            ->assertOk()
+            ->assertSee($creditNote->note_number)
+            ->assertSee('Retur Penjualan');
+    }
+
+    public function test_ar_credit_note_can_be_voided_and_restores_invoice_outstanding(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ar-credit-note-void@example.test');
+        [$order] = $this->deliveredOrder();
+        $invoice = ArInvoice::issueFromOrder($order, $finance);
+        $creditNote = ArCreditNote::postForInvoice($invoice, [
+            'note_date' => now()->toDateString(),
+            'reason_type' => ArCreditNote::REASON_PRICE_ADJUSTMENT,
+            'amount' => 10000,
+        ], $finance);
+
+        $this->actingAs($finance)
+            ->post(route('ar-credit-notes.void', $creditNote), [
+                'void_reason' => 'Salah koreksi',
+            ])
+            ->assertRedirect(route('ar-invoices.show', $invoice));
+
+        $invoice->refresh();
+        $creditNote->refresh();
+        $originalJournal = JournalEntry::where('source_type', ArCreditNote::class)
+            ->where('source_id', $creditNote->id)
+            ->firstOrFail();
+        $reversal = JournalEntry::where('source_type', JournalEntry::class)
+            ->where('source_id', $originalJournal->id)
+            ->firstOrFail();
+
+        $this->assertSame(ArCreditNote::STATUS_VOID, $creditNote->status);
+        $this->assertSame('Salah koreksi', $creditNote->void_reason);
+        $this->assertSame(0, $invoice->credit_note_amount);
+        $this->assertSame(50000, $invoice->outstanding_amount);
+        $this->assertSame(JournalEntry::STATUS_VOID, $originalJournal->fresh()->status);
+        $this->assertSame(10000, $reversal->debit_total);
+        $this->assertSame(10000, $reversal->credit_total);
     }
 
     public function test_full_customer_payment_marks_ar_invoice_paid(): void

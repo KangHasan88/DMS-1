@@ -6,6 +6,7 @@
 @section('content')
 @php
     $hasActivePayment = $arInvoice->paymentAllocations->contains(fn ($allocation) => $allocation->customerPayment?->status !== \App\Models\CustomerPayment::STATUS_VOID);
+    $hasActiveCreditNote = $arInvoice->creditNotes->contains(fn ($creditNote) => $creditNote->status !== \App\Models\ArCreditNote::STATUS_VOID);
 @endphp
 <div class="dms-card">
     <div class="dms-section-header">
@@ -15,7 +16,7 @@
         </div>
         <div class="dms-toolbar-actions">
             @can('create invoice')
-                @if($arInvoice->status !== \App\Models\ArInvoice::STATUS_VOID && !$hasActivePayment)
+                @if($arInvoice->status !== \App\Models\ArInvoice::STATUS_VOID && !$hasActivePayment && !$hasActiveCreditNote)
                     <button type="button" class="dms-btn dms-btn-outline" onclick="document.getElementById('void-ar-invoice-form').classList.toggle('d-none')">
                         <i class="bi bi-x-circle"></i>
                         Void
@@ -40,7 +41,7 @@
     @endif
 
     @can('create invoice')
-        @if($arInvoice->status !== \App\Models\ArInvoice::STATUS_VOID && !$hasActivePayment)
+        @if($arInvoice->status !== \App\Models\ArInvoice::STATUS_VOID && !$hasActivePayment && !$hasActiveCreditNote)
             <form id="void-ar-invoice-form" action="{{ route('ar-invoices.void', $arInvoice) }}" method="POST" class="dms-form-section d-none" style="margin-bottom: 1rem; padding: 1rem; border: 1px solid #e3ebf5; border-radius: 8px; background: #f8fbff;">
                 @csrf
                 <div class="dms-form-grid" style="align-items: end;">
@@ -134,12 +135,71 @@
                 <strong>Rp {{ number_format($arInvoice->paid_amount, 0, ',', '.') }}</strong>
             </div>
             <div style="display: flex; justify-content: space-between; gap: 1rem; padding: 0.35rem 0;">
+                <span>Credit Note</span>
+                <strong>Rp {{ number_format($arInvoice->credit_note_amount, 0, ',', '.') }}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 1rem; padding: 0.35rem 0;">
                 <span>Outstanding</span>
                 <strong>Rp {{ number_format($arInvoice->outstanding_amount, 0, ',', '.') }}</strong>
             </div>
         </div>
     </div>
 </div>
+
+@can('create invoice')
+    @if($arInvoice->outstanding_amount > 0 && $arInvoice->status !== \App\Models\ArInvoice::STATUS_VOID)
+        <div class="dms-card" style="margin-top: 1rem;">
+            <div class="dms-section-header">
+                <div>
+                    <h3 class="dms-section-title">Catat Credit Note AR</h3>
+                    <p class="dms-section-subtitle">Gunakan untuk retur penjualan, koreksi harga, diskon customer, atau klaim barang rusak.</p>
+                </div>
+            </div>
+
+            <form action="{{ route('ar-credit-notes.store') }}" method="POST">
+                @csrf
+                <input type="hidden" name="ar_invoice_id" value="{{ $arInvoice->id }}">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
+                    <div>
+                        <label class="form-label">Tanggal Credit Note <span class="dms-required">*</span></label>
+                        <input type="date" name="note_date" value="{{ old('note_date', now()->toDateString()) }}" class="form-control" required>
+                        @error('note_date') <span class="dms-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div>
+                        <label class="form-label">Alasan <span class="dms-required">*</span></label>
+                        <select name="reason_type" class="form-control" required>
+                            @foreach(\App\Models\ArCreditNote::REASON_LIST as $key => $label)
+                                <option value="{{ $key }}" {{ old('reason_type', \App\Models\ArCreditNote::REASON_SALES_RETURN) === $key ? 'selected' : '' }}>{{ $label }}</option>
+                            @endforeach
+                        </select>
+                        @error('reason_type') <span class="dms-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div>
+                        <label class="form-label">Nominal <span class="dms-required">*</span></label>
+                        <input type="number" name="amount" min="1" max="{{ $arInvoice->outstanding_amount }}" value="{{ old('amount') }}" class="form-control" required placeholder="Maks. {{ number_format($arInvoice->outstanding_amount, 0, ',', '.') }}">
+                        @error('amount') <span class="dms-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div>
+                        <label class="form-label">No. Referensi</label>
+                        <input type="text" name="reference_number" value="{{ old('reference_number') }}" class="form-control" placeholder="Opsional">
+                        @error('reference_number') <span class="dms-error">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.75rem; align-items: end; margin-top: 0.75rem;">
+                    <div style="flex: 1;">
+                        <label class="form-label">Catatan</label>
+                        <input type="text" name="notes" value="{{ old('notes') }}" class="form-control" placeholder="Contoh: Retur 1 karton karena rusak">
+                        @error('notes') <span class="dms-error">{{ $message }}</span> @enderror
+                    </div>
+                    <button type="submit" class="dms-btn dms-btn-primary">
+                        <i class="bi bi-receipt-cutoff"></i>
+                        Posting Credit Note
+                    </button>
+                </div>
+            </form>
+        </div>
+    @endif
+@endcan
 
 @can('process payment')
     @if($arInvoice->outstanding_amount > 0 && $arInvoice->status !== \App\Models\ArInvoice::STATUS_VOID)
@@ -236,6 +296,63 @@
                         <td colspan="7" class="dms-empty">
                             <i class="bi bi-cash-coin"></i>
                             <p>Belum ada pembayaran</p>
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="dms-card" style="margin-top: 1rem;">
+    <div class="dms-section-header">
+        <div>
+            <h3 class="dms-section-title">Riwayat Credit Note AR</h3>
+            <p class="dms-section-subtitle">Koreksi pengurang piutang yang sudah diposting untuk invoice ini.</p>
+        </div>
+        <a href="{{ route('ar-credit-notes.index') }}" class="dms-btn dms-btn-outline">
+            <i class="bi bi-list-ul"></i>
+            Lihat Semua
+        </a>
+    </div>
+
+    <div class="dms-table-wrap">
+        <table class="dms-table">
+            <thead>
+                <tr>
+                    <th>No. Credit Note</th>
+                    <th>Tanggal</th>
+                    <th>Alasan</th>
+                    <th>Referensi</th>
+                    <th>Status</th>
+                    <th>Nominal</th>
+                    <th style="width: 120px;">Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($arInvoice->creditNotes as $creditNote)
+                    <tr>
+                        <td><strong>{{ $creditNote->note_number }}</strong></td>
+                        <td>{{ $creditNote->note_date?->format('d M Y') ?? '-' }}</td>
+                        <td>{{ $creditNote->reason_label }}</td>
+                        <td>{{ $creditNote->reference_number ?: '-' }}</td>
+                        <td>
+                            <span class="dms-badge dms-badge-{{ $creditNote->status_badge }}">
+                                {{ $creditNote->status_label }}
+                            </span>
+                        </td>
+                        <td class="dms-money">Rp {{ number_format($creditNote->amount, 0, ',', '.') }}</td>
+                        <td>
+                            <a href="{{ route('ar-credit-notes.show', $creditNote) }}" class="dms-btn dms-btn-outline dms-btn-sm" title="Detail">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="7" class="dms-empty">
+                            <i class="bi bi-receipt-cutoff"></i>
+                            <p>Belum ada credit note AR</p>
                         </td>
                     </tr>
                 @endforelse

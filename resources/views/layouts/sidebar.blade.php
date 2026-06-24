@@ -1410,6 +1410,12 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a href="{{ route('ar-credit-notes.index') }}" class="nav-link {{ request()->routeIs('ar-credit-notes.*') ? 'active' : '' }}">
+                                <i class="bi bi-receipt-cutoff"></i>
+                                <span>{{ __('navigation.ar_credit_notes') }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="{{ route('ap-invoices.index') }}" class="nav-link {{ request()->routeIs('ap-invoices.*') ? 'active' : '' }}">
                                 <i class="bi bi-journal-text"></i>
                                 <span>{{ __('navigation.ap_invoices') }}</span>

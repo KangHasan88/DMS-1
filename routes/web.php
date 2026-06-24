@@ -16,6 +16,7 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierCategoryController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\ArInvoiceController;
+use App\Http\Controllers\ArCreditNoteController;
 use App\Http\Controllers\ApInvoiceController;
 use App\Http\Controllers\ApDebitNoteController;
 use App\Http\Controllers\CustomerPaymentController;
@@ -290,6 +291,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('ar-invoices/{arInvoice}/void', [ArInvoiceController::class, 'void'])
         ->middleware('permission:create invoice')
         ->name('ar-invoices.void');
+
+    Route::resource('ar-credit-notes', ArCreditNoteController::class)
+        ->only(['index', 'show'])
+        ->middleware('permission:view invoice');
+    Route::post('ar-credit-notes', [ArCreditNoteController::class, 'store'])
+        ->middleware('permission:create invoice')
+        ->name('ar-credit-notes.store');
+    Route::post('ar-credit-notes/{arCreditNote}/void', [ArCreditNoteController::class, 'void'])
+        ->middleware('permission:create invoice')
+        ->name('ar-credit-notes.void');
 
     // ============= AP INVOICE MANAGEMENT =============
     Route::resource('ap-invoices', ApInvoiceController::class)

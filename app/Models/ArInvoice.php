@@ -28,6 +28,7 @@ class ArInvoice extends Model
         'ppn_amount',
         'total_amount',
         'paid_amount',
+        'credit_note_amount',
         'outstanding_amount',
         'notes',
         'issued_by',
@@ -47,6 +48,7 @@ class ArInvoice extends Model
         'ppn_amount' => 'integer',
         'total_amount' => 'integer',
         'paid_amount' => 'integer',
+        'credit_note_amount' => 'integer',
         'outstanding_amount' => 'integer',
         'issued_at' => 'datetime',
         'voided_at' => 'datetime',
@@ -109,6 +111,11 @@ class ArInvoice extends Model
         return $this->hasMany(CustomerPaymentAllocation::class);
     }
 
+    public function creditNotes(): HasMany
+    {
+        return $this->hasMany(ArCreditNote::class);
+    }
+
     public function getStatusLabelAttribute(): string
     {
         return self::STATUS_LIST[$this->status] ?? str($this->status)->headline()->toString();
@@ -133,7 +140,7 @@ class ArInvoice extends Model
             return;
         }
 
-        $outstanding = max(0, (int) $this->total_amount - (int) $this->paid_amount);
+        $outstanding = max(0, (int) $this->total_amount - (int) $this->paid_amount - (int) $this->credit_note_amount);
         $status = self::STATUS_ISSUED;
 
         if ($outstanding <= 0) {
@@ -195,6 +202,7 @@ class ArInvoice extends Model
                 'ppn_amount' => $order->ppn_amount,
                 'total_amount' => $order->grand_total ?: $order->total,
                 'paid_amount' => 0,
+                'credit_note_amount' => 0,
                 'outstanding_amount' => $order->grand_total ?: $order->total,
                 'notes' => 'Dibuat dari order ' . $order->order_number,
                 'issued_by' => $issuer?->id,
@@ -231,12 +239,16 @@ class ArInvoice extends Model
             throw new \InvalidArgumentException('Invoice ini sudah void.');
         }
 
-        $this->loadMissing(['paymentAllocations.customerPayment']);
+        $this->loadMissing(['paymentAllocations.customerPayment', 'creditNotes']);
         $hasActivePayment = $this->paymentAllocations
             ->contains(fn (CustomerPaymentAllocation $allocation) => $allocation->customerPayment?->status !== CustomerPayment::STATUS_VOID);
 
         if ($hasActivePayment) {
             throw new \InvalidArgumentException('Void pembayaran customer terlebih dahulu sebelum void invoice.');
+        }
+
+        if ($this->creditNotes->contains(fn (ArCreditNote $creditNote) => $creditNote->status !== ArCreditNote::STATUS_VOID)) {
+            throw new \InvalidArgumentException('Void credit note AR terlebih dahulu sebelum void invoice.');
         }
 
         return \DB::transaction(function () use ($reason, $voidedBy) {

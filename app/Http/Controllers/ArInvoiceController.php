@@ -98,6 +98,8 @@ class ArInvoiceController extends Controller
             'companyBranch',
             'issuedBy',
             'paymentAllocations.customerPayment.receivedBy',
+            'creditNotes.postedBy',
+            'creditNotes.voidedBy',
         ]);
 
         return view('ar-invoices.show', compact('arInvoice'));
