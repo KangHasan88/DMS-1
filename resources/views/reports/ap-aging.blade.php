@@ -28,6 +28,9 @@
                 </select>
             </div>
             <button class="dms-btn dms-btn-primary" type="submit">Filter</button>
+            <a class="dms-btn dms-btn-outline" href="{{ route('reports.export', array_merge(['type' => 'ap-aging'], request()->only(['as_of_date', 'supplier_id']))) }}">
+                <i class="bi bi-download"></i> Export CSV
+            </a>
         </div>
     </form>
 
@@ -58,6 +61,9 @@
                     <th>Jatuh Tempo</th>
                     <th>Hari Terlambat</th>
                     <th>Bucket</th>
+                    <th>Total</th>
+                    <th>Terbayar</th>
+                    <th>Debit Note</th>
                     <th>Outstanding</th>
                     <th style="width: 110px;">Aksi</th>
                 </tr>
@@ -71,6 +77,9 @@
                         <td>{{ $invoice->due_date?->format('d M Y') ?? '-' }}</td>
                         <td>{{ $invoice->days_overdue > 0 ? number_format($invoice->days_overdue) . ' hari' : '-' }}</td>
                         <td><span class="dms-badge dms-badge-{{ $invoice->aging_badge }}">{{ $invoice->aging_bucket }}</span></td>
+                        <td class="dms-money">Rp {{ number_format($invoice->total_amount, 0, ',', '.') }}</td>
+                        <td class="dms-money">Rp {{ number_format($invoice->paid_amount, 0, ',', '.') }}</td>
+                        <td class="dms-money">Rp {{ number_format($invoice->debit_note_amount, 0, ',', '.') }}</td>
                         <td class="dms-money">Rp {{ number_format($invoice->outstanding_amount, 0, ',', '.') }}</td>
                         <td>
                             <a href="{{ route('ap-invoices.show', $invoice) }}" class="dms-btn dms-btn-outline dms-btn-sm" title="Detail">
@@ -80,7 +89,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="dms-empty">
+                        <td colspan="11" class="dms-empty">
                             <i class="bi bi-check2-circle"></i>
                             <p>Tidak ada hutang terbuka</p>
                         </td>

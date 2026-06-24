@@ -169,6 +169,17 @@ class ApInvoiceFlowTest extends TestCase
             ->assertOk()
             ->assertSee($debitNote->note_number)
             ->assertSee('Retur Pembelian');
+
+        $this->actingAs($finance)
+            ->get(route('reports.ap-aging'))
+            ->assertOk()
+            ->assertSee('Debit Note')
+            ->assertSee('Rp 15.000')
+            ->assertSee('Rp 45.000');
+
+        $this->actingAs($finance)
+            ->get(route('reports.export', ['type' => 'ap-aging']))
+            ->assertOk();
     }
 
     public function test_ap_debit_note_can_be_voided_and_restores_invoice_outstanding(): void

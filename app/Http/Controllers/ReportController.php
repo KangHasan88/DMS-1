@@ -296,6 +296,14 @@ class ReportController extends Controller
             return $this->exportFinancial($request, $startDate, $endDate);
         }
 
+        if ($type === 'ar-aging') {
+            return $this->exportArAging($request);
+        }
+
+        if ($type === 'ap-aging') {
+            return $this->exportApAging($request);
+        }
+
         return response()->streamDownload(function () use ($type, $startDate, $endDate) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, ['Report', ucfirst($type)]);
@@ -304,6 +312,105 @@ class ReportController extends Controller
             fputcsv($handle, ['End Date', $endDate->toDateString()]);
             fclose($handle);
         }, $type . '-report-' . now()->format('Ymd-His') . '.csv');
+    }
+
+    private function exportArAging(Request $request): StreamedResponse
+    {
+        $request->validate([
+            'as_of_date' => ['nullable', 'date'],
+            'company_branch_id' => ['nullable', 'exists:company_branches,id'],
+        ]);
+
+        $asOfDate = $request->filled('as_of_date')
+            ? $request->date('as_of_date')->endOfDay()
+            : now()->endOfDay();
+        $branchScopeId = auth()->user()?->scopedCompanyBranchId();
+
+        $invoices = ArInvoice::with(['order', 'customer', 'customerUser', 'companyBranch'])
+            ->where('outstanding_amount', '>', 0)
+            ->whereNotIn('status', [ArInvoice::STATUS_PAID, ArInvoice::STATUS_VOID])
+            ->when($branchScopeId, fn ($query) => $query->where('company_branch_id', $branchScopeId))
+            ->when(!$branchScopeId && $request->filled('company_branch_id'), fn ($query) => $query->where('company_branch_id', $request->company_branch_id))
+            ->orderByRaw('due_date IS NULL')
+            ->orderBy('due_date')
+            ->get();
+
+        return response()->streamDownload(function () use ($invoices, $asOfDate) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Report', 'Umur Piutang']);
+            fputcsv($handle, ['Generated At', now()->toDateTimeString()]);
+            fputcsv($handle, ['As Of Date', $asOfDate->toDateString()]);
+            fputcsv($handle, []);
+            fputcsv($handle, ['No Invoice', 'Customer', 'Order', 'Cabang', 'Jatuh Tempo', 'Bucket', 'Hari Terlambat', 'Total Invoice', 'Terbayar', 'Credit Note', 'Outstanding']);
+
+            foreach ($invoices as $invoice) {
+                $bucket = $this->arAgingBucket($invoice, $asOfDate);
+                fputcsv($handle, [
+                    $invoice->invoice_number,
+                    $invoice->customer?->name ?? $invoice->customerUser?->name ?? '-',
+                    $invoice->order?->order_number ?? '-',
+                    $invoice->companyBranch?->name ?? '-',
+                    $invoice->due_date?->toDateString() ?? '-',
+                    $bucket['label'],
+                    $bucket['days_overdue'],
+                    (int) $invoice->total_amount,
+                    (int) $invoice->paid_amount,
+                    (int) $invoice->credit_note_amount,
+                    (int) $invoice->outstanding_amount,
+                ]);
+            }
+
+            fclose($handle);
+        }, 'ar-aging-report-' . now()->format('Ymd-His') . '.csv');
+    }
+
+    private function exportApAging(Request $request): StreamedResponse
+    {
+        $request->validate([
+            'as_of_date' => ['nullable', 'date'],
+            'supplier_id' => ['nullable', 'exists:suppliers,id'],
+        ]);
+
+        $asOfDate = $request->filled('as_of_date')
+            ? $request->date('as_of_date')->endOfDay()
+            : now()->endOfDay();
+
+        $invoices = ApInvoice::with(['purchaseOrder', 'supplier', 'companyBranch'])
+            ->forUserBranch()
+            ->where('outstanding_amount', '>', 0)
+            ->whereNotIn('status', [ApInvoice::STATUS_PAID, ApInvoice::STATUS_VOID])
+            ->when($request->filled('supplier_id'), fn ($query) => $query->where('supplier_id', $request->supplier_id))
+            ->orderByRaw('due_date IS NULL')
+            ->orderBy('due_date')
+            ->get();
+
+        return response()->streamDownload(function () use ($invoices, $asOfDate) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Report', 'Umur Hutang']);
+            fputcsv($handle, ['Generated At', now()->toDateTimeString()]);
+            fputcsv($handle, ['As Of Date', $asOfDate->toDateString()]);
+            fputcsv($handle, []);
+            fputcsv($handle, ['No Invoice', 'Pemasok', 'PO', 'Cabang', 'Jatuh Tempo', 'Bucket', 'Hari Terlambat', 'Total Invoice', 'Terbayar', 'Debit Note', 'Outstanding']);
+
+            foreach ($invoices as $invoice) {
+                $bucket = $this->apAgingBucket($invoice, $asOfDate);
+                fputcsv($handle, [
+                    $invoice->invoice_number,
+                    $invoice->supplier?->name ?? '-',
+                    $invoice->purchaseOrder?->po_number ?? '-',
+                    $invoice->companyBranch?->name ?? '-',
+                    $invoice->due_date?->toDateString() ?? '-',
+                    $bucket['label'],
+                    $bucket['days_overdue'],
+                    (int) $invoice->total_amount,
+                    (int) $invoice->paid_amount,
+                    (int) $invoice->debit_note_amount,
+                    (int) $invoice->outstanding_amount,
+                ]);
+            }
+
+            fclose($handle);
+        }, 'ap-aging-report-' . now()->format('Ymd-His') . '.csv');
     }
 
     private function exportFinancial(Request $request, $startDate, $endDate): StreamedResponse

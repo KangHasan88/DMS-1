@@ -170,6 +170,17 @@ class ArInvoiceFlowTest extends TestCase
             ->assertOk()
             ->assertSee($creditNote->note_number)
             ->assertSee('Retur Penjualan');
+
+        $this->actingAs($finance)
+            ->get(route('reports.ar-aging'))
+            ->assertOk()
+            ->assertSee('Credit Note')
+            ->assertSee('Rp 12.000')
+            ->assertSee('Rp 38.000');
+
+        $this->actingAs($finance)
+            ->get(route('reports.export', ['type' => 'ar-aging']))
+            ->assertOk();
     }
 
     public function test_ar_credit_note_can_be_voided_and_restores_invoice_outstanding(): void
