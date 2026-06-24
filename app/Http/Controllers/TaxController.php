@@ -63,6 +63,19 @@ class TaxController extends Controller
         return $this->csvResponse($rows, 'pajak-keluaran-' . now()->format('Ymd-His') . '.csv');
     }
 
+    public function markOutputExported(Request $request)
+    {
+        $count = $this->outputQuery($request)
+            ->whereIn('tax_status', [ArInvoice::TAX_DRAFT, ArInvoice::TAX_READY])
+            ->update([
+                'tax_status' => ArInvoice::TAX_EXPORTED,
+                'tax_exported_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        return back()->with('success', $count . ' pajak keluaran ditandai exported.');
+    }
+
     public function updateOutput(Request $request, ArInvoice $arInvoice)
     {
         $this->ensureBranchAccess($arInvoice->company_branch_id);
@@ -148,6 +161,19 @@ class TaxController extends Controller
         }
 
         return $this->csvResponse($rows, 'pajak-masukan-' . now()->format('Ymd-His') . '.csv');
+    }
+
+    public function markInputExported(Request $request)
+    {
+        $count = $this->inputQuery($request)
+            ->whereIn('tax_status', [ApInvoice::TAX_DRAFT, ApInvoice::TAX_CLAIMABLE])
+            ->update([
+                'tax_status' => ApInvoice::TAX_EXPORTED,
+                'tax_exported_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        return back()->with('success', $count . ' pajak masukan ditandai exported.');
     }
 
     public function updateInput(Request $request, ApInvoice $apInvoice)

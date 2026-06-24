@@ -535,6 +535,15 @@ class ApInvoiceFlowTest extends TestCase
             ->assertSee($invoice->invoice_number)
             ->assertSee('010.000-26.00000003')
             ->assertSee('Dapat Dikreditkan');
+
+        $this->actingAs($finance)
+            ->post(route('tax.input.mark-exported', ['tax_status' => ApInvoice::TAX_CLAIMABLE]))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $invoice->refresh();
+        $this->assertSame(ApInvoice::TAX_EXPORTED, $invoice->tax_status);
+        $this->assertNotNull($invoice->tax_exported_at);
     }
 
     private function receivedPurchaseOrder(

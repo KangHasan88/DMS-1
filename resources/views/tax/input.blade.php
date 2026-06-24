@@ -44,9 +44,19 @@
             <h3 class="dms-section-title">Pajak Masukan</h3>
             <p class="dms-section-subtitle">Pantau faktur pajak supplier dan PPN masukan dari invoice pembelian.</p>
         </div>
-        <a href="{{ route('tax.input.export', request()->query()) }}" class="dms-btn dms-btn-outline">
-            <i class="bi bi-download"></i> Export CSV
-        </a>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{{ route('tax.input.export', request()->query()) }}" class="dms-btn dms-btn-outline">
+                <i class="bi bi-download"></i> Export CSV
+            </a>
+            @can('create invoice')
+                <form action="{{ route('tax.input.mark-exported', request()->query()) }}" method="POST" onsubmit="return confirm('Tandai pajak masukan sesuai filter saat ini sebagai exported?');">
+                    @csrf
+                    <button type="submit" class="dms-btn dms-btn-primary">
+                        <i class="bi bi-check2-circle"></i> Tandai Exported
+                    </button>
+                </form>
+            @endcan
+        </div>
     </div>
 
     @if(session('success'))
