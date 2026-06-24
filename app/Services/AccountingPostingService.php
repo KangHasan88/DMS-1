@@ -53,8 +53,8 @@ class AccountingPostingService
             return $existing;
         }
 
-        $payment->loadMissing('companyBranch');
-        $cash = $this->account('1110', 'Kas dan Bank', ChartAccount::TYPE_ASSET, isCashAccount: true);
+        $payment->loadMissing(['companyBranch', 'chartAccount']);
+        $cash = $payment->chartAccount ?: $this->account('1110', 'Kas dan Bank', ChartAccount::TYPE_ASSET, isCashAccount: true);
         $receivable = $this->account('1102', 'Piutang Usaha', ChartAccount::TYPE_ASSET);
         $amount = (int) $payment->amount;
         app(AccountingPeriodLockService::class)->assertOpen($payment->payment_date?->toDateString() ?? now()->toDateString(), $payment->company_branch_id);
@@ -137,9 +137,9 @@ class AccountingPostingService
             return $existing;
         }
 
-        $payment->loadMissing('companyBranch');
+        $payment->loadMissing(['companyBranch', 'chartAccount']);
         $payable = $this->account('2101', 'Hutang Usaha', ChartAccount::TYPE_LIABILITY);
-        $cash = $this->account('1110', 'Kas dan Bank', ChartAccount::TYPE_ASSET, isCashAccount: true);
+        $cash = $payment->chartAccount ?: $this->account('1110', 'Kas dan Bank', ChartAccount::TYPE_ASSET, isCashAccount: true);
         $amount = (int) $payment->amount;
         app(AccountingPeriodLockService::class)->assertOpen($payment->payment_date?->toDateString() ?? now()->toDateString(), $payment->company_branch_id);
 

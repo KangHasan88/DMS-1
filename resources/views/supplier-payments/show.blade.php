@@ -66,6 +66,10 @@
             <strong>{{ $supplierPayment->method_label }}</strong>
         </div>
         <div style="border: 1px solid var(--k-border); border-radius: 8px; padding: 0.875rem;">
+            <span style="display: block; color: var(--k-gray-500); font-size: 0.75rem; margin-bottom: 0.35rem;">Akun Kas/Bank</span>
+            <strong>{{ $supplierPayment->chartAccount?->code ? $supplierPayment->chartAccount->code . ' - ' . $supplierPayment->chartAccount->name : '1110 - Kas dan Bank' }}</strong>
+        </div>
+        <div style="border: 1px solid var(--k-border); border-radius: 8px; padding: 0.875rem;">
             <span style="display: block; color: var(--k-gray-500); font-size: 0.75rem; margin-bottom: 0.35rem;">Status</span>
             <span class="dms-badge dms-badge-{{ $supplierPayment->status_badge }}">
                 {{ $supplierPayment->status_label }}

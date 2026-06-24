@@ -206,6 +206,18 @@
                         </select>
                     </div>
                     <div>
+                        <label class="form-label">Akun Kas/Bank</label>
+                        <select name="chart_account_id" class="form-control">
+                            <option value="">1110 - Kas dan Bank</option>
+                            @foreach($cashAccounts as $account)
+                                <option value="{{ $account->id }}" {{ (string) old('chart_account_id') === (string) $account->id ? 'selected' : '' }}>
+                                    {{ $account->code }} - {{ $account->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('chart_account_id') <span class="dms-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div>
                         <label class="form-label">Nominal</label>
                         <input type="number" name="amount" min="1" max="{{ $apInvoice->outstanding_amount }}" value="{{ old('amount', $apInvoice->outstanding_amount) }}" class="form-control" required>
                     </div>
@@ -244,6 +256,7 @@
                     <th>No. Payment</th>
                     <th>Tanggal</th>
                     <th>Metode</th>
+                    <th>Akun Kas/Bank</th>
                     <th>Referensi</th>
                     <th>Dicatat Oleh</th>
                     <th>Status</th>
@@ -260,6 +273,7 @@
                         </td>
                         <td>{{ $allocation->supplierPayment?->payment_date?->format('d M Y') ?? '-' }}</td>
                         <td>{{ $allocation->supplierPayment?->method_label ?? '-' }}</td>
+                        <td>{{ $allocation->supplierPayment?->chartAccount?->code ? $allocation->supplierPayment->chartAccount->code . ' - ' . $allocation->supplierPayment->chartAccount->name : '1110 - Kas dan Bank' }}</td>
                         <td>{{ $allocation->supplierPayment?->reference_number ?? '-' }}</td>
                         <td>{{ $allocation->supplierPayment?->paidBy?->name ?? '-' }}</td>
                         <td>
@@ -271,7 +285,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="dms-empty">
+                        <td colspan="8" class="dms-empty">
                             <i class="bi bi-bank"></i>
                             <p>Belum ada pembayaran supplier</p>
                         </td>

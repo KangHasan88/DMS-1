@@ -96,12 +96,21 @@ class ArInvoiceFlowTest extends TestCase
         $finance = $this->userWithRole('finance', 'finance-payment-partial@example.test');
         [$order] = $this->deliveredOrder();
         $invoice = ArInvoice::issueFromOrder($order, $finance);
+        $bankAccount = ChartAccount::create([
+            'code' => '1111',
+            'name' => 'Bank BCA Operasional',
+            'account_type' => ChartAccount::TYPE_ASSET,
+            'normal_balance' => ChartAccount::BALANCE_DEBIT,
+            'is_cash_account' => true,
+            'is_active' => true,
+        ]);
 
         $this->actingAs($finance)
             ->post(route('customer-payments.store'), [
                 'ar_invoice_id' => $invoice->id,
                 'payment_date' => now()->toDateString(),
                 'payment_method' => CustomerPayment::METHOD_TRANSFER,
+                'chart_account_id' => $bankAccount->id,
                 'amount' => 20000,
                 'reference_number' => 'TRF-001',
                 'notes' => 'Bayar sebagian',
@@ -112,6 +121,7 @@ class ArInvoiceFlowTest extends TestCase
         $payment = CustomerPayment::with('allocations')->firstOrFail();
 
         $this->assertSame(20000, $payment->amount);
+        $this->assertSame($bankAccount->id, $payment->chart_account_id);
         $this->assertSame(0, $payment->unallocated_amount);
         $this->assertCount(1, $payment->allocations);
         $this->assertSame(20000, $invoice->paid_amount);
@@ -125,7 +135,7 @@ class ArInvoiceFlowTest extends TestCase
 
         $this->assertSame(20000, $journal->debit_total);
         $this->assertSame(20000, $journal->credit_total);
-        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1110' && $line->debit_amount === 20000));
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1111' && $line->debit_amount === 20000));
         $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1102' && $line->credit_amount === 20000));
     }
 

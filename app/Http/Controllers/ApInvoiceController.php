@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ApInvoice;
+use App\Models\ChartAccount;
 use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
@@ -80,12 +81,15 @@ class ApInvoiceController extends Controller
             'purchaseOrder.items',
             'supplier',
             'issuedBy',
+            'paymentAllocations.supplierPayment.chartAccount',
             'paymentAllocations.supplierPayment.paidBy',
             'debitNotes.postedBy',
             'debitNotes.voidedBy',
         ]);
 
-        return view('ap-invoices.show', compact('apInvoice'));
+        $cashAccounts = $this->cashAccountsForBranch($apInvoice->company_branch_id);
+
+        return view('ap-invoices.show', compact('apInvoice', 'cashAccounts'));
     }
 
     public function void(Request $request, ApInvoice $apInvoice)
@@ -114,5 +118,18 @@ class ApInvoiceController extends Controller
             $branchScopeId && (int) $invoice->company_branch_id !== (int) $branchScopeId,
             403
         );
+    }
+
+    private function cashAccountsForBranch(?int $branchId)
+    {
+        return ChartAccount::query()
+            ->where('is_active', true)
+            ->where('is_cash_account', true)
+            ->where(function ($query) use ($branchId) {
+                $query->whereNull('company_branch_id')
+                    ->when($branchId, fn ($branchQuery) => $branchQuery->orWhere('company_branch_id', $branchId));
+            })
+            ->orderBy('code')
+            ->get();
     }
 }

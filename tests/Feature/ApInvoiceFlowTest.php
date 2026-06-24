@@ -95,12 +95,21 @@ class ApInvoiceFlowTest extends TestCase
         $finance = $this->userWithRole('finance', 'finance-ap-payment-partial@example.test');
         [$purchaseOrder] = $this->receivedPurchaseOrder();
         $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, $finance);
+        $bankAccount = ChartAccount::create([
+            'code' => '1112',
+            'name' => 'Bank Mandiri Operasional',
+            'account_type' => ChartAccount::TYPE_ASSET,
+            'normal_balance' => ChartAccount::BALANCE_DEBIT,
+            'is_cash_account' => true,
+            'is_active' => true,
+        ]);
 
         $this->actingAs($finance)
             ->post(route('supplier-payments.store'), [
                 'ap_invoice_id' => $invoice->id,
                 'payment_date' => now()->toDateString(),
                 'payment_method' => SupplierPayment::METHOD_TRANSFER,
+                'chart_account_id' => $bankAccount->id,
                 'amount' => 25000,
                 'reference_number' => 'PAY-SUP-001',
                 'notes' => 'Bayar sebagian',
@@ -111,6 +120,7 @@ class ApInvoiceFlowTest extends TestCase
         $payment = SupplierPayment::with('allocations')->firstOrFail();
 
         $this->assertSame(25000, $payment->amount);
+        $this->assertSame($bankAccount->id, $payment->chart_account_id);
         $this->assertSame(0, $payment->unallocated_amount);
         $this->assertCount(1, $payment->allocations);
         $this->assertSame(25000, $invoice->paid_amount);
@@ -125,7 +135,7 @@ class ApInvoiceFlowTest extends TestCase
         $this->assertSame(25000, $journal->debit_total);
         $this->assertSame(25000, $journal->credit_total);
         $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '2101' && $line->debit_amount === 25000));
-        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1110' && $line->credit_amount === 25000));
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1112' && $line->credit_amount === 25000));
     }
 
     public function test_finance_can_post_ap_debit_note_and_reduce_invoice_outstanding(): void

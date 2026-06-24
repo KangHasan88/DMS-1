@@ -49,6 +49,7 @@
                     <th>Pemasok</th>
                     <th>Tanggal</th>
                     <th>Metode</th>
+                    <th>Akun Kas/Bank</th>
                     <th>Referensi</th>
                     <th>Total</th>
                     <th>Belum Dialokasi</th>
@@ -64,6 +65,7 @@
                         <td>{{ $payment->supplier?->name ?? '-' }}</td>
                         <td>{{ $payment->payment_date?->format('d M Y') }}</td>
                         <td>{{ $payment->method_label }}</td>
+                        <td>{{ $payment->chartAccount?->code ? $payment->chartAccount->code . ' - ' . $payment->chartAccount->name : '1110 - Kas dan Bank' }}</td>
                         <td>{{ $payment->reference_number ?? '-' }}</td>
                         <td class="dms-money">Rp {{ number_format($payment->amount, 0, ',', '.') }}</td>
                         <td class="dms-money">Rp {{ number_format($payment->unallocated_amount, 0, ',', '.') }}</td>
@@ -85,7 +87,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="10" class="dms-empty">
+                        <td colspan="11" class="dms-empty">
                             <i class="bi bi-bank"></i>
                             <p>Belum ada pembayaran supplier</p>
                         </td>

@@ -19,6 +19,7 @@ class SupplierPayment extends Model
         'company_branch_id',
         'payment_date',
         'payment_method',
+        'chart_account_id',
         'reference_number',
         'amount',
         'unallocated_amount',
@@ -70,6 +71,11 @@ class SupplierPayment extends Model
     public function companyBranch(): BelongsTo
     {
         return $this->belongsTo(CompanyBranch::class);
+    }
+
+    public function chartAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartAccount::class);
     }
 
     public function paidBy(): BelongsTo
@@ -132,6 +138,7 @@ class SupplierPayment extends Model
                 'company_branch_id' => $invoice->company_branch_id,
                 'payment_date' => $data['payment_date'],
                 'payment_method' => $data['payment_method'],
+                'chart_account_id' => $data['chart_account_id'] ?? null,
                 'reference_number' => $data['reference_number'] ?? null,
                 'amount' => $amount,
                 'unallocated_amount' => $amount,

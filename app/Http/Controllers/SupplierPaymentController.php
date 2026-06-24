@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ApInvoice;
+use App\Models\ChartAccount;
 use App\Models\Supplier;
 use App\Models\SupplierPayment;
 use Illuminate\Http\Request;
@@ -12,7 +13,7 @@ class SupplierPaymentController extends Controller
 {
     public function index(Request $request)
     {
-        $query = SupplierPayment::with(['supplier', 'paidBy'])
+        $query = SupplierPayment::with(['supplier', 'paidBy', 'chartAccount'])
             ->forUserBranch()
             ->latest('payment_date')
             ->latest('id');
@@ -47,6 +48,7 @@ class SupplierPaymentController extends Controller
             'ap_invoice_id' => 'required|exists:ap_invoices,id',
             'payment_date' => 'required|date',
             'payment_method' => 'required|in:' . implode(',', array_keys(SupplierPayment::METHOD_LIST)),
+            'chart_account_id' => ['nullable', 'integer', 'exists:chart_accounts,id'],
             'amount' => 'required|integer|min:1',
             'reference_number' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:1000',
@@ -55,6 +57,8 @@ class SupplierPaymentController extends Controller
         $invoice = ApInvoice::with(['supplier'])
             ->forUserBranch()
             ->findOrFail($validated['ap_invoice_id']);
+
+        $this->authorizeCashAccount($validated['chart_account_id'] ?? null, $invoice->company_branch_id);
 
         try {
             $payment = SupplierPayment::payForInvoice($invoice, $validated, Auth::user());
@@ -72,6 +76,7 @@ class SupplierPaymentController extends Controller
 
         $supplierPayment->load([
             'supplier',
+            'chartAccount',
             'paidBy',
             'voidedBy',
             'allocations.apInvoice.purchaseOrder',
@@ -111,5 +116,23 @@ class SupplierPaymentController extends Controller
             $branchScopeId && (int) $payment->company_branch_id !== (int) $branchScopeId,
             403
         );
+    }
+
+    private function authorizeCashAccount(?int $accountId, ?int $branchId): void
+    {
+        if (!$accountId) {
+            return;
+        }
+
+        $account = ChartAccount::whereKey($accountId)
+            ->where('is_active', true)
+            ->where('is_cash_account', true)
+            ->where(function ($query) use ($branchId) {
+                $query->whereNull('company_branch_id')
+                    ->when($branchId, fn ($branchQuery) => $branchQuery->orWhere('company_branch_id', $branchId));
+            })
+            ->first();
+
+        abort_if(!$account, 422, 'Akun kas/bank tidak valid untuk cabang invoice ini.');
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ArInvoice;
+use App\Models\ChartAccount;
 use App\Models\CompanyBranch;
 use App\Models\Order;
 use Illuminate\Http\Request;
@@ -97,12 +98,15 @@ class ArInvoiceController extends Controller
             'customerUser',
             'companyBranch',
             'issuedBy',
+            'paymentAllocations.customerPayment.chartAccount',
             'paymentAllocations.customerPayment.receivedBy',
             'creditNotes.postedBy',
             'creditNotes.voidedBy',
         ]);
 
-        return view('ar-invoices.show', compact('arInvoice'));
+        $cashAccounts = $this->cashAccountsForBranch($arInvoice->company_branch_id);
+
+        return view('ar-invoices.show', compact('arInvoice', 'cashAccounts'));
     }
 
     public function void(Request $request, ArInvoice $arInvoice)
@@ -140,5 +144,18 @@ class ArInvoiceController extends Controller
         if (($branchScopeId = $this->currentBranchScopeId()) && (int) $invoice->company_branch_id !== $branchScopeId) {
             abort(403);
         }
+    }
+
+    private function cashAccountsForBranch(?int $branchId)
+    {
+        return ChartAccount::query()
+            ->where('is_active', true)
+            ->where('is_cash_account', true)
+            ->where(function ($query) use ($branchId) {
+                $query->whereNull('company_branch_id')
+                    ->when($branchId, fn ($branchQuery) => $branchQuery->orWhere('company_branch_id', $branchId));
+            })
+            ->orderBy('code')
+            ->get();
     }
 }
