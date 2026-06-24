@@ -19,6 +19,11 @@ class Customer extends Model
         'phone',
         'email',
         'address',
+        'tax_npwp',
+        'tax_nitku',
+        'tax_name',
+        'tax_address',
+        'is_pkp',
         'latitude',
         'longitude',
         'photo',
@@ -39,6 +44,7 @@ class Customer extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_pkp' => 'boolean',
         'credit_limit' => 'integer',
         'max_outstanding_orders' => 'integer',
         'total_orders' => 'integer',

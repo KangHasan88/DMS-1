@@ -405,6 +405,44 @@ class ArInvoiceFlowTest extends TestCase
         ]);
     }
 
+    public function test_taxable_ar_invoice_posts_output_tax_and_appears_in_tax_output_page(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ar-tax@example.test');
+        [$order] = $this->deliveredOrder();
+        $order->forceFill([
+            'subtotal' => 100000,
+            'total' => 111000,
+            'grand_total' => 111000,
+            'include_ppn' => true,
+            'ppn_amount' => 11000,
+        ])->save();
+        $order->items()->update([
+            'price' => 100000,
+            'subtotal' => 100000,
+        ]);
+
+        $invoice = ArInvoice::issueFromOrder($order, $finance);
+        $journal = JournalEntry::with('lines.account')
+            ->where('source_type', ArInvoice::class)
+            ->where('source_id', $invoice->id)
+            ->firstOrFail();
+
+        $this->assertSame(100000, $invoice->tax_base_amount);
+        $this->assertSame(11000, $invoice->ppn_amount);
+        $this->assertSame(ArInvoice::TAX_DRAFT, $invoice->tax_status);
+        $this->assertSame(111000, $journal->debit_total);
+        $this->assertSame(111000, $journal->credit_total);
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '4101' && $line->credit_amount === 100000));
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '2102' && $line->credit_amount === 11000));
+
+        $this->actingAs($finance)
+            ->get(route('tax.output'))
+            ->assertOk()
+            ->assertSee('Pajak Keluaran')
+            ->assertSee($invoice->invoice_number)
+            ->assertSee('Rp 11.000');
+    }
+
     private function deliveredOrder(string $status = Order::STATUS_DELIVERED): array
     {
         $branch = CompanyBranch::where('is_active', true)->firstOrFail();

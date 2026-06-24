@@ -19,6 +19,11 @@ class Supplier extends Model
         'market_name',
         'stall_number',
         'address',
+        'tax_npwp',
+        'tax_nitku',
+        'tax_name',
+        'tax_address',
+        'is_pkp',
         'latitude',
         'longitude',
         'photo',
@@ -35,6 +40,7 @@ class Supplier extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_pkp' => 'boolean',
         'min_order' => 'integer',
         'total_transactions' => 'integer',
         'total_purchase' => 'integer',

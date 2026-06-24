@@ -1546,6 +1546,27 @@
                     </ul>
                 </div>
 
+                <!-- SECTION: TAX -->
+                <div class="nav-section">
+                    <div class="nav-section-title">{{ __('navigation.tax') }}</div>
+                    <ul style="list-style: none; padding: 0;">
+                        @can('view invoice')
+                        <li class="nav-item">
+                            <a href="{{ route('tax.output') }}" class="nav-link {{ request()->routeIs('tax.output') ? 'active' : '' }}">
+                                <i class="bi bi-receipt"></i>
+                                <span>{{ __('navigation.output_tax') }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('tax.input') }}" class="nav-link {{ request()->routeIs('tax.input') ? 'active' : '' }}">
+                                <i class="bi bi-receipt-cutoff"></i>
+                                <span>{{ __('navigation.input_tax') }}</span>
+                            </a>
+                        </li>
+                        @endcan
+                    </ul>
+                </div>
+
                 <!-- SECTION: ACCOUNTING -->
                 <div class="nav-section">
                     <div class="nav-section-title">{{ __('navigation.accounting') }}</div>

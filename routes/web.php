@@ -21,6 +21,7 @@ use App\Http\Controllers\ApInvoiceController;
 use App\Http\Controllers\ApDebitNoteController;
 use App\Http\Controllers\CustomerPaymentController;
 use App\Http\Controllers\SupplierPaymentController;
+use App\Http\Controllers\TaxController;
 use App\Http\Controllers\AccountingPeriodLockController;
 use App\Http\Controllers\ChartAccountController;
 use App\Http\Controllers\JournalEntryController;
@@ -345,6 +346,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('supplier-payments/{supplierPayment}/void', [SupplierPaymentController::class, 'void'])
         ->middleware('permission:process payment')
         ->name('supplier-payments.void');
+
+    // ============= TAX MANAGEMENT =============
+    Route::get('tax/output', [TaxController::class, 'output'])
+        ->middleware('permission:view invoice')
+        ->name('tax.output');
+    Route::get('tax/input', [TaxController::class, 'input'])
+        ->middleware('permission:view invoice')
+        ->name('tax.input');
 
     // ============= ACCOUNTING MANAGEMENT =============
     Route::resource('chart-accounts', ChartAccountController::class)

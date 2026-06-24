@@ -13,6 +13,9 @@ class CompanyProfile extends Model
         'display_name',
         'legal_name',
         'npwp',
+        'nitku',
+        'is_pkp',
+        'tax_address',
         'phone',
         'email',
         'address',
@@ -21,6 +24,7 @@ class CompanyProfile extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_pkp' => 'boolean',
     ];
 
     public function branches(): HasMany
@@ -49,6 +53,7 @@ class CompanyProfile extends Model
                 'display_name' => data_get(config('invoice.company', []), 'display_name', config('app.name', 'Kurmigo DMS')),
                 'legal_name' => data_get(config('invoice.company', []), 'legal_name', 'PT Kurmigo Distribusi Indonesia'),
                 'npwp' => data_get(config('invoice.company', []), 'npwp'),
+                'is_pkp' => false,
                 'phone' => data_get(config('invoice.company', []), 'phone'),
                 'email' => data_get(config('invoice.company', []), 'email'),
                 'address' => data_get(config('invoice.branch', []), 'address'),
@@ -71,6 +76,9 @@ class CompanyProfile extends Model
             'display_name' => $this->display_name,
             'legal_name' => $this->legal_name,
             'npwp' => $this->npwp,
+            'nitku' => $this->nitku,
+            'is_pkp' => $this->is_pkp,
+            'tax_address' => $this->tax_address,
             'phone' => $this->phone,
             'email' => $this->email,
             'address' => $this->address,

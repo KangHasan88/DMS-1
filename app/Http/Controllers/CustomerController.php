@@ -95,11 +95,7 @@ class CustomerController extends Controller
                 'required',
                 'string',
                 'max:100',
-                function ($attribute, $value, $fail) use ($customer) {
-                    if ($value === $customer->customer_type) {
-                        return;
-                    }
-
+                function ($attribute, $value, $fail) {
                     if (! CustomerType::active()->where('code', $value)->exists()) {
                         $fail('Tipe pelanggan harus aktif.');
                     }

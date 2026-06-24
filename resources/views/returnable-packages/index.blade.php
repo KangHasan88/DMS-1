@@ -285,7 +285,7 @@
 
 <div class="returnable-page">
     <div class="dms-card">
-        <div class="returnable-hero">
+        <div class="returnable-hero dms-section-header">
             <div>
                 <h2 class="returnable-title">Kontrol Kemasan Kembali</h2>
                 <p class="returnable-subtitle">Kelola saldo galon, botol, krat, tabung, pallet, atau kemasan lain yang masih berada di customer.</p>
@@ -485,7 +485,7 @@
             <span class="returnable-count-badge">{{ number_format($balances->count()) }} customer</span>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive dms-table-wrap">
             <table class="table dms-table align-middle mb-0">
                 <thead>
                     <tr>
@@ -513,7 +513,7 @@
                     @empty
                         <tr>
                             <td colspan="6">
-                                <div class="returnable-empty">
+                                <div class="returnable-empty dms-empty-state">
                                     <i class="bi bi-inbox"></i>
                                     <span>Belum ada saldo kemasan outstanding.</span>
                                 </div>
@@ -534,7 +534,7 @@
             <span class="returnable-count-badge">{{ number_format($movements->total()) }} mutasi</span>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive dms-table-wrap">
             <table class="table dms-table align-middle mb-0">
                 <thead>
                     <tr>
@@ -566,7 +566,7 @@
                     @empty
                         <tr>
                             <td colspan="8">
-                                <div class="returnable-empty">
+                                <div class="returnable-empty dms-empty-state">
                                     <i class="bi bi-clock-history"></i>
                                     <span>Belum ada mutasi kemasan.</span>
                                 </div>
@@ -577,7 +577,7 @@
             </table>
         </div>
 
-        <div style="padding: 1rem;">
+        <div class="dms-pagination" style="padding: 1rem;">
             {{ $movements->links() }}
         </div>
     </div>
@@ -591,7 +591,7 @@
             <span class="returnable-count-badge">{{ number_format($packages->count()) }} jenis</span>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive dms-table-wrap">
             <table class="table dms-table align-middle mb-0">
                 <thead>
                     <tr>
@@ -620,7 +620,7 @@
                     @empty
                         <tr>
                             <td colspan="7">
-                                <div class="returnable-empty">
+                                <div class="returnable-empty dms-empty-state">
                                     <i class="bi bi-recycle"></i>
                                     <span>Belum ada master kemasan.</span>
                                 </div>
@@ -662,7 +662,7 @@
             </form>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive dms-table-wrap">
             <table class="table dms-table align-middle mb-0">
                 <thead>
                     <tr>
@@ -699,7 +699,7 @@
                     @empty
                         <tr>
                             <td colspan="5">
-                                <div class="returnable-empty">
+                                <div class="returnable-empty dms-empty-state">
                                     <i class="bi bi-tags"></i>
                                     <span>Belum ada kategori kemasan.</span>
                                 </div>

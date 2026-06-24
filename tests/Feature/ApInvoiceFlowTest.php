@@ -479,6 +479,29 @@ class ApInvoiceFlowTest extends TestCase
         ]);
     }
 
+    public function test_ap_invoice_with_supplier_tax_invoice_appears_in_tax_input_page(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ap-tax@example.test');
+        [$purchaseOrder] = $this->receivedPurchaseOrder();
+        $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, $finance);
+        $invoice->forceFill([
+            'ppn_amount' => 6000,
+            'tax_base_amount' => 60000,
+            'tax_rate' => 11,
+            'tax_status' => ApInvoice::TAX_CLAIMABLE,
+            'supplier_tax_invoice_number' => '010.000-26.00000001',
+            'supplier_tax_invoice_date' => now()->toDateString(),
+        ])->save();
+
+        $this->actingAs($finance)
+            ->get(route('tax.input'))
+            ->assertOk()
+            ->assertSee('Pajak Masukan')
+            ->assertSee($invoice->invoice_number)
+            ->assertSee('010.000-26.00000001')
+            ->assertSee('Rp 6.000');
+    }
+
     private function receivedPurchaseOrder(
         string $status = PurchaseOrder::STATUS_RECEIVED,
         int $receivedQuantity = 3,

@@ -22,6 +22,15 @@ class ApInvoice extends Model
         'due_date',
         'status',
         'subtotal',
+        'ppn_amount',
+        'tax_base_amount',
+        'tax_rate',
+        'tax_status',
+        'supplier_tax_invoice_number',
+        'supplier_tax_invoice_date',
+        'tax_exported_at',
+        'tax_approved_at',
+        'tax_error_message',
         'total_amount',
         'paid_amount',
         'debit_note_amount',
@@ -38,6 +47,12 @@ class ApInvoice extends Model
         'invoice_date' => 'date',
         'due_date' => 'date',
         'subtotal' => 'integer',
+        'ppn_amount' => 'integer',
+        'tax_base_amount' => 'integer',
+        'tax_rate' => 'decimal:2',
+        'supplier_tax_invoice_date' => 'date',
+        'tax_exported_at' => 'datetime',
+        'tax_approved_at' => 'datetime',
         'total_amount' => 'integer',
         'paid_amount' => 'integer',
         'debit_note_amount' => 'integer',
@@ -51,6 +66,24 @@ class ApInvoice extends Model
     public const STATUS_PAID = 'paid';
     public const STATUS_OVERDUE = 'overdue';
     public const STATUS_VOID = 'void';
+
+    public const TAX_NOT_RECEIVED = 'not_received';
+    public const TAX_DRAFT = 'draft';
+    public const TAX_CLAIMABLE = 'claimable';
+    public const TAX_EXPORTED = 'exported';
+    public const TAX_APPROVED = 'approved';
+    public const TAX_REJECTED = 'rejected';
+    public const TAX_NOT_CREDITABLE = 'not_creditable';
+
+    public const TAX_STATUS_LIST = [
+        self::TAX_NOT_RECEIVED => 'Belum Diterima',
+        self::TAX_DRAFT => 'Draft',
+        self::TAX_CLAIMABLE => 'Dapat Dikreditkan',
+        self::TAX_EXPORTED => 'Exported',
+        self::TAX_APPROVED => 'Approved',
+        self::TAX_REJECTED => 'Rejected',
+        self::TAX_NOT_CREDITABLE => 'Tidak Dikreditkan',
+    ];
 
     public const STATUS_LIST = [
         self::STATUS_ISSUED => 'Terbit',
@@ -111,6 +144,11 @@ class ApInvoice extends Model
     public function getStatusBadgeAttribute(): string
     {
         return self::STATUS_BADGES[$this->status] ?? 'secondary';
+    }
+
+    public function getTaxStatusLabelAttribute(): string
+    {
+        return self::TAX_STATUS_LIST[$this->tax_status] ?? str($this->tax_status)->headline()->toString();
     }
 
     public function getIsOverdueAttribute(): bool
@@ -180,6 +218,10 @@ class ApInvoice extends Model
                 'due_date' => $dueDate,
                 'status' => self::STATUS_ISSUED,
                 'subtotal' => $purchaseOrder->subtotal,
+                'ppn_amount' => 0,
+                'tax_base_amount' => $purchaseOrder->total,
+                'tax_rate' => 0,
+                'tax_status' => self::TAX_NOT_RECEIVED,
                 'total_amount' => $purchaseOrder->total,
                 'paid_amount' => 0,
                 'debit_note_amount' => 0,

@@ -28,8 +28,20 @@ class AccountingPostingService
         $invoice->loadMissing('companyBranch');
         $receivable = $this->account('1102', 'Piutang Usaha', ChartAccount::TYPE_ASSET);
         $revenue = $this->account('4101', 'Pendapatan Penjualan', ChartAccount::TYPE_REVENUE);
+        $outputTax = $this->account('2102', 'PPN Keluaran', ChartAccount::TYPE_LIABILITY);
         $amount = (int) $invoice->total_amount;
+        $taxAmount = max(0, (int) $invoice->ppn_amount);
+        $revenueAmount = max(0, $amount - $taxAmount);
         app(AccountingPeriodLockService::class)->assertOpen($invoice->invoice_date?->toDateString() ?? now()->toDateString(), $invoice->company_branch_id);
+
+        $lines = [
+            [$receivable, $amount, 0, 'Piutang dari ' . $invoice->invoice_number],
+            [$revenue, 0, $revenueAmount, 'Pendapatan dari ' . $invoice->invoice_number],
+        ];
+
+        if ($taxAmount > 0) {
+            $lines[] = [$outputTax, 0, $taxAmount, 'PPN keluaran ' . $invoice->invoice_number];
+        }
 
         return $this->journal(
             sourceType: ArInvoice::class,
@@ -38,10 +50,7 @@ class AccountingPostingService
             description: 'AR Invoice ' . $invoice->invoice_number,
             branch: $invoice->companyBranch,
             postedBy: $postedBy,
-            lines: [
-                [$receivable, $amount, 0, 'Piutang dari ' . $invoice->invoice_number],
-                [$revenue, 0, $amount, 'Pendapatan dari ' . $invoice->invoice_number],
-            ],
+            lines: $lines,
         );
     }
 
@@ -111,9 +120,22 @@ class AccountingPostingService
 
         $invoice->loadMissing('companyBranch');
         $inventory = $this->account('1301', 'Persediaan Barang Dagang', ChartAccount::TYPE_ASSET);
+        $inputTax = $this->account('1103', 'PPN Masukan', ChartAccount::TYPE_ASSET);
         $payable = $this->account('2101', 'Hutang Usaha', ChartAccount::TYPE_LIABILITY);
         $amount = (int) $invoice->total_amount;
+        $taxAmount = max(0, (int) $invoice->ppn_amount);
+        $inventoryAmount = max(0, $amount - $taxAmount);
         app(AccountingPeriodLockService::class)->assertOpen($invoice->invoice_date?->toDateString() ?? now()->toDateString(), $invoice->company_branch_id);
+
+        $lines = [
+            [$inventory, $inventoryAmount, 0, 'Persediaan dari ' . $invoice->invoice_number],
+        ];
+
+        if ($taxAmount > 0) {
+            $lines[] = [$inputTax, $taxAmount, 0, 'PPN masukan ' . $invoice->invoice_number];
+        }
+
+        $lines[] = [$payable, 0, $amount, 'Hutang dari ' . $invoice->invoice_number];
 
         return $this->journal(
             sourceType: ApInvoice::class,
@@ -122,10 +144,7 @@ class AccountingPostingService
             description: 'AP Invoice ' . $invoice->invoice_number,
             branch: $invoice->companyBranch,
             postedBy: $postedBy,
-            lines: [
-                [$inventory, $amount, 0, 'Persediaan dari ' . $invoice->invoice_number],
-                [$payable, 0, $amount, 'Hutang dari ' . $invoice->invoice_number],
-            ],
+            lines: $lines,
         );
     }
 

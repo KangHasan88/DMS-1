@@ -26,6 +26,15 @@ class ArInvoice extends Model
         'shipping_amount',
         'packing_amount',
         'ppn_amount',
+        'tax_base_amount',
+        'tax_rate',
+        'tax_transaction_code',
+        'tax_status',
+        'tax_invoice_number',
+        'tax_invoice_date',
+        'tax_exported_at',
+        'tax_approved_at',
+        'tax_error_message',
         'total_amount',
         'paid_amount',
         'credit_note_amount',
@@ -46,6 +55,11 @@ class ArInvoice extends Model
         'shipping_amount' => 'integer',
         'packing_amount' => 'integer',
         'ppn_amount' => 'integer',
+        'tax_base_amount' => 'integer',
+        'tax_rate' => 'decimal:2',
+        'tax_invoice_date' => 'date',
+        'tax_exported_at' => 'datetime',
+        'tax_approved_at' => 'datetime',
         'total_amount' => 'integer',
         'paid_amount' => 'integer',
         'credit_note_amount' => 'integer',
@@ -59,6 +73,22 @@ class ArInvoice extends Model
     public const STATUS_PAID = 'paid';
     public const STATUS_OVERDUE = 'overdue';
     public const STATUS_VOID = 'void';
+
+    public const TAX_NOT_REQUIRED = 'not_required';
+    public const TAX_DRAFT = 'draft';
+    public const TAX_READY = 'ready';
+    public const TAX_EXPORTED = 'exported';
+    public const TAX_APPROVED = 'approved';
+    public const TAX_REJECTED = 'rejected';
+
+    public const TAX_STATUS_LIST = [
+        self::TAX_NOT_REQUIRED => 'Tidak Wajib',
+        self::TAX_DRAFT => 'Draft',
+        self::TAX_READY => 'Siap Coretax',
+        self::TAX_EXPORTED => 'Exported',
+        self::TAX_APPROVED => 'Approved',
+        self::TAX_REJECTED => 'Rejected',
+    ];
 
     public const STATUS_LIST = [
         self::STATUS_ISSUED => 'Terbit',
@@ -124,6 +154,11 @@ class ArInvoice extends Model
     public function getStatusBadgeAttribute(): string
     {
         return self::STATUS_BADGES[$this->status] ?? 'secondary';
+    }
+
+    public function getTaxStatusLabelAttribute(): string
+    {
+        return self::TAX_STATUS_LIST[$this->tax_status] ?? str($this->tax_status)->headline()->toString();
     }
 
     public function getIsOverdueAttribute(): bool
@@ -200,6 +235,10 @@ class ArInvoice extends Model
                 'shipping_amount' => $order->delivery_fee,
                 'packing_amount' => $order->packing_fee,
                 'ppn_amount' => $order->ppn_amount,
+                'tax_base_amount' => max(0, (int) ($order->grand_total ?: $order->total) - (int) $order->ppn_amount),
+                'tax_rate' => (int) $order->ppn_amount > 0 ? 11 : 0,
+                'tax_transaction_code' => '01',
+                'tax_status' => (int) $order->ppn_amount > 0 ? self::TAX_DRAFT : self::TAX_NOT_REQUIRED,
                 'total_amount' => $order->grand_total ?: $order->total,
                 'paid_amount' => 0,
                 'credit_note_amount' => 0,
