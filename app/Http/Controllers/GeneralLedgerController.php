@@ -42,7 +42,7 @@ class GeneralLedgerController extends Controller
             $runningBalance = $openingBalance;
 
             $entries = $this->lineQuery($selectedAccount, $selectedBranchId)
-                ->with(['journalEntry.companyBranch', 'account'])
+                ->with(['journalEntry.companyBranch', 'journalEntry.source', 'account'])
                 ->whereHas('journalEntry', function ($journal) use ($dateFrom, $dateTo) {
                     $journal->whereBetween('journal_date', [$dateFrom, $dateTo]);
                 })

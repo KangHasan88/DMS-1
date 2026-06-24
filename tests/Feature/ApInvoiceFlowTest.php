@@ -163,6 +163,16 @@ class ApInvoiceFlowTest extends TestCase
         $this->assertSame(15000, $journal->credit_total);
         $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '2101' && $line->debit_amount === 15000));
         $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '5102' && $line->credit_amount === 15000));
+        $this->assertSame('Debit Note AP', $journal->source_document_label);
+        $this->assertSame($debitNote->note_number, $journal->source_document_number);
+        $this->assertSame(route('ap-debit-notes.show', $debitNote), $journal->source_document_url);
+
+        $this->actingAs($finance)
+            ->get(route('journal-entries.show', $journal))
+            ->assertOk()
+            ->assertSee('Debit Note AP')
+            ->assertSee($debitNote->note_number)
+            ->assertSee('Lihat Dokumen Sumber');
 
         $this->actingAs($finance)
             ->get(route('ap-debit-notes.index'))

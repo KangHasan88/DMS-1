@@ -136,6 +136,7 @@
                     <th>No. Jurnal</th>
                     <th>Tanggal</th>
                     <th>Keterangan</th>
+                    <th>Sumber</th>
                     <th>Cabang</th>
                     <th>Total Debit</th>
                     <th>Total Kredit</th>
@@ -149,6 +150,16 @@
                         <td><strong>{{ $journal->journal_number }}</strong></td>
                         <td>{{ $journal->journal_date?->format('d M Y') }}</td>
                         <td>{{ $journal->description }}</td>
+                        <td>
+                            @if($journal->source_document_url)
+                                <a href="{{ $journal->source_document_url }}" style="color: var(--k-blue); font-weight: 700; text-decoration: none;">
+                                    {{ $journal->source_document_label }}
+                                    <span style="display: block; color: var(--k-gray-500); font-size: 0.72rem; font-weight: 600;">{{ $journal->source_document_number }}</span>
+                                </a>
+                            @else
+                                <strong>{{ $journal->source_document_label }}</strong>
+                            @endif
+                        </td>
                         <td>{{ $journal->companyBranch?->name ?? 'Global' }}</td>
                         <td class="dms-money">Rp {{ number_format($journal->debit_total, 0, ',', '.') }}</td>
                         <td class="dms-money">Rp {{ number_format($journal->credit_total, 0, ',', '.') }}</td>
@@ -178,7 +189,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="dms-empty">
+                        <td colspan="9" class="dms-empty">
                             <i class="bi bi-journal-check"></i>
                             <p>Belum ada jurnal umum</p>
                         </td>

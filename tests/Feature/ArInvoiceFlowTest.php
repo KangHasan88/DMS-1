@@ -164,6 +164,16 @@ class ArInvoiceFlowTest extends TestCase
         $this->assertSame(12000, $journal->credit_total);
         $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '4102' && $line->debit_amount === 12000));
         $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1102' && $line->credit_amount === 12000));
+        $this->assertSame('Credit Note AR', $journal->source_document_label);
+        $this->assertSame($creditNote->note_number, $journal->source_document_number);
+        $this->assertSame(route('ar-credit-notes.show', $creditNote), $journal->source_document_url);
+
+        $this->actingAs($finance)
+            ->get(route('journal-entries.show', $journal))
+            ->assertOk()
+            ->assertSee('Credit Note AR')
+            ->assertSee($creditNote->note_number)
+            ->assertSee('Lihat Dokumen Sumber');
 
         $this->actingAs($finance)
             ->get(route('ar-credit-notes.index'))

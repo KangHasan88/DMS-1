@@ -16,7 +16,7 @@ class JournalEntryController extends Controller
 {
     public function index(Request $request)
     {
-        $query = JournalEntry::with(['companyBranch', 'postedBy'])
+        $query = JournalEntry::with(['companyBranch', 'postedBy', 'source'])
             ->latest('journal_date')
             ->latest('id');
 
@@ -124,7 +124,7 @@ class JournalEntryController extends Controller
     {
         $this->authorizeBranch($journalEntry);
 
-        $journalEntry->load(['lines.account', 'companyBranch', 'postedBy']);
+        $journalEntry->load(['lines.account', 'companyBranch', 'postedBy', 'source']);
 
         return view('journal-entries.show', compact('journalEntry'));
     }

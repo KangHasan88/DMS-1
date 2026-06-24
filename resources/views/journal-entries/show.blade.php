@@ -18,6 +18,11 @@
                     </button>
                 @endif
             @endcan
+            @if($journalEntry->source_document_url)
+                <a href="{{ $journalEntry->source_document_url }}" class="dms-btn dms-btn-outline">
+                    <i class="bi bi-box-arrow-up-right"></i> Lihat Dokumen Sumber
+                </a>
+            @endif
             <a href="{{ route('journal-entries.index') }}" class="dms-btn dms-btn-outline">
                 <i class="bi bi-arrow-left"></i> Kembali
             </a>
@@ -70,6 +75,11 @@
         <div class="stat-card">
             <div class="stat-label">Status</div>
             <div class="stat-value" style="font-size: 1rem;">{{ $journalEntry->status_label }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Sumber</div>
+            <div class="stat-value" style="font-size: 1rem;">{{ $journalEntry->source_document_label }}</div>
+            <div class="dms-muted">{{ $journalEntry->source_document_number }}</div>
         </div>
     </div>
 

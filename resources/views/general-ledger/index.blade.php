@@ -77,6 +77,7 @@
                 <tr>
                     <th>Tanggal</th>
                     <th>No. Jurnal</th>
+                    <th>Sumber</th>
                     <th>Keterangan</th>
                     <th>Cabang</th>
                     <th>Debit</th>
@@ -88,6 +89,7 @@
                 @if($selectedAccount)
                     <tr>
                         <td>{{ \Illuminate\Support\Carbon::parse($dateFrom)->subDay()->format('d M Y') }}</td>
+                        <td>-</td>
                         <td>-</td>
                         <td><strong>Saldo Awal</strong></td>
                         <td>-</td>
@@ -104,6 +106,16 @@
                                 {{ $line->journalEntry?->journal_number }}
                             </a>
                         </td>
+                        <td>
+                            @if($line->journalEntry?->source_document_url)
+                                <a href="{{ $line->journalEntry->source_document_url }}" style="color: var(--k-blue); font-weight: 700; text-decoration: none;">
+                                    {{ $line->journalEntry->source_document_label }}
+                                    <span style="display: block; color: var(--k-gray-500); font-size: 0.72rem; font-weight: 600;">{{ $line->journalEntry->source_document_number }}</span>
+                                </a>
+                            @else
+                                {{ $line->journalEntry?->source_document_label ?? '-' }}
+                            @endif
+                        </td>
                         <td>{{ $line->description ?: $line->journalEntry?->description }}</td>
                         <td>{{ $line->journalEntry?->companyBranch?->name ?? 'Global' }}</td>
                         <td class="dms-money">Rp {{ number_format($line->debit_amount, 0, ',', '.') }}</td>
@@ -112,7 +124,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="dms-empty">
+                        <td colspan="8" class="dms-empty">
                             <i class="bi bi-journal-bookmark"></i>
                             <p>{{ $selectedAccount ? 'Belum ada mutasi buku besar pada periode ini' : 'Belum ada akun aktif untuk ditampilkan' }}</p>
                         </td>
