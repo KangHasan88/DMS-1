@@ -192,6 +192,91 @@
     </div>
 @endcan
 
+@can('manage journal entries')
+    <div class="dms-card" style="margin-top: 1rem;">
+        <div class="dms-section-header">
+            <div>
+                <h3 class="dms-section-title">Transfer Kas/Bank</h3>
+                <p class="dms-section-subtitle">Gunakan untuk isi kas kecil dari bank, setor kas ke bank, atau pindah saldo antar rekening.</p>
+            </div>
+        </div>
+
+        <form action="{{ route('cash-bank.transfers.store') }}" method="POST">
+            @csrf
+            <div class="dms-form-grid">
+                <div class="form-group">
+                    <label class="form-label">Tanggal <span class="dms-required">*</span></label>
+                    <input type="date" name="transfer_date" value="{{ old('transfer_date', now()->toDateString()) }}" class="form-control" required>
+                    @error('transfer_date') <span class="dms-error">{{ $message }}</span> @enderror
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Dari Kas/Bank <span class="dms-required">*</span></label>
+                    <select name="from_cash_account_id" class="form-control" required>
+                        @forelse($cashAccounts as $account)
+                            <option value="{{ $account->id }}" {{ (string) old('from_cash_account_id', $selectedAccount?->id) === (string) $account->id ? 'selected' : '' }}>
+                                {{ $account->code }} - {{ $account->name }}
+                            </option>
+                        @empty
+                            <option value="">Belum ada akun kas/bank</option>
+                        @endforelse
+                    </select>
+                    @error('from_cash_account_id') <span class="dms-error">{{ $message }}</span> @enderror
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Ke Kas/Bank <span class="dms-required">*</span></label>
+                    <select name="to_cash_account_id" class="form-control" required>
+                        @forelse($cashAccounts as $account)
+                            <option value="{{ $account->id }}" {{ (string) old('to_cash_account_id') === (string) $account->id ? 'selected' : '' }}>
+                                {{ $account->code }} - {{ $account->name }}
+                            </option>
+                        @empty
+                            <option value="">Belum ada akun kas/bank</option>
+                        @endforelse
+                    </select>
+                    @error('to_cash_account_id') <span class="dms-error">{{ $message }}</span> @enderror
+                </div>
+                @if($canFilterBranches)
+                    <div class="form-group">
+                        <label class="form-label">Cabang</label>
+                        <select name="company_branch_id" class="form-control">
+                            <option value="">Global</option>
+                            @foreach($companyBranches as $branch)
+                                <option value="{{ $branch->id }}" {{ (string) old('company_branch_id', $selectedBranchId) === (string) $branch->id ? 'selected' : '' }}>
+                                    {{ $branch->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('company_branch_id') <span class="dms-error">{{ $message }}</span> @enderror
+                    </div>
+                @endif
+                <div class="form-group">
+                    <label class="form-label">Nominal <span class="dms-required">*</span></label>
+                    <input type="number" name="amount" min="1" value="{{ old('amount') }}" class="form-control" placeholder="Contoh: 1000000" required>
+                    @error('amount') <span class="dms-error">{{ $message }}</span> @enderror
+                </div>
+                <div class="form-group">
+                    <label class="form-label">No. Referensi</label>
+                    <input type="text" name="reference_number" value="{{ old('reference_number') }}" class="form-control" placeholder="Slip setor / bukti transfer">
+                    @error('reference_number') <span class="dms-error">{{ $message }}</span> @enderror
+                </div>
+                <div class="form-group dms-form-span-2">
+                    <label class="form-label">Keterangan <span class="dms-required">*</span></label>
+                    <input type="text" name="description" value="{{ old('description') }}" class="form-control" placeholder="Contoh: Isi kas kecil cabang / setor kas penjualan ke bank" required>
+                    @error('description') <span class="dms-error">{{ $message }}</span> @enderror
+                </div>
+            </div>
+            <div class="dms-form-actions">
+                <button type="submit" class="dms-btn dms-btn-primary" {{ $cashAccounts->count() < 2 ? 'disabled' : '' }}>
+                    <i class="bi bi-arrow-left-right"></i> Posting Transfer
+                </button>
+                @if($cashAccounts->count() < 2)
+                    <span class="dms-muted">Minimal butuh 2 akun kas/bank aktif untuk transfer.</span>
+                @endif
+            </div>
+        </form>
+    </div>
+@endcan
+
 <div class="dms-card" style="margin-top: 1rem;">
     <div class="dms-section-header">
         <div>

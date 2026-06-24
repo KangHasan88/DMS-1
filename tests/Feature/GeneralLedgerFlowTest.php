@@ -155,6 +155,48 @@ class GeneralLedgerFlowTest extends TestCase
         $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1101' && $line->credit_amount === 75000));
     }
 
+    public function test_finance_can_post_cash_bank_transfer(): void
+    {
+        $finance = $this->userWithRole('finance');
+        $bank = ChartAccount::create([
+            'code' => '1101',
+            'name' => 'Bank BCA Operasional',
+            'account_type' => ChartAccount::TYPE_ASSET,
+            'normal_balance' => ChartAccount::BALANCE_DEBIT,
+            'is_cash_account' => true,
+            'is_active' => true,
+        ]);
+        $pettyCash = ChartAccount::create([
+            'code' => '1102',
+            'name' => 'Kas Kecil Operasional',
+            'account_type' => ChartAccount::TYPE_ASSET,
+            'normal_balance' => ChartAccount::BALANCE_DEBIT,
+            'is_cash_account' => true,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($finance)
+            ->post(route('cash-bank.transfers.store'), [
+                'transfer_date' => '2026-06-21',
+                'from_cash_account_id' => $bank->id,
+                'to_cash_account_id' => $pettyCash->id,
+                'amount' => 1000000,
+                'reference_number' => 'TRF-KK-001',
+                'description' => 'Isi kas kecil operasional',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $journal = JournalEntry::with('lines.account')
+            ->where('description', 'like', 'Transfer Kas/Bank - Isi kas kecil operasional%')
+            ->firstOrFail();
+
+        $this->assertSame(1000000, $journal->debit_total);
+        $this->assertSame(1000000, $journal->credit_total);
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1102' && $line->debit_amount === 1000000));
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1101' && $line->credit_amount === 1000000));
+    }
+
     public function test_branch_finance_only_sees_scoped_ledger_accounts(): void
     {
         [$branchA, $branchB] = $this->twoCompanyBranches();

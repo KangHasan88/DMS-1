@@ -390,6 +390,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('cash-bank/expenses', [CashBankController::class, 'storeExpense'])
         ->middleware('permission:manage journal entries')
         ->name('cash-bank.expenses.store');
+    Route::post('cash-bank/transfers', [CashBankController::class, 'storeTransfer'])
+        ->middleware('permission:manage journal entries')
+        ->name('cash-bank.transfers.store');
 
     Route::get('trial-balance', [TrialBalanceController::class, 'index'])
         ->middleware('permission:view general ledger')

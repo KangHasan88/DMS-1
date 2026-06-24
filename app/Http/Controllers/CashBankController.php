@@ -190,6 +190,85 @@ class CashBankController extends Controller
         ])->with('success', 'Biaya operasional berhasil dicatat sebagai jurnal ' . $journal->journal_number . '.');
     }
 
+    public function storeTransfer(Request $request)
+    {
+        $validated = $request->validate([
+            'transfer_date' => ['required', 'date'],
+            'from_cash_account_id' => ['required', 'exists:chart_accounts,id'],
+            'to_cash_account_id' => ['required', 'exists:chart_accounts,id', 'different:from_cash_account_id'],
+            'company_branch_id' => ['nullable', 'exists:company_branches,id'],
+            'amount' => ['required', 'integer', 'min:1'],
+            'reference_number' => ['nullable', 'string', 'max:100'],
+            'description' => ['required', 'string', 'max:500'],
+        ]);
+
+        $branchId = $this->resolvedBranchId($validated['company_branch_id'] ?? null);
+        $fromAccount = $this->findScopedCashAccount((int) $validated['from_cash_account_id'], $branchId);
+        $toAccount = $this->findScopedCashAccount((int) $validated['to_cash_account_id'], $branchId);
+
+        if (!$fromAccount || !$toAccount) {
+            throw ValidationException::withMessages([
+                'from_cash_account_id' => 'Akun sumber atau tujuan tidak tersedia untuk scope cabang ini.',
+            ]);
+        }
+
+        try {
+            app(AccountingPeriodLockService::class)->assertOpen($validated['transfer_date'], $branchId);
+        } catch (\InvalidArgumentException $exception) {
+            return back()->withInput()->with('error', $exception->getMessage());
+        }
+
+        $branch = $branchId ? CompanyBranch::find($branchId) : null;
+        $amount = (int) $validated['amount'];
+        $description = trim($validated['description']);
+        $reference = trim((string) ($validated['reference_number'] ?? ''));
+
+        $journal = DB::transaction(function () use ($validated, $branch, $branchId, $fromAccount, $toAccount, $amount, $description, $reference) {
+            $journal = JournalEntry::create([
+                'journal_number' => JournalEntry::nextJournalNumber($branch),
+                'journal_date' => $validated['transfer_date'],
+                'description' => 'Transfer Kas/Bank - ' . $description . ($reference ? ' (' . $reference . ')' : ''),
+                'company_branch_id' => $branchId,
+                'status' => JournalEntry::STATUS_POSTED,
+                'debit_total' => $amount,
+                'credit_total' => $amount,
+                'posted_by' => Auth::id(),
+                'posted_at' => now(),
+            ]);
+
+            $journal->lines()->create([
+                'chart_account_id' => $toAccount->id,
+                'description' => 'Terima transfer dari ' . $fromAccount->code . ' - ' . $description . ($reference ? ' - Ref ' . $reference : ''),
+                'debit_amount' => $amount,
+                'credit_amount' => 0,
+            ]);
+
+            $journal->lines()->create([
+                'chart_account_id' => $fromAccount->id,
+                'description' => 'Transfer ke ' . $toAccount->code . ' - ' . $description . ($reference ? ' - Ref ' . $reference : ''),
+                'debit_amount' => 0,
+                'credit_amount' => $amount,
+            ]);
+
+            ActivityLog::record('cash_bank', 'transfer_posted', 'Transfer kas/bank dicatat', $journal, [
+                'journal_number' => $journal->journal_number,
+                'from_cash_account' => $fromAccount->code,
+                'to_cash_account' => $toAccount->code,
+                'amount' => $amount,
+                'reference_number' => $reference ?: null,
+            ]);
+
+            return $journal;
+        });
+
+        return redirect()->route('cash-bank.index', [
+            'chart_account_id' => $toAccount->id,
+            'date_from' => $validated['transfer_date'],
+            'date_to' => $validated['transfer_date'],
+            'company_branch_id' => $branchId,
+        ])->with('success', 'Transfer kas/bank berhasil dicatat sebagai jurnal ' . $journal->journal_number . '.');
+    }
+
     private function lineQuery(ChartAccount $account, mixed $selectedBranchId)
     {
         return JournalEntryLine::query()
