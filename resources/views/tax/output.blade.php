@@ -38,12 +38,15 @@
     }
 </style>
 
-<div class="dms-card">
+    <div class="dms-card">
     <div class="dms-section-header">
         <div>
             <h3 class="dms-section-title">Pajak Keluaran</h3>
             <p class="dms-section-subtitle">Pantau PPN keluaran dari invoice penjualan sebelum masuk proses Coretax.</p>
         </div>
+        <a href="{{ route('tax.output.export', request()->query()) }}" class="dms-btn dms-btn-outline">
+            <i class="bi bi-download"></i> Export CSV
+        </a>
     </div>
 
     @if(session('success'))

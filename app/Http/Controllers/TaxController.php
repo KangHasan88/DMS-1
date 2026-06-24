@@ -5,42 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\ApInvoice;
 use App\Models\ArInvoice;
 use App\Models\CompanyBranch;
-use Illuminate\Validation\Rule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 class TaxController extends Controller
 {
     public function output(Request $request)
     {
-        $query = ArInvoice::with(['customer', 'customerUser', 'companyBranch'])
-            ->where('status', '!=', ArInvoice::STATUS_VOID)
-            ->where(function ($taxQuery) {
-                $taxQuery->where('ppn_amount', '>', 0)
-                    ->orWhere('tax_status', '!=', ArInvoice::TAX_NOT_REQUIRED);
-            })
-            ->latest('invoice_date')
-            ->latest('id');
-
-        if ($branchScopeId = $this->currentBranchScopeId()) {
-            $query->where('company_branch_id', $branchScopeId);
-        } elseif ($request->filled('company_branch_id')) {
-            $query->where('company_branch_id', $request->company_branch_id);
-        }
-
-        if ($request->filled('tax_status')) {
-            $query->where('tax_status', $request->tax_status);
-        }
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($searchQuery) use ($search) {
-                $searchQuery->where('invoice_number', 'like', "%{$search}%")
-                    ->orWhere('tax_invoice_number', 'like', "%{$search}%")
-                    ->orWhereHas('customer', fn ($customer) => $customer->where('name', 'like', "%{$search}%"))
-                    ->orWhereHas('customerUser', fn ($user) => $user->where('name', 'like', "%{$search}%"));
-            });
-        }
+        $query = $this->outputQuery($request);
 
         $invoices = $query->paginate($request->get('per_page', 10))->withQueryString();
         $statuses = ArInvoice::TAX_STATUS_LIST;
@@ -53,6 +26,41 @@ class TaxController extends Controller
         ];
 
         return view('tax.output', compact('invoices', 'statuses', 'companyBranches', 'canFilterBranches', 'summary'));
+    }
+
+    public function exportOutput(Request $request)
+    {
+        $invoices = $this->outputQuery($request)->get();
+
+        $rows = [[
+            'invoice_number',
+            'customer',
+            'invoice_date',
+            'tax_invoice_number',
+            'tax_invoice_date',
+            'tax_transaction_code',
+            'tax_base_amount',
+            'ppn_amount',
+            'tax_status',
+            'branch',
+        ]];
+
+        foreach ($invoices as $invoice) {
+            $rows[] = [
+                $invoice->invoice_number,
+                $invoice->customer?->name ?? $invoice->customerUser?->name ?? '',
+                $invoice->invoice_date?->format('Y-m-d') ?? '',
+                $invoice->tax_invoice_number ?? '',
+                $invoice->tax_invoice_date?->format('Y-m-d') ?? '',
+                $invoice->tax_transaction_code ?? '',
+                (string) (int) $invoice->tax_base_amount,
+                (string) (int) $invoice->ppn_amount,
+                $invoice->tax_status_label,
+                $invoice->companyBranch?->name ?? '',
+            ];
+        }
+
+        return $this->csvResponse($rows, 'pajak-keluaran-' . now()->format('Ymd-His') . '.csv');
     }
 
     public function updateOutput(Request $request, ArInvoice $arInvoice)
@@ -94,33 +102,7 @@ class TaxController extends Controller
 
     public function input(Request $request)
     {
-        $query = ApInvoice::with(['supplier', 'companyBranch'])
-            ->where('status', '!=', ApInvoice::STATUS_VOID)
-            ->where(function ($taxQuery) {
-                $taxQuery->where('ppn_amount', '>', 0)
-                    ->orWhere('tax_status', '!=', ApInvoice::TAX_NOT_RECEIVED);
-            })
-            ->latest('invoice_date')
-            ->latest('id');
-
-        if ($branchScopeId = $this->currentBranchScopeId()) {
-            $query->where('company_branch_id', $branchScopeId);
-        } elseif ($request->filled('company_branch_id')) {
-            $query->where('company_branch_id', $request->company_branch_id);
-        }
-
-        if ($request->filled('tax_status')) {
-            $query->where('tax_status', $request->tax_status);
-        }
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($searchQuery) use ($search) {
-                $searchQuery->where('invoice_number', 'like', "%{$search}%")
-                    ->orWhere('supplier_tax_invoice_number', 'like', "%{$search}%")
-                    ->orWhereHas('supplier', fn ($supplier) => $supplier->where('name', 'like', "%{$search}%"));
-            });
-        }
+        $query = $this->inputQuery($request);
 
         $invoices = $query->paginate($request->get('per_page', 10))->withQueryString();
         $statuses = ApInvoice::TAX_STATUS_LIST;
@@ -133,6 +115,39 @@ class TaxController extends Controller
         ];
 
         return view('tax.input', compact('invoices', 'statuses', 'companyBranches', 'canFilterBranches', 'summary'));
+    }
+
+    public function exportInput(Request $request)
+    {
+        $invoices = $this->inputQuery($request)->get();
+
+        $rows = [[
+            'invoice_number',
+            'supplier',
+            'invoice_date',
+            'supplier_tax_invoice_number',
+            'supplier_tax_invoice_date',
+            'tax_base_amount',
+            'ppn_amount',
+            'tax_status',
+            'branch',
+        ]];
+
+        foreach ($invoices as $invoice) {
+            $rows[] = [
+                $invoice->invoice_number,
+                $invoice->supplier?->name ?? '',
+                $invoice->invoice_date?->format('Y-m-d') ?? '',
+                $invoice->supplier_tax_invoice_number ?? '',
+                $invoice->supplier_tax_invoice_date?->format('Y-m-d') ?? '',
+                (string) (int) $invoice->tax_base_amount,
+                (string) (int) $invoice->ppn_amount,
+                $invoice->tax_status_label,
+                $invoice->companyBranch?->name ?? '',
+            ];
+        }
+
+        return $this->csvResponse($rows, 'pajak-masukan-' . now()->format('Ymd-His') . '.csv');
     }
 
     public function updateInput(Request $request, ApInvoice $apInvoice)
@@ -173,6 +188,91 @@ class TaxController extends Controller
     private function currentBranchScopeId(): ?int
     {
         return Auth::user()?->scopedCompanyBranchId();
+    }
+
+    private function outputQuery(Request $request)
+    {
+        $query = ArInvoice::with(['customer', 'customerUser', 'companyBranch'])
+            ->where('status', '!=', ArInvoice::STATUS_VOID)
+            ->where(function ($taxQuery) {
+                $taxQuery->where('ppn_amount', '>', 0)
+                    ->orWhere('tax_status', '!=', ArInvoice::TAX_NOT_REQUIRED);
+            })
+            ->latest('invoice_date')
+            ->latest('id');
+
+        if ($branchScopeId = $this->currentBranchScopeId()) {
+            $query->where('company_branch_id', $branchScopeId);
+        } elseif ($request->filled('company_branch_id')) {
+            $query->where('company_branch_id', $request->company_branch_id);
+        }
+
+        if ($request->filled('tax_status')) {
+            $query->where('tax_status', $request->tax_status);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($searchQuery) use ($search) {
+                $searchQuery->where('invoice_number', 'like', "%{$search}%")
+                    ->orWhere('tax_invoice_number', 'like', "%{$search}%")
+                    ->orWhereHas('customer', fn ($customer) => $customer->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('customerUser', fn ($user) => $user->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        return $query;
+    }
+
+    private function inputQuery(Request $request)
+    {
+        $query = ApInvoice::with(['supplier', 'companyBranch'])
+            ->where('status', '!=', ApInvoice::STATUS_VOID)
+            ->where(function ($taxQuery) {
+                $taxQuery->where('ppn_amount', '>', 0)
+                    ->orWhere('tax_status', '!=', ApInvoice::TAX_NOT_RECEIVED);
+            })
+            ->latest('invoice_date')
+            ->latest('id');
+
+        if ($branchScopeId = $this->currentBranchScopeId()) {
+            $query->where('company_branch_id', $branchScopeId);
+        } elseif ($request->filled('company_branch_id')) {
+            $query->where('company_branch_id', $request->company_branch_id);
+        }
+
+        if ($request->filled('tax_status')) {
+            $query->where('tax_status', $request->tax_status);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($searchQuery) use ($search) {
+                $searchQuery->where('invoice_number', 'like', "%{$search}%")
+                    ->orWhere('supplier_tax_invoice_number', 'like', "%{$search}%")
+                    ->orWhereHas('supplier', fn ($supplier) => $supplier->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        return $query;
+    }
+
+    private function csvResponse(array $rows, string $filename)
+    {
+        $handle = fopen('php://temp', 'r+');
+
+        foreach ($rows as $row) {
+            fputcsv($handle, $row);
+        }
+
+        rewind($handle);
+        $content = stream_get_contents($handle);
+        fclose($handle);
+
+        return response($content, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
     }
 
     private function ensureBranchAccess(?int $companyBranchId): void

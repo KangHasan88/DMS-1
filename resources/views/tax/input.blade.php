@@ -44,6 +44,9 @@
             <h3 class="dms-section-title">Pajak Masukan</h3>
             <p class="dms-section-subtitle">Pantau faktur pajak supplier dan PPN masukan dari invoice pembelian.</p>
         </div>
+        <a href="{{ route('tax.input.export', request()->query()) }}" class="dms-btn dms-btn-outline">
+            <i class="bi bi-download"></i> Export CSV
+        </a>
     </div>
 
     @if(session('success'))

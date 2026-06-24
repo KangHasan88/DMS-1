@@ -476,6 +476,15 @@ class ArInvoiceFlowTest extends TestCase
             ->assertOk()
             ->assertSee('010.000-26.00000002')
             ->assertSee('Siap Coretax');
+
+        $this->actingAs($finance)
+            ->get(route('tax.output.export', ['tax_status' => ArInvoice::TAX_READY]))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->assertSee('invoice_number')
+            ->assertSee($invoice->invoice_number)
+            ->assertSee('010.000-26.00000002')
+            ->assertSee('Siap Coretax');
     }
 
     private function deliveredOrder(string $status = Order::STATUS_DELIVERED): array
