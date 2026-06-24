@@ -19,6 +19,7 @@ use App\Http\Controllers\ArInvoiceController;
 use App\Http\Controllers\ApInvoiceController;
 use App\Http\Controllers\CustomerPaymentController;
 use App\Http\Controllers\SupplierPaymentController;
+use App\Http\Controllers\AccountingPeriodLockController;
 use App\Http\Controllers\ChartAccountController;
 use App\Http\Controllers\JournalEntryController;
 use App\Http\Controllers\GeneralLedgerController;
@@ -345,6 +346,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('journal-entries/{journalEntry}/void', [JournalEntryController::class, 'void'])
         ->middleware('permission:manage journal entries')
         ->name('journal-entries.void');
+
+    Route::get('accounting-period-locks', [AccountingPeriodLockController::class, 'index'])
+        ->middleware('permission:view journal entries')
+        ->name('accounting-period-locks.index');
+    Route::post('accounting-period-locks', [AccountingPeriodLockController::class, 'store'])
+        ->middleware('permission:manage journal entries')
+        ->name('accounting-period-locks.store');
+    Route::post('accounting-period-locks/{accountingPeriodLock}/unlock', [AccountingPeriodLockController::class, 'unlock'])
+        ->middleware('permission:manage journal entries')
+        ->name('accounting-period-locks.unlock');
 
     Route::get('general-ledger', [GeneralLedgerController::class, 'index'])
         ->middleware('permission:view general ledger')

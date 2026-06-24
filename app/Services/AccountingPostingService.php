@@ -27,6 +27,7 @@ class AccountingPostingService
         $receivable = $this->account('1102', 'Piutang Usaha', ChartAccount::TYPE_ASSET);
         $revenue = $this->account('4101', 'Pendapatan Penjualan', ChartAccount::TYPE_REVENUE);
         $amount = (int) $invoice->total_amount;
+        app(AccountingPeriodLockService::class)->assertOpen($invoice->invoice_date?->toDateString() ?? now()->toDateString(), $invoice->company_branch_id);
 
         return $this->journal(
             sourceType: ArInvoice::class,
@@ -54,6 +55,7 @@ class AccountingPostingService
         $cash = $this->account('1110', 'Kas dan Bank', ChartAccount::TYPE_ASSET, isCashAccount: true);
         $receivable = $this->account('1102', 'Piutang Usaha', ChartAccount::TYPE_ASSET);
         $amount = (int) $payment->amount;
+        app(AccountingPeriodLockService::class)->assertOpen($payment->payment_date?->toDateString() ?? now()->toDateString(), $payment->company_branch_id);
 
         return $this->journal(
             sourceType: CustomerPayment::class,
@@ -81,6 +83,7 @@ class AccountingPostingService
         $inventory = $this->account('1301', 'Persediaan Barang Dagang', ChartAccount::TYPE_ASSET);
         $payable = $this->account('2101', 'Hutang Usaha', ChartAccount::TYPE_LIABILITY);
         $amount = (int) $invoice->total_amount;
+        app(AccountingPeriodLockService::class)->assertOpen($invoice->invoice_date?->toDateString() ?? now()->toDateString(), $invoice->company_branch_id);
 
         return $this->journal(
             sourceType: ApInvoice::class,
@@ -108,6 +111,7 @@ class AccountingPostingService
         $payable = $this->account('2101', 'Hutang Usaha', ChartAccount::TYPE_LIABILITY);
         $cash = $this->account('1110', 'Kas dan Bank', ChartAccount::TYPE_ASSET, isCashAccount: true);
         $amount = (int) $payment->amount;
+        app(AccountingPeriodLockService::class)->assertOpen($payment->payment_date?->toDateString() ?? now()->toDateString(), $payment->company_branch_id);
 
         return $this->journal(
             sourceType: SupplierPayment::class,
@@ -138,6 +142,8 @@ class AccountingPostingService
         }
 
         $original->loadMissing(['lines', 'companyBranch']);
+        app(AccountingPeriodLockService::class)->assertOpen($original->journal_date?->toDateString() ?? now()->toDateString(), $original->company_branch_id);
+        app(AccountingPeriodLockService::class)->assertOpen(now()->toDateString(), $original->company_branch_id);
 
         return DB::transaction(function () use ($original, $reason, $postedBy) {
             $original->forceFill([

@@ -1467,6 +1467,14 @@
                             </a>
                         </li>
                         @endcan
+                        @can('view journal entries')
+                        <li class="nav-item">
+                            <a href="{{ route('accounting-period-locks.index') }}" class="nav-link {{ request()->routeIs('accounting-period-locks.*') ? 'active' : '' }}">
+                                <i class="bi bi-lock"></i>
+                                <span>Lock Periode</span>
+                            </a>
+                        </li>
+                        @endcan
                     </ul>
                 </div>
 

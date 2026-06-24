@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ChartAccount;
+use App\Models\AccountingPeriodLock;
 use App\Models\CompanyBranch;
 use App\Models\CompanyProfile;
 use App\Models\JournalEntry;
@@ -163,6 +164,60 @@ class JournalEntryFlowTest extends TestCase
             ->assertDontSee('Kas Operasional')
             ->assertDontSee('Modal Pemilik')
             ->assertSee('Balance');
+    }
+
+    public function test_locked_accounting_period_rejects_manual_journal_posting(): void
+    {
+        $finance = $this->userWithRole('finance');
+        [$cash, $capital] = $this->basicAccounts();
+
+        AccountingPeriodLock::create([
+            'date_from' => now()->startOfMonth()->toDateString(),
+            'date_to' => now()->endOfMonth()->toDateString(),
+            'status' => AccountingPeriodLock::STATUS_LOCKED,
+            'reason' => 'Closing test',
+            'locked_by' => $finance->id,
+            'locked_at' => now(),
+        ]);
+
+        $this->actingAs($finance)
+            ->from(route('journal-entries.index'))
+            ->post(route('journal-entries.store'), [
+                'journal_date' => now()->toDateString(),
+                'description' => 'Posting ke periode terkunci',
+                'lines' => [
+                    ['chart_account_id' => $cash->id, 'debit_amount' => 100000, 'credit_amount' => 0],
+                    ['chart_account_id' => $capital->id, 'debit_amount' => 0, 'credit_amount' => 100000],
+                ],
+            ])
+            ->assertRedirect(route('journal-entries.index'))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseCount('journal_entries', 0);
+    }
+
+    public function test_finance_can_unlock_accounting_period(): void
+    {
+        $finance = $this->userWithRole('finance');
+        $lock = AccountingPeriodLock::create([
+            'date_from' => now()->startOfMonth()->toDateString(),
+            'date_to' => now()->endOfMonth()->toDateString(),
+            'status' => AccountingPeriodLock::STATUS_LOCKED,
+            'reason' => 'Closing test',
+            'locked_by' => $finance->id,
+            'locked_at' => now(),
+        ]);
+
+        $this->actingAs($finance)
+            ->post(route('accounting-period-locks.unlock', $lock), [
+                'unlock_reason' => 'Reopen for correction',
+            ])
+            ->assertRedirect(route('accounting-period-locks.index'));
+
+        $lock->refresh();
+
+        $this->assertSame(AccountingPeriodLock::STATUS_UNLOCKED, $lock->status);
+        $this->assertSame('Reopen for correction', $lock->unlock_reason);
     }
 
     public function test_accounting_menu_shows_journal_entries_for_finance(): void

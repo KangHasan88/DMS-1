@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\ChartAccount;
 use App\Models\CompanyBranch;
 use App\Models\JournalEntry;
+use App\Services\AccountingPeriodLockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -83,6 +84,12 @@ class JournalEntryController extends Controller
 
         $branch = $branchId ? CompanyBranch::find($branchId) : null;
 
+        try {
+            app(AccountingPeriodLockService::class)->assertOpen($validated['journal_date'], $branchId);
+        } catch (\InvalidArgumentException $exception) {
+            return back()->withInput()->with('error', $exception->getMessage());
+        }
+
         $journal = DB::transaction(function () use ($validated, $lines, $branchId, $branch, $debitTotal, $creditTotal) {
             $journal = JournalEntry::create([
                 'journal_number' => JournalEntry::nextJournalNumber($branch),
@@ -139,6 +146,13 @@ class JournalEntryController extends Controller
         }
 
         $journalEntry->loadMissing(['lines', 'companyBranch']);
+
+        try {
+            app(AccountingPeriodLockService::class)->assertOpen($journalEntry->journal_date?->toDateString() ?? now()->toDateString(), $journalEntry->company_branch_id);
+            app(AccountingPeriodLockService::class)->assertOpen(now()->toDateString(), $journalEntry->company_branch_id);
+        } catch (\InvalidArgumentException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
 
         $reversal = DB::transaction(function () use ($journalEntry, $validated) {
             $journalEntry->forceFill([
