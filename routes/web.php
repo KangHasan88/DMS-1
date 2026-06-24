@@ -25,6 +25,7 @@ use App\Http\Controllers\AccountingPeriodLockController;
 use App\Http\Controllers\ChartAccountController;
 use App\Http\Controllers\JournalEntryController;
 use App\Http\Controllers\GeneralLedgerController;
+use App\Http\Controllers\CashBankController;
 use App\Http\Controllers\TrialBalanceController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\DeliveryController;
@@ -382,6 +383,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('general-ledger', [GeneralLedgerController::class, 'index'])
         ->middleware('permission:view general ledger')
         ->name('general-ledger.index');
+
+    Route::get('cash-bank', [CashBankController::class, 'index'])
+        ->middleware('permission:view general ledger')
+        ->name('cash-bank.index');
 
     Route::get('trial-balance', [TrialBalanceController::class, 'index'])
         ->middleware('permission:view general ledger')

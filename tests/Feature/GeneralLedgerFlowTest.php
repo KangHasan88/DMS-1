@@ -73,6 +73,46 @@ class GeneralLedgerFlowTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_finance_can_view_cash_bank_balances_and_mutations(): void
+    {
+        $finance = $this->userWithRole('finance');
+        $cash = ChartAccount::create([
+            'code' => '1101',
+            'name' => 'Kas Operasional',
+            'account_type' => ChartAccount::TYPE_ASSET,
+            'normal_balance' => ChartAccount::BALANCE_DEBIT,
+            'is_cash_account' => true,
+            'is_active' => true,
+        ]);
+        $bank = ChartAccount::create([
+            'code' => '1102',
+            'name' => 'Bank BCA',
+            'account_type' => ChartAccount::TYPE_ASSET,
+            'normal_balance' => ChartAccount::BALANCE_DEBIT,
+            'is_cash_account' => true,
+            'is_active' => true,
+        ]);
+        $receivable = $this->account('1201', 'Piutang Usaha', ChartAccount::TYPE_ASSET);
+        $capital = $this->account('3101', 'Modal Pemilik', ChartAccount::TYPE_EQUITY);
+
+        $this->postJournal('2026-06-01', $cash, $capital, 100000);
+        $this->postJournal('2026-06-10', $bank, $capital, 50000);
+        $this->postJournal('2026-06-15', $receivable, $capital, 25000);
+
+        $this->actingAs($finance)
+            ->get(route('cash-bank.index', [
+                'chart_account_id' => $cash->id,
+                'date_from' => '2026-06-01',
+                'date_to' => '2026-06-30',
+            ]))
+            ->assertOk()
+            ->assertSee('Kas & Bank')
+            ->assertSee('Kas Operasional')
+            ->assertSee('Bank BCA')
+            ->assertSee('Rp 150.000')
+            ->assertDontSee('Piutang Usaha');
+    }
+
     public function test_branch_finance_only_sees_scoped_ledger_accounts(): void
     {
         [$branchA, $branchB] = $this->twoCompanyBranches();

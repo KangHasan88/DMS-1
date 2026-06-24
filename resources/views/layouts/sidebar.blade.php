@@ -1568,6 +1568,12 @@
                         @endcan
                         @can('view general ledger')
                         <li class="nav-item">
+                            <a href="{{ route('cash-bank.index') }}" class="nav-link {{ request()->routeIs('cash-bank.*') ? 'active' : '' }}">
+                                <i class="bi bi-wallet2"></i>
+                                <span>Kas & Bank</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="{{ route('general-ledger.index') }}" class="nav-link {{ request()->routeIs('general-ledger.*') ? 'active' : '' }}">
                                 <i class="bi bi-journal-bookmark"></i>
                                 <span>{{ __('navigation.general_ledger') }}</span>
