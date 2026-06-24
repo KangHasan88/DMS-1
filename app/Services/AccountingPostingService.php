@@ -4,12 +4,14 @@ namespace App\Services;
 
 use App\Models\ApInvoice;
 use App\Models\ArInvoice;
+use App\Models\ActivityLog;
 use App\Models\ChartAccount;
 use App\Models\CompanyBranch;
 use App\Models\CustomerPayment;
 use App\Models\JournalEntry;
 use App\Models\SupplierPayment;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class AccountingPostingService
 {
@@ -119,6 +121,63 @@ class AccountingPostingService
                 [$cash, 0, $amount, 'Kas keluar untuk ' . $payment->payment_number],
             ],
         );
+    }
+
+    public function reverseSourcePosting(string $sourceType, int $sourceId, string $reason, ?User $postedBy = null): ?JournalEntry
+    {
+        $original = $this->existingJournal($sourceType, $sourceId);
+
+        if (!$original) {
+            return null;
+        }
+
+        $existingReversal = $this->existingJournal(JournalEntry::class, $original->id);
+
+        if ($existingReversal) {
+            return $existingReversal;
+        }
+
+        $original->loadMissing(['lines', 'companyBranch']);
+
+        return DB::transaction(function () use ($original, $reason, $postedBy) {
+            $original->forceFill([
+                'status' => JournalEntry::STATUS_VOID,
+                'voided_by' => $postedBy?->id,
+                'voided_at' => now(),
+                'void_reason' => $reason,
+            ])->save();
+
+            $reversal = JournalEntry::create([
+                'journal_number' => JournalEntry::nextJournalNumber($original->companyBranch),
+                'journal_date' => now()->toDateString(),
+                'description' => 'Reversal ' . $original->journal_number . ' - ' . $reason,
+                'company_branch_id' => $original->company_branch_id,
+                'status' => JournalEntry::STATUS_POSTED,
+                'source_type' => JournalEntry::class,
+                'source_id' => $original->id,
+                'debit_total' => $original->credit_total,
+                'credit_total' => $original->debit_total,
+                'posted_by' => $postedBy?->id,
+                'posted_at' => now(),
+            ]);
+
+            foreach ($original->lines as $line) {
+                $reversal->lines()->create([
+                    'chart_account_id' => $line->chart_account_id,
+                    'description' => 'Reversal: ' . ($line->description ?: $original->journal_number),
+                    'debit_amount' => $line->credit_amount,
+                    'credit_amount' => $line->debit_amount,
+                ]);
+            }
+
+            ActivityLog::record('journal_entries', 'reversed', 'Jurnal otomatis dibalik', $original, [
+                'journal_number' => $original->journal_number,
+                'reversal_journal_number' => $reversal->journal_number,
+                'reason' => $reason,
+            ]);
+
+            return $reversal;
+        });
     }
 
     private function journal(

@@ -74,7 +74,7 @@ class TrialBalanceController extends Controller
         return JournalEntryLine::query()
             ->where('chart_account_id', $account->id)
             ->whereHas('journalEntry', function ($journal) use ($selectedBranchId) {
-                $journal->where('status', JournalEntry::STATUS_POSTED);
+                $journal->whereIn('status', [JournalEntry::STATUS_POSTED, JournalEntry::STATUS_VOID]);
 
                 if ($branchScopeId = $this->currentBranchScopeId()) {
                     $journal->where(function ($scopeQuery) use ($branchScopeId) {

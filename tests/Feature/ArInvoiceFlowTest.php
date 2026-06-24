@@ -174,6 +174,93 @@ class ArInvoiceFlowTest extends TestCase
         $this->assertSame(50000, $invoice->outstanding_amount);
     }
 
+    public function test_finance_can_void_customer_payment_and_restore_ar_invoice_outstanding(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-payment-void@example.test');
+        [$order] = $this->deliveredOrder();
+        $invoice = ArInvoice::issueFromOrder($order, $finance);
+        $payment = CustomerPayment::receiveForInvoice($invoice, [
+            'payment_date' => now()->toDateString(),
+            'payment_method' => CustomerPayment::METHOD_TRANSFER,
+            'amount' => 20000,
+        ], $finance);
+
+        $this->actingAs($finance)
+            ->post(route('customer-payments.void', $payment), [
+                'void_reason' => 'Salah nominal',
+            ])
+            ->assertRedirect(route('ar-invoices.show', $invoice));
+
+        $invoice->refresh();
+        $payment->refresh();
+        $originalJournal = JournalEntry::where('source_type', CustomerPayment::class)
+            ->where('source_id', $payment->id)
+            ->firstOrFail();
+        $reversal = JournalEntry::where('source_type', JournalEntry::class)
+            ->where('source_id', $originalJournal->id)
+            ->firstOrFail();
+
+        $this->assertSame(CustomerPayment::STATUS_VOID, $payment->status);
+        $this->assertSame('Salah nominal', $payment->void_reason);
+        $this->assertSame(0, $invoice->paid_amount);
+        $this->assertSame(50000, $invoice->outstanding_amount);
+        $this->assertSame(ArInvoice::STATUS_ISSUED, $invoice->status);
+        $this->assertSame(JournalEntry::STATUS_VOID, $originalJournal->fresh()->status);
+        $this->assertSame(20000, $reversal->debit_total);
+        $this->assertSame(20000, $reversal->credit_total);
+    }
+
+    public function test_finance_can_void_unpaid_ar_invoice_with_reversal_entry(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ar-void@example.test');
+        [$order] = $this->deliveredOrder();
+        $invoice = ArInvoice::issueFromOrder($order, $finance);
+
+        $this->actingAs($finance)
+            ->post(route('ar-invoices.void', $invoice), [
+                'void_reason' => 'Salah terbit invoice',
+            ])
+            ->assertRedirect(route('ar-invoices.show', $invoice));
+
+        $invoice->refresh();
+        $originalJournal = JournalEntry::where('source_type', ArInvoice::class)
+            ->where('source_id', $invoice->id)
+            ->firstOrFail();
+        $reversal = JournalEntry::where('source_type', JournalEntry::class)
+            ->where('source_id', $originalJournal->id)
+            ->firstOrFail();
+
+        $this->assertSame(ArInvoice::STATUS_VOID, $invoice->status);
+        $this->assertSame(0, $invoice->paid_amount);
+        $this->assertSame(0, $invoice->outstanding_amount);
+        $this->assertSame('Salah terbit invoice', $invoice->void_reason);
+        $this->assertSame(JournalEntry::STATUS_VOID, $originalJournal->fresh()->status);
+        $this->assertSame(50000, $reversal->debit_total);
+        $this->assertSame(50000, $reversal->credit_total);
+    }
+
+    public function test_ar_invoice_with_active_payment_must_void_payment_first(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ar-void-blocked@example.test');
+        [$order] = $this->deliveredOrder();
+        $invoice = ArInvoice::issueFromOrder($order, $finance);
+        CustomerPayment::receiveForInvoice($invoice, [
+            'payment_date' => now()->toDateString(),
+            'payment_method' => CustomerPayment::METHOD_TRANSFER,
+            'amount' => 20000,
+        ], $finance);
+
+        $this->actingAs($finance)
+            ->from(route('ar-invoices.show', $invoice))
+            ->post(route('ar-invoices.void', $invoice), [
+                'void_reason' => 'Salah terbit invoice',
+            ])
+            ->assertRedirect(route('ar-invoices.show', $invoice))
+            ->assertSessionHas('error');
+
+        $this->assertSame(ArInvoice::STATUS_PARTIALLY_PAID, $invoice->fresh()->status);
+    }
+
     public function test_ar_auto_journals_flow_into_trial_balance(): void
     {
         $finance = $this->userWithRole('finance', 'finance-ar-trial@example.test');

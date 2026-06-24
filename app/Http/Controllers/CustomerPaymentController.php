@@ -75,10 +75,34 @@ class CustomerPaymentController extends Controller
             'customerUser',
             'companyBranch',
             'receivedBy',
+            'voidedBy',
             'allocations.arInvoice.order',
         ]);
 
         return view('customer-payments.show', compact('customerPayment'));
+    }
+
+    public function void(Request $request, CustomerPayment $customerPayment)
+    {
+        $this->authorizePaymentBranch($customerPayment);
+
+        $validated = $request->validate([
+            'void_reason' => ['required', 'string', 'max:500'],
+        ]);
+
+        try {
+            $customerPayment->voidPayment($validated['void_reason'], Auth::user());
+        } catch (\InvalidArgumentException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        $allocation = $customerPayment->allocations()->with('arInvoice')->latest('id')->first();
+        $route = $allocation?->arInvoice
+            ? route('ar-invoices.show', $allocation->arInvoice)
+            : route('customer-payments.show', $customerPayment->fresh());
+
+        return redirect($route)
+            ->with('success', 'Pembayaran customer berhasil di-void dan jurnal reversal berhasil diposting.');
     }
 
     private function currentBranchScopeId(): ?int

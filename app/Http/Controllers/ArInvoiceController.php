@@ -103,6 +103,24 @@ class ArInvoiceController extends Controller
         return view('ar-invoices.show', compact('arInvoice'));
     }
 
+    public function void(Request $request, ArInvoice $arInvoice)
+    {
+        $this->authorizeInvoiceBranch($arInvoice);
+
+        $validated = $request->validate([
+            'void_reason' => ['required', 'string', 'max:500'],
+        ]);
+
+        try {
+            $arInvoice->voidInvoice($validated['void_reason'], Auth::user());
+        } catch (\InvalidArgumentException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        return redirect()->route('ar-invoices.show', $arInvoice->fresh())
+            ->with('success', 'AR Invoice berhasil di-void dan jurnal reversal berhasil diposting.');
+    }
+
     private function currentBranchScopeId(): ?int
     {
         return Auth::user()?->scopedCompanyBranchId();
