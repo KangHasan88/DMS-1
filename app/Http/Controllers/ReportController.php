@@ -479,7 +479,7 @@ class ReportController extends Controller
         return (int) JournalEntryLine::query()
             ->where('chart_account_id', $account->id)
             ->whereHas('journalEntry', function ($journal) use ($selectedBranchId, $journalDateScope) {
-                $journal->where('status', JournalEntry::STATUS_POSTED);
+                $journal->whereIn('status', [JournalEntry::STATUS_POSTED, JournalEntry::STATUS_VOID]);
                 $journalDateScope($journal);
 
                 if ($branchScopeId = auth()->user()?->scopedCompanyBranchId()) {

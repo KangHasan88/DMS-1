@@ -122,6 +122,49 @@ class JournalEntryFlowTest extends TestCase
         $this->assertTrue($reversal->lines->contains(fn ($line) => $line->chart_account_id === $capital->id && $line->debit_amount === 100000));
     }
 
+    public function test_voided_journal_reversal_is_neutral_in_financial_report(): void
+    {
+        $finance = $this->userWithRole('finance');
+        [$cash, $capital] = $this->basicAccounts();
+
+        $journal = JournalEntry::create([
+            'journal_number' => JournalEntry::nextJournalNumber(),
+            'journal_date' => now()->toDateString(),
+            'description' => 'Jurnal netral setelah void',
+            'status' => JournalEntry::STATUS_POSTED,
+            'debit_total' => 100000,
+            'credit_total' => 100000,
+            'posted_by' => $finance->id,
+            'posted_at' => now(),
+        ]);
+        $journal->lines()->create([
+            'chart_account_id' => $cash->id,
+            'debit_amount' => 100000,
+            'credit_amount' => 0,
+        ]);
+        $journal->lines()->create([
+            'chart_account_id' => $capital->id,
+            'debit_amount' => 0,
+            'credit_amount' => 100000,
+        ]);
+
+        $this->actingAs($finance)
+            ->post(route('journal-entries.void', $journal), [
+                'void_reason' => 'Netralisasi laporan',
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($finance)
+            ->get(route('reports.financial', [
+                'start_date' => now()->startOfMonth()->toDateString(),
+                'end_date' => now()->toDateString(),
+            ]))
+            ->assertOk()
+            ->assertDontSee('Kas Operasional')
+            ->assertDontSee('Modal Pemilik')
+            ->assertSee('Balance');
+    }
+
     public function test_accounting_menu_shows_journal_entries_for_finance(): void
     {
         $finance = $this->userWithRole('finance');
