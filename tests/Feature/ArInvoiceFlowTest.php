@@ -443,6 +443,41 @@ class ArInvoiceFlowTest extends TestCase
             ->assertSee('Rp 11.000');
     }
 
+    public function test_finance_can_update_output_tax_metadata(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ar-tax-update@example.test');
+        [$order] = $this->deliveredOrder();
+        $order->forceFill([
+            'subtotal' => 100000,
+            'total' => 111000,
+            'grand_total' => 111000,
+            'include_ppn' => true,
+            'ppn_amount' => 11000,
+        ])->save();
+        $invoice = ArInvoice::issueFromOrder($order, $finance);
+
+        $this->actingAs($finance)
+            ->put(route('tax.output.update', $invoice), [
+                'tax_status' => ArInvoice::TAX_READY,
+                'tax_invoice_number' => '010.000-26.00000002',
+                'tax_invoice_date' => now()->toDateString(),
+                'tax_transaction_code' => '01',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $invoice->refresh();
+        $this->assertSame(ArInvoice::TAX_READY, $invoice->tax_status);
+        $this->assertSame('010.000-26.00000002', $invoice->tax_invoice_number);
+        $this->assertSame('01', $invoice->tax_transaction_code);
+
+        $this->actingAs($finance)
+            ->get(route('tax.output'))
+            ->assertOk()
+            ->assertSee('010.000-26.00000002')
+            ->assertSee('Siap Coretax');
+    }
+
     private function deliveredOrder(string $status = Order::STATUS_DELIVERED): array
     {
         $branch = CompanyBranch::where('is_active', true)->firstOrFail();

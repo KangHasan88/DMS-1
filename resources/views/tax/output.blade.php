@@ -4,6 +4,40 @@
 @section('breadcrumb', 'Pajak / Pajak Keluaran')
 
 @section('content')
+<style>
+    .dms-inline-editor {
+        position: relative;
+    }
+
+    .dms-inline-editor summary {
+        list-style: none;
+        cursor: pointer;
+    }
+
+    .dms-inline-editor summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .dms-inline-editor-panel {
+        display: grid;
+        gap: .5rem;
+        min-width: 260px;
+        margin-top: .5rem;
+        padding: .8rem;
+        border: 1px solid #dbe4f0;
+        border-radius: 10px;
+        background: #fff;
+        box-shadow: 0 14px 32px rgba(6, 26, 61, .14);
+    }
+
+    .dms-inline-editor-panel label {
+        margin: 0;
+        color: #0b1f3f;
+        font-size: .75rem;
+        font-weight: 800;
+    }
+</style>
+
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
@@ -11,6 +45,16 @@
             <p class="dms-section-subtitle">Pantau PPN keluaran dari invoice penjualan sebelum masuk proses Coretax.</p>
         </div>
     </div>
+
+    @if(session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger">{{ session('error') }}</div>
+    @endif
+    @if($errors->any())
+        <div class="alert alert-danger">Periksa kembali input pajak yang wajib diisi.</div>
+    @endif
 
     <div class="stats-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
         <div class="stat-card">
@@ -81,9 +125,35 @@
                         <td><span class="dms-badge dms-badge-info">{{ $invoice->tax_status_label }}</span></td>
                         <td>{{ $invoice->tax_invoice_number ?: '-' }}</td>
                         <td>
-                            <a href="{{ route('ar-invoices.show', $invoice) }}" class="dms-btn dms-btn-outline dms-btn-sm" title="Detail Invoice">
-                                <i class="bi bi-eye"></i>
-                            </a>
+                            <div class="d-flex align-items-center gap-2">
+                                <a href="{{ route('ar-invoices.show', $invoice) }}" class="dms-btn dms-btn-outline dms-btn-sm" title="Detail Invoice">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                @can('create invoice')
+                                    <details class="dms-inline-editor">
+                                        <summary class="dms-btn dms-btn-outline dms-btn-sm">Update</summary>
+                                        <form action="{{ route('tax.output.update', $invoice) }}" method="POST" class="dms-inline-editor-panel">
+                                            @csrf
+                                            @method('PUT')
+                                            <label>Status Pajak</label>
+                                            <select name="tax_status" class="form-control">
+                                                @foreach($statuses as $key => $label)
+                                                    <option value="{{ $key }}" {{ old('tax_status', $invoice->tax_status) === $key ? 'selected' : '' }}>{{ $label }}</option>
+                                                @endforeach
+                                            </select>
+                                            <label>No. Faktur Pajak</label>
+                                            <input type="text" name="tax_invoice_number" value="{{ old('tax_invoice_number', $invoice->tax_invoice_number) }}" class="form-control" placeholder="010.000-26.00000001">
+                                            <label>Tanggal Faktur</label>
+                                            <input type="date" name="tax_invoice_date" value="{{ old('tax_invoice_date', optional($invoice->tax_invoice_date)->format('Y-m-d')) }}" class="form-control">
+                                            <label>Kode Transaksi</label>
+                                            <input type="text" name="tax_transaction_code" value="{{ old('tax_transaction_code', $invoice->tax_transaction_code) }}" class="form-control" placeholder="01">
+                                            <label>Catatan Error</label>
+                                            <textarea name="tax_error_message" class="form-control" rows="2" placeholder="Isi jika Coretax reject">{{ old('tax_error_message', $invoice->tax_error_message) }}</textarea>
+                                            <button type="submit" class="dms-btn dms-btn-primary dms-btn-sm w-100">Simpan Pajak</button>
+                                        </form>
+                                    </details>
+                                @endcan
+                            </div>
                         </td>
                     </tr>
                 @empty

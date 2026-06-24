@@ -502,6 +502,32 @@ class ApInvoiceFlowTest extends TestCase
             ->assertSee('Rp 6.000');
     }
 
+    public function test_finance_can_update_input_tax_metadata(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ap-tax-update@example.test');
+        [$purchaseOrder] = $this->receivedPurchaseOrder();
+        $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, $finance);
+
+        $this->actingAs($finance)
+            ->put(route('tax.input.update', $invoice), [
+                'tax_status' => ApInvoice::TAX_CLAIMABLE,
+                'supplier_tax_invoice_number' => '010.000-26.00000003',
+                'supplier_tax_invoice_date' => now()->toDateString(),
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $invoice->refresh();
+        $this->assertSame(ApInvoice::TAX_CLAIMABLE, $invoice->tax_status);
+        $this->assertSame('010.000-26.00000003', $invoice->supplier_tax_invoice_number);
+
+        $this->actingAs($finance)
+            ->get(route('tax.input'))
+            ->assertOk()
+            ->assertSee('010.000-26.00000003')
+            ->assertSee('Dapat Dikreditkan');
+    }
+
     private function receivedPurchaseOrder(
         string $status = PurchaseOrder::STATUS_RECEIVED,
         int $receivedQuantity = 3,
