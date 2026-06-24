@@ -107,12 +107,13 @@ class SupplierPayment extends Model
         return $this->status === self::STATUS_VOID || (int) $this->unallocated_amount <= 0;
     }
 
-    public static function nextPaymentNumber(): string
+    public static function nextPaymentNumber(?CompanyBranch $branch = null): string
     {
         $company = CompanyProfile::defaultProfile();
         $companyCode = $company?->document_code ?: 'DMS';
+        $branchCode = $branch?->document_code ?: $branch?->code ?: 'MAIN';
         $date = now()->format('Ymd');
-        $prefix = 'SPAY-' . strtoupper(substr($companyCode, 0, 3)) . '-' . $date;
+        $prefix = 'SPAY-' . strtoupper(substr($companyCode, 0, 3)) . '-' . strtoupper(substr($branchCode, 0, 3)) . '-' . $date;
         $last = self::where('payment_number', 'like', $prefix . '%')->orderByDesc('id')->first();
         $sequence = $last ? ((int) substr($last->payment_number, -4)) + 1 : 1;
 
@@ -121,12 +122,12 @@ class SupplierPayment extends Model
 
     public static function payForInvoice(ApInvoice $invoice, array $data, ?User $payer = null): self
     {
-        $invoice->loadMissing('supplier');
+        $invoice->loadMissing('supplier', 'companyBranch');
         $amount = (int) $data['amount'];
 
         return DB::transaction(function () use ($invoice, $data, $payer, $amount) {
             $payment = self::create([
-                'payment_number' => self::nextPaymentNumber(),
+                'payment_number' => self::nextPaymentNumber($invoice->companyBranch),
                 'supplier_id' => $invoice->supplier_id,
                 'company_branch_id' => $invoice->company_branch_id,
                 'payment_date' => $data['payment_date'],

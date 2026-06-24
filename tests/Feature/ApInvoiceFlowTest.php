@@ -285,6 +285,26 @@ class ApInvoiceFlowTest extends TestCase
             ->assertDontSee($otherInvoice->invoice_number);
     }
 
+    public function test_ap_invoice_and_supplier_payment_numbers_include_branch_code(): void
+    {
+        [$branchA] = $this->twoCompanyBranches();
+        $finance = $this->userWithRole('finance', 'finance-ap-numbering@example.test', [
+            'company_branch_id' => $branchA->id,
+        ]);
+        [$purchaseOrder] = $this->receivedPurchaseOrder(branch: $branchA);
+
+        $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, $finance);
+        $payment = SupplierPayment::payForInvoice($invoice, [
+            'payment_date' => now()->toDateString(),
+            'payment_method' => SupplierPayment::METHOD_TRANSFER,
+            'amount' => 10000,
+        ], $finance);
+        $branchCode = strtoupper(substr($branchA->code, 0, 3));
+
+        $this->assertStringContainsString("-{$branchCode}-", $invoice->invoice_number);
+        $this->assertStringContainsString("-{$branchCode}-", $payment->payment_number);
+    }
+
     public function test_branch_finance_cannot_issue_ap_invoice_for_other_branch_po(): void
     {
         [$branchA, $branchB] = $this->twoCompanyBranches();

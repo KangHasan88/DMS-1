@@ -136,12 +136,13 @@ class ApInvoice extends Model
         ])->save();
     }
 
-    public static function nextInvoiceNumber(): string
+    public static function nextInvoiceNumber(?CompanyBranch $branch = null): string
     {
         $company = CompanyProfile::defaultProfile();
         $companyCode = $company?->document_code ?: 'DMS';
+        $branchCode = $branch?->document_code ?: $branch?->code ?: 'MAIN';
         $date = now()->format('Ymd');
-        $prefix = 'AP-' . strtoupper(substr($companyCode, 0, 3)) . '-' . $date;
+        $prefix = 'AP-' . strtoupper(substr($companyCode, 0, 3)) . '-' . strtoupper(substr($branchCode, 0, 3)) . '-' . $date;
         $last = self::where('invoice_number', 'like', $prefix . '%')->orderByDesc('id')->first();
         $sequence = $last ? ((int) substr($last->invoice_number, -4)) + 1 : 1;
 
@@ -158,13 +159,13 @@ class ApInvoice extends Model
             throw new \InvalidArgumentException('PO belum memenuhi syarat untuk dibuat AP Invoice.');
         }
 
-        $purchaseOrder->loadMissing('items.product', 'supplier');
+        $purchaseOrder->loadMissing('items.product', 'supplier', 'companyBranch');
         $invoiceDate = now()->toDateString();
         $dueDate = now()->addDays(14)->toDateString();
 
         return DB::transaction(function () use ($purchaseOrder, $issuer, $invoiceDate, $dueDate) {
             $invoice = self::create([
-                'invoice_number' => self::nextInvoiceNumber(),
+                'invoice_number' => self::nextInvoiceNumber($purchaseOrder->companyBranch),
                 'purchase_order_id' => $purchaseOrder->id,
                 'supplier_id' => $purchaseOrder->supplier_id,
                 'company_branch_id' => $purchaseOrder->company_branch_id,
