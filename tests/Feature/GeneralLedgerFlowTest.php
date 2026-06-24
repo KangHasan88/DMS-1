@@ -113,6 +113,48 @@ class GeneralLedgerFlowTest extends TestCase
             ->assertDontSee('Piutang Usaha');
     }
 
+    public function test_finance_can_post_cash_bank_operational_expense(): void
+    {
+        $finance = $this->userWithRole('finance');
+        $cash = ChartAccount::create([
+            'code' => '1101',
+            'name' => 'Kas Kecil Operasional',
+            'account_type' => ChartAccount::TYPE_ASSET,
+            'normal_balance' => ChartAccount::BALANCE_DEBIT,
+            'is_cash_account' => true,
+            'is_active' => true,
+        ]);
+        $fuelExpense = ChartAccount::create([
+            'code' => '6101',
+            'name' => 'Biaya BBM',
+            'account_type' => ChartAccount::TYPE_EXPENSE,
+            'normal_balance' => ChartAccount::BALANCE_DEBIT,
+            'is_cash_account' => false,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($finance)
+            ->post(route('cash-bank.expenses.store'), [
+                'transaction_date' => '2026-06-20',
+                'cash_account_id' => $cash->id,
+                'expense_account_id' => $fuelExpense->id,
+                'amount' => 75000,
+                'reference_number' => 'BBM-001',
+                'description' => 'BBM kendaraan delivery',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $journal = JournalEntry::with('lines.account')
+            ->where('description', 'like', 'Biaya Operasional - BBM kendaraan delivery%')
+            ->firstOrFail();
+
+        $this->assertSame(75000, $journal->debit_total);
+        $this->assertSame(75000, $journal->credit_total);
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '6101' && $line->debit_amount === 75000));
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1101' && $line->credit_amount === 75000));
+    }
+
     public function test_branch_finance_only_sees_scoped_ledger_accounts(): void
     {
         [$branchA, $branchB] = $this->twoCompanyBranches();
