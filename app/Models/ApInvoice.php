@@ -115,6 +115,10 @@ class ApInvoice extends Model
 
     public function refreshPaymentStatus(): void
     {
+        if ($this->status === self::STATUS_VOID) {
+            return;
+        }
+
         $outstanding = max(0, (int) $this->total_amount - (int) $this->paid_amount);
         $status = self::STATUS_ISSUED;
 
@@ -196,6 +200,41 @@ class ApInvoice extends Model
             app(AccountingPostingService::class)->postApInvoice($invoice, $issuer);
 
             return $invoice;
+        });
+    }
+
+    public function voidInvoice(string $reason, ?User $voidedBy = null): self
+    {
+        if ($this->status === self::STATUS_VOID) {
+            throw new \InvalidArgumentException('Invoice AP ini sudah void.');
+        }
+
+        $this->loadMissing(['paymentAllocations.supplierPayment']);
+        $hasActivePayment = $this->paymentAllocations
+            ->contains(fn (SupplierPaymentAllocation $allocation) => $allocation->supplierPayment?->status !== SupplierPayment::STATUS_VOID);
+
+        if ($hasActivePayment) {
+            throw new \InvalidArgumentException('Void pembayaran supplier terlebih dahulu sebelum void AP Invoice.');
+        }
+
+        return DB::transaction(function () use ($reason, $voidedBy) {
+            $this->forceFill([
+                'status' => self::STATUS_VOID,
+                'paid_amount' => 0,
+                'outstanding_amount' => 0,
+                'voided_by' => $voidedBy?->id,
+                'voided_at' => now(),
+                'void_reason' => $reason,
+            ])->save();
+
+            app(AccountingPostingService::class)->reverseSourcePosting(self::class, $this->id, $reason, $voidedBy);
+
+            ActivityLog::record('ap_invoices', 'voided', 'AP Invoice di-void', $this, [
+                'invoice_number' => $this->invoice_number,
+                'void_reason' => $reason,
+            ]);
+
+            return $this;
         });
     }
 

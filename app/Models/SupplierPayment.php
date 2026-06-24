@@ -22,14 +22,32 @@ class SupplierPayment extends Model
         'reference_number',
         'amount',
         'unallocated_amount',
+        'status',
         'notes',
         'paid_by',
+        'voided_by',
+        'voided_at',
+        'void_reason',
     ];
 
     protected $casts = [
         'payment_date' => 'date',
         'amount' => 'integer',
         'unallocated_amount' => 'integer',
+        'voided_at' => 'datetime',
+    ];
+
+    public const STATUS_PAID = 'paid';
+    public const STATUS_VOID = 'void';
+
+    public const STATUS_LIST = [
+        self::STATUS_PAID => 'Dibayar',
+        self::STATUS_VOID => 'Void',
+    ];
+
+    public const STATUS_BADGES = [
+        self::STATUS_PAID => 'success',
+        self::STATUS_VOID => 'secondary',
     ];
 
     public const METHOD_CASH = 'cash';
@@ -59,6 +77,11 @@ class SupplierPayment extends Model
         return $this->belongsTo(User::class, 'paid_by');
     }
 
+    public function voidedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'voided_by');
+    }
+
     public function allocations(): HasMany
     {
         return $this->hasMany(SupplierPaymentAllocation::class);
@@ -69,9 +92,19 @@ class SupplierPayment extends Model
         return self::METHOD_LIST[$this->payment_method] ?? str($this->payment_method)->headline()->toString();
     }
 
+    public function getStatusLabelAttribute(): string
+    {
+        return self::STATUS_LIST[$this->status] ?? str($this->status)->headline()->toString();
+    }
+
+    public function getStatusBadgeAttribute(): string
+    {
+        return self::STATUS_BADGES[$this->status] ?? 'secondary';
+    }
+
     public function getIsFullyAllocatedAttribute(): bool
     {
-        return (int) $this->unallocated_amount <= 0;
+        return $this->status === self::STATUS_VOID || (int) $this->unallocated_amount <= 0;
     }
 
     public static function nextPaymentNumber(): string
@@ -101,6 +134,7 @@ class SupplierPayment extends Model
                 'reference_number' => $data['reference_number'] ?? null,
                 'amount' => $amount,
                 'unallocated_amount' => $amount,
+                'status' => self::STATUS_PAID,
                 'notes' => $data['notes'] ?? null,
                 'paid_by' => $payer?->id,
             ]);
@@ -116,6 +150,48 @@ class SupplierPayment extends Model
             app(AccountingPostingService::class)->postSupplierPayment($payment, $payer);
 
             return $payment;
+        });
+    }
+
+    public function voidPayment(string $reason, ?User $voidedBy = null): self
+    {
+        if ($this->status === self::STATUS_VOID) {
+            throw new \InvalidArgumentException('Pembayaran supplier ini sudah void.');
+        }
+
+        $this->loadMissing(['allocations.apInvoice', 'companyBranch']);
+
+        return DB::transaction(function () use ($reason, $voidedBy) {
+            foreach ($this->allocations as $allocation) {
+                $invoice = $allocation->apInvoice;
+
+                if (!$invoice) {
+                    continue;
+                }
+
+                $invoice->forceFill([
+                    'paid_amount' => max(0, (int) $invoice->paid_amount - (int) $allocation->amount),
+                ]);
+                $invoice->refreshPaymentStatus();
+            }
+
+            $this->forceFill([
+                'status' => self::STATUS_VOID,
+                'unallocated_amount' => 0,
+                'voided_by' => $voidedBy?->id,
+                'voided_at' => now(),
+                'void_reason' => $reason,
+            ])->save();
+
+            app(AccountingPostingService::class)->reverseSourcePosting(self::class, $this->id, $reason, $voidedBy);
+
+            ActivityLog::record('supplier_payments', 'voided', 'Pembayaran supplier di-void', $this, [
+                'payment_number' => $this->payment_number,
+                'amount' => $this->amount,
+                'void_reason' => $reason,
+            ]);
+
+            return $this;
         });
     }
 

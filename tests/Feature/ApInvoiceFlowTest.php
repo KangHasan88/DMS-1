@@ -173,6 +173,93 @@ class ApInvoiceFlowTest extends TestCase
         $this->assertSame(60000, $invoice->outstanding_amount);
     }
 
+    public function test_finance_can_void_supplier_payment_and_restore_ap_invoice_outstanding(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ap-payment-void@example.test');
+        [$purchaseOrder] = $this->receivedPurchaseOrder();
+        $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, $finance);
+        $payment = SupplierPayment::payForInvoice($invoice, [
+            'payment_date' => now()->toDateString(),
+            'payment_method' => SupplierPayment::METHOD_TRANSFER,
+            'amount' => 20000,
+        ], $finance);
+
+        $this->actingAs($finance)
+            ->post(route('supplier-payments.void', $payment), [
+                'void_reason' => 'Salah nominal',
+            ])
+            ->assertRedirect(route('ap-invoices.show', $invoice));
+
+        $invoice->refresh();
+        $payment->refresh();
+        $originalJournal = JournalEntry::where('source_type', SupplierPayment::class)
+            ->where('source_id', $payment->id)
+            ->firstOrFail();
+        $reversal = JournalEntry::where('source_type', JournalEntry::class)
+            ->where('source_id', $originalJournal->id)
+            ->firstOrFail();
+
+        $this->assertSame(SupplierPayment::STATUS_VOID, $payment->status);
+        $this->assertSame('Salah nominal', $payment->void_reason);
+        $this->assertSame(0, $invoice->paid_amount);
+        $this->assertSame(60000, $invoice->outstanding_amount);
+        $this->assertSame(ApInvoice::STATUS_ISSUED, $invoice->status);
+        $this->assertSame(JournalEntry::STATUS_VOID, $originalJournal->fresh()->status);
+        $this->assertSame(20000, $reversal->debit_total);
+        $this->assertSame(20000, $reversal->credit_total);
+    }
+
+    public function test_finance_can_void_unpaid_ap_invoice_with_reversal_entry(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ap-void@example.test');
+        [$purchaseOrder] = $this->receivedPurchaseOrder();
+        $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, $finance);
+
+        $this->actingAs($finance)
+            ->post(route('ap-invoices.void', $invoice), [
+                'void_reason' => 'Salah terbit AP invoice',
+            ])
+            ->assertRedirect(route('ap-invoices.show', $invoice));
+
+        $invoice->refresh();
+        $originalJournal = JournalEntry::where('source_type', ApInvoice::class)
+            ->where('source_id', $invoice->id)
+            ->firstOrFail();
+        $reversal = JournalEntry::where('source_type', JournalEntry::class)
+            ->where('source_id', $originalJournal->id)
+            ->firstOrFail();
+
+        $this->assertSame(ApInvoice::STATUS_VOID, $invoice->status);
+        $this->assertSame(0, $invoice->paid_amount);
+        $this->assertSame(0, $invoice->outstanding_amount);
+        $this->assertSame('Salah terbit AP invoice', $invoice->void_reason);
+        $this->assertSame(JournalEntry::STATUS_VOID, $originalJournal->fresh()->status);
+        $this->assertSame(60000, $reversal->debit_total);
+        $this->assertSame(60000, $reversal->credit_total);
+    }
+
+    public function test_ap_invoice_with_active_payment_must_void_payment_first(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ap-void-blocked@example.test');
+        [$purchaseOrder] = $this->receivedPurchaseOrder();
+        $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, $finance);
+        SupplierPayment::payForInvoice($invoice, [
+            'payment_date' => now()->toDateString(),
+            'payment_method' => SupplierPayment::METHOD_TRANSFER,
+            'amount' => 20000,
+        ], $finance);
+
+        $this->actingAs($finance)
+            ->from(route('ap-invoices.show', $invoice))
+            ->post(route('ap-invoices.void', $invoice), [
+                'void_reason' => 'Salah terbit AP invoice',
+            ])
+            ->assertRedirect(route('ap-invoices.show', $invoice))
+            ->assertSessionHas('error');
+
+        $this->assertSame(ApInvoice::STATUS_PARTIALLY_PAID, $invoice->fresh()->status);
+    }
+
     public function test_branch_finance_only_sees_own_branch_ap_invoices(): void
     {
         [$branchA, $branchB] = $this->twoCompanyBranches();

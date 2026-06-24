@@ -68,10 +68,34 @@ class SupplierPaymentController extends Controller
         $supplierPayment->load([
             'supplier',
             'paidBy',
+            'voidedBy',
             'allocations.apInvoice.purchaseOrder',
         ]);
 
         return view('supplier-payments.show', compact('supplierPayment'));
+    }
+
+    public function void(Request $request, SupplierPayment $supplierPayment)
+    {
+        $this->authorizeBranchAccess($supplierPayment);
+
+        $validated = $request->validate([
+            'void_reason' => ['required', 'string', 'max:500'],
+        ]);
+
+        try {
+            $supplierPayment->voidPayment($validated['void_reason'], Auth::user());
+        } catch (\InvalidArgumentException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        $allocation = $supplierPayment->allocations()->with('apInvoice')->latest('id')->first();
+        $route = $allocation?->apInvoice
+            ? route('ap-invoices.show', $allocation->apInvoice)
+            : route('supplier-payments.show', $supplierPayment->fresh());
+
+        return redirect($route)
+            ->with('success', 'Pembayaran supplier berhasil di-void dan jurnal reversal berhasil diposting.');
     }
 
     private function authorizeBranchAccess(SupplierPayment $payment): void

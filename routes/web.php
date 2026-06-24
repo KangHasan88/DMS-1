@@ -296,6 +296,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('ap-invoices', [ApInvoiceController::class, 'store'])
         ->middleware('permission:create invoice')
         ->name('ap-invoices.store');
+    Route::post('ap-invoices/{apInvoice}/void', [ApInvoiceController::class, 'void'])
+        ->middleware('permission:create invoice')
+        ->name('ap-invoices.void');
 
     // ============= CUSTOMER PAYMENT MANAGEMENT =============
     Route::resource('customer-payments', CustomerPaymentController::class)
@@ -315,6 +318,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('supplier-payments', [SupplierPaymentController::class, 'store'])
         ->middleware('permission:process payment')
         ->name('supplier-payments.store');
+    Route::post('supplier-payments/{supplierPayment}/void', [SupplierPaymentController::class, 'void'])
+        ->middleware('permission:process payment')
+        ->name('supplier-payments.void');
 
     // ============= ACCOUNTING MANAGEMENT =============
     Route::resource('chart-accounts', ChartAccountController::class)

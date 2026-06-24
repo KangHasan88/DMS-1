@@ -4,6 +4,9 @@
 @section('breadcrumb', 'Finance / Invoice AP / Detail')
 
 @section('content')
+@php
+    $hasActivePayment = $apInvoice->paymentAllocations->contains(fn ($allocation) => $allocation->supplierPayment?->status !== \App\Models\SupplierPayment::STATUS_VOID);
+@endphp
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
@@ -11,6 +14,14 @@
             <p class="dms-section-subtitle">Invoice dari PO {{ $apInvoice->purchaseOrder?->po_number ?? '-' }}.</p>
         </div>
         <div class="dms-toolbar-actions">
+            @can('create invoice')
+                @if($apInvoice->status !== \App\Models\ApInvoice::STATUS_VOID && !$hasActivePayment)
+                    <button type="button" class="dms-btn dms-btn-outline" onclick="document.getElementById('void-ap-invoice-form').classList.toggle('d-none')">
+                        <i class="bi bi-x-circle"></i>
+                        Void
+                    </button>
+                @endif
+            @endcan
             <a href="{{ route('purchase-orders.show', $apInvoice->purchaseOrder) }}" class="dms-btn dms-btn-outline">
                 <i class="bi bi-bag-check"></i>
                 Lihat PO
@@ -21,6 +32,32 @@
             </a>
         </div>
     </div>
+
+    @if($apInvoice->status === \App\Models\ApInvoice::STATUS_VOID)
+        <div class="dms-alert dms-alert-warning">
+            <strong>Invoice AP void.</strong> {{ $apInvoice->void_reason ?: 'Tanpa alasan.' }}
+        </div>
+    @endif
+
+    @can('create invoice')
+        @if($apInvoice->status !== \App\Models\ApInvoice::STATUS_VOID && !$hasActivePayment)
+            <form id="void-ap-invoice-form" action="{{ route('ap-invoices.void', $apInvoice) }}" method="POST" class="dms-form-section d-none" style="margin-bottom: 1rem; padding: 1rem; border: 1px solid #e3ebf5; border-radius: 8px; background: #f8fbff;">
+                @csrf
+                <div class="dms-form-grid" style="align-items: end;">
+                    <div class="form-group dms-form-span-2">
+                        <label class="form-label">Alasan Void <span class="dms-required">*</span></label>
+                        <input type="text" name="void_reason" class="form-control" maxlength="500" required placeholder="Contoh: Salah terbit AP invoice">
+                        @error('void_reason') <span class="dms-error">{{ $message }}</span> @enderror
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="dms-btn dms-btn-primary" onclick="return confirm('Void AP invoice ini dan buat jurnal reversal?')">
+                            <i class="bi bi-check2-circle"></i> Proses Void
+                        </button>
+                    </div>
+                </div>
+            </form>
+        @endif
+    @endcan
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-bottom: 1rem;">
         <div style="border: 1px solid var(--k-border); border-radius: 8px; padding: 0.875rem;">
@@ -149,6 +186,7 @@
                     <th>Metode</th>
                     <th>Referensi</th>
                     <th>Dicatat Oleh</th>
+                    <th>Status</th>
                     <th>Nominal</th>
                 </tr>
             </thead>
@@ -164,11 +202,16 @@
                         <td>{{ $allocation->supplierPayment?->method_label ?? '-' }}</td>
                         <td>{{ $allocation->supplierPayment?->reference_number ?? '-' }}</td>
                         <td>{{ $allocation->supplierPayment?->paidBy?->name ?? '-' }}</td>
+                        <td>
+                            <span class="dms-badge dms-badge-{{ $allocation->supplierPayment?->status_badge ?? 'secondary' }}">
+                                {{ $allocation->supplierPayment?->status_label ?? '-' }}
+                            </span>
+                        </td>
                         <td class="dms-money">Rp {{ number_format($allocation->amount, 0, ',', '.') }}</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="dms-empty">
+                        <td colspan="7" class="dms-empty">
                             <i class="bi bi-bank"></i>
                             <p>Belum ada pembayaran supplier</p>
                         </td>

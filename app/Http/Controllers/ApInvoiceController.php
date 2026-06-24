@@ -86,6 +86,24 @@ class ApInvoiceController extends Controller
         return view('ap-invoices.show', compact('apInvoice'));
     }
 
+    public function void(Request $request, ApInvoice $apInvoice)
+    {
+        $this->authorizeBranchAccess($apInvoice);
+
+        $validated = $request->validate([
+            'void_reason' => ['required', 'string', 'max:500'],
+        ]);
+
+        try {
+            $apInvoice->voidInvoice($validated['void_reason'], Auth::user());
+        } catch (\InvalidArgumentException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
+
+        return redirect()->route('ap-invoices.show', $apInvoice->fresh())
+            ->with('success', 'AP Invoice berhasil di-void dan jurnal reversal berhasil diposting.');
+    }
+
     private function authorizeBranchAccess(ApInvoice $invoice): void
     {
         $branchScopeId = Auth::user()?->scopedCompanyBranchId();
