@@ -39,7 +39,8 @@ class ProductPriceRuleController extends Controller
     {
         $validated = $request->validate([
             'product_id' => ['required', 'exists:products,id'],
-            'customer_id' => ['nullable', 'exists:customers,id'],
+            'customer_ids' => ['nullable', 'array'],
+            'customer_ids.*' => ['exists:customers,id'],
             'customer_type' => ['nullable', 'exists:customer_types,code'],
             'company_branch_id' => ['nullable', 'exists:company_branches,id'],
             'price' => ['required', 'integer', 'min:0'],
@@ -48,13 +49,21 @@ class ProductPriceRuleController extends Controller
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
 
-        if (!empty($validated['customer_id'])) {
-            $validated['customer_type'] = null;
-        }
-
+        $customerIds = collect($validated['customer_ids'] ?? [])->filter()->unique()->values();
+        unset($validated['customer_ids']);
         $validated['is_active'] = true;
 
-        ProductPriceRule::create($validated);
+        if ($customerIds->isNotEmpty()) {
+            $validated['customer_type'] = null;
+
+            $customerIds->each(function ($customerId) use ($validated) {
+                ProductPriceRule::create($validated + ['customer_id' => $customerId]);
+            });
+
+            return back()->with('success', $customerIds->count() . ' aturan harga customer berhasil ditambahkan.');
+        }
+
+        ProductPriceRule::create($validated + ['customer_id' => null]);
 
         return back()->with('success', 'Aturan harga berhasil ditambahkan.');
     }

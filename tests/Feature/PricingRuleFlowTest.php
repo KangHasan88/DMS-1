@@ -125,7 +125,7 @@ class PricingRuleFlowTest extends TestCase
         $this->actingAs($admin)
             ->post(route('product-price-rules.store'), [
                 'product_id' => $product->id,
-                'customer_id' => $customer->id,
+                'customer_ids' => [$customer->id],
                 'company_branch_id' => $branch->id,
                 'price' => 9000,
                 'starts_at' => now()->toDateString(),
@@ -140,6 +140,69 @@ class PricingRuleFlowTest extends TestCase
             'company_branch_id' => $branch->id,
             'price' => 9000,
             'is_active' => true,
+        ]);
+    }
+
+    public function test_price_rule_page_can_create_rules_for_multiple_customers(): void
+    {
+        $admin = $this->userWithRole('admin', 'price-multi-admin@example.test');
+        $branch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $firstUser = $this->userWithRole('customer', 'price-multi-first@example.test');
+        $secondUser = $this->userWithRole('customer', 'price-multi-second@example.test');
+        $firstCustomer = Customer::create([
+            'user_id' => $firstUser->id,
+            'company_branch_id' => $branch->id,
+            'name' => 'Customer Harga Pertama',
+            'phone' => '081234567896',
+            'email' => 'price-multi-first@example.test',
+            'customer_type' => 'regular',
+            'payment_term' => Customer::PAYMENT_CASH,
+            'credit_status' => Customer::CREDIT_NORMAL,
+            'is_active' => true,
+        ]);
+        $secondCustomer = Customer::create([
+            'user_id' => $secondUser->id,
+            'company_branch_id' => $branch->id,
+            'name' => 'Customer Harga Kedua',
+            'phone' => '081234567897',
+            'email' => 'price-multi-second@example.test',
+            'customer_type' => 'wholesale',
+            'payment_term' => Customer::PAYMENT_CASH,
+            'credit_status' => Customer::CREDIT_NORMAL,
+            'is_active' => true,
+        ]);
+        $product = Product::create([
+            'name' => 'Produk Harga Multi Customer',
+            'category' => 'Demo',
+            'price' => 20000,
+            'base_price' => 12000,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('product-price-rules.store'), [
+                'product_id' => $product->id,
+                'customer_ids' => [$firstCustomer->id, $secondCustomer->id],
+                'customer_type' => 'wholesale',
+                'company_branch_id' => $branch->id,
+                'price' => 16000,
+                'starts_at' => now()->toDateString(),
+                'notes' => 'Harga khusus dua customer',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('product_price_rules', [
+            'product_id' => $product->id,
+            'customer_id' => $firstCustomer->id,
+            'customer_type' => null,
+            'price' => 16000,
+        ]);
+        $this->assertDatabaseHas('product_price_rules', [
+            'product_id' => $product->id,
+            'customer_id' => $secondCustomer->id,
+            'customer_type' => null,
+            'price' => 16000,
         ]);
     }
 
