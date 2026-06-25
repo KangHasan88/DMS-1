@@ -16,6 +16,7 @@ use App\Models\SupplierPayment;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class ApInvoiceFlowTest extends TestCase
@@ -575,6 +576,35 @@ class ApInvoiceFlowTest extends TestCase
         $invoice->refresh();
         $this->assertSame(ApInvoice::TAX_CLAIMABLE, $invoice->tax_status);
         $this->assertNull($invoice->tax_exported_at);
+    }
+
+    public function test_finance_can_import_input_tax_results_from_csv(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ap-tax-import@example.test');
+        [$purchaseOrder] = $this->receivedPurchaseOrder();
+        $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, $finance);
+        $invoice->forceFill([
+            'ppn_amount' => 6000,
+            'tax_base_amount' => 60000,
+            'tax_rate' => 11,
+            'tax_status' => ApInvoice::TAX_EXPORTED,
+            'supplier_tax_invoice_number' => '010.000-26.00000010',
+            'supplier_tax_invoice_date' => now()->toDateString(),
+        ])->save();
+        $file = UploadedFile::fake()->createWithContent(
+            'input-tax-results.csv',
+            "invoice_number,tax_status,supplier_tax_invoice_number,supplier_tax_invoice_date,tax_error_message\n"
+            . $invoice->invoice_number . ",rejected,010.000-26.00000010," . now()->toDateString() . ",NPWP supplier tidak valid\n"
+        );
+
+        $this->actingAs($finance)
+            ->post(route('tax.input.import-results'), ['result_file' => $file])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $invoice->refresh();
+        $this->assertSame(ApInvoice::TAX_REJECTED, $invoice->tax_status);
+        $this->assertSame('NPWP supplier tidak valid', $invoice->tax_error_message);
     }
 
     private function receivedPurchaseOrder(

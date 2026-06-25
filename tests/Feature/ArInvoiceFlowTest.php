@@ -16,6 +16,7 @@ use App\Models\Product;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class ArInvoiceFlowTest extends TestCase
@@ -527,6 +528,40 @@ class ArInvoiceFlowTest extends TestCase
         $invoice->refresh();
         $this->assertSame(ArInvoice::TAX_READY, $invoice->tax_status);
         $this->assertNull($invoice->tax_exported_at);
+    }
+
+    public function test_finance_can_import_output_tax_results_from_csv(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ar-tax-import@example.test');
+        [$order] = $this->deliveredOrder();
+        $order->forceFill([
+            'subtotal' => 100000,
+            'total' => 111000,
+            'grand_total' => 111000,
+            'include_ppn' => true,
+            'ppn_amount' => 11000,
+        ])->save();
+        $invoice = ArInvoice::issueFromOrder($order, $finance);
+        $invoice->forceFill([
+            'tax_status' => ArInvoice::TAX_EXPORTED,
+            'tax_invoice_number' => '010.000-26.00000009',
+            'tax_invoice_date' => now()->toDateString(),
+        ])->save();
+        $file = UploadedFile::fake()->createWithContent(
+            'output-tax-results.csv',
+            "invoice_number,tax_status,tax_invoice_number,tax_invoice_date,tax_error_message\n"
+            . $invoice->invoice_number . ",approved,010.000-26.00000009," . now()->toDateString() . ",\n"
+        );
+
+        $this->actingAs($finance)
+            ->post(route('tax.output.import-results'), ['result_file' => $file])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $invoice->refresh();
+        $this->assertSame(ArInvoice::TAX_APPROVED, $invoice->tax_status);
+        $this->assertNotNull($invoice->tax_approved_at);
+        $this->assertNull($invoice->tax_error_message);
     }
 
     private function deliveredOrder(string $status = Order::STATUS_DELIVERED): array

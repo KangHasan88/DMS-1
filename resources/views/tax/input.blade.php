@@ -119,6 +119,37 @@
         margin: 0;
     }
 
+    .tax-import-panel {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        padding: .75rem .85rem;
+        border: 1px solid #dbe4f0;
+        border-radius: 10px;
+        background: #fbfdff;
+    }
+
+    .tax-import-copy {
+        display: flex;
+        align-items: center;
+        gap: .55rem;
+        color: #315076;
+        font-size: .9rem;
+    }
+
+    .tax-import-form {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        margin: 0;
+    }
+
+    .tax-import-form .form-control {
+        max-width: 260px;
+        min-height: 38px;
+    }
+
     @media (max-width: 900px) {
         .tax-page-header {
             flex-direction: column;
@@ -174,6 +205,20 @@
         <i class="bi bi-info-circle"></i>
         <span>Dokumen hanya bisa ditandai exported jika nomor dan tanggal faktur pajak supplier sudah lengkap.</span>
     </div>
+
+    @can('create invoice')
+        <div class="tax-import-panel">
+            <div class="tax-import-copy">
+                <i class="bi bi-upload"></i>
+                <span>Import hasil Coretax CSV: invoice_number, tax_status, supplier_tax_invoice_number, supplier_tax_invoice_date, tax_error_message.</span>
+            </div>
+            <form action="{{ route('tax.input.import-results') }}" method="POST" enctype="multipart/form-data" class="tax-import-form">
+                @csrf
+                <input type="file" name="result_file" class="form-control" accept=".csv,text/csv,text/plain" required>
+                <button type="submit" class="dms-btn dms-btn-outline"><i class="bi bi-upload"></i> Import</button>
+            </form>
+        </div>
+    @endcan
 
     <div class="stats-grid tax-stats" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
         <div class="stat-card">

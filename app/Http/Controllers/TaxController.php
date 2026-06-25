@@ -96,6 +96,50 @@ class TaxController extends Controller
         return back()->with('success', $count . ' pajak keluaran ditandai approved.');
     }
 
+    public function importOutputResults(Request $request)
+    {
+        $request->validate([
+            'result_file' => ['required', 'file', 'max:2048'],
+        ]);
+
+        $result = $this->importCsvRows($request->file('result_file')->getRealPath(), function (array $row) {
+            $invoiceNumber = trim((string) ($row['invoice_number'] ?? ''));
+            $status = trim((string) ($row['tax_status'] ?? ''));
+
+            if ($invoiceNumber === '' || !array_key_exists($status, ArInvoice::TAX_STATUS_LIST)) {
+                return false;
+            }
+
+            $invoice = ArInvoice::where('invoice_number', $invoiceNumber)->first();
+
+            if (!$invoice || !$this->canAccessBranch($invoice->company_branch_id)) {
+                return false;
+            }
+
+            $payload = [
+                'tax_status' => $status,
+                'tax_invoice_number' => $row['tax_invoice_number'] ?? $invoice->tax_invoice_number,
+                'tax_invoice_date' => $row['tax_invoice_date'] ?? $invoice->tax_invoice_date,
+                'tax_error_message' => $row['tax_error_message'] ?? null,
+            ];
+
+            if ($status === ArInvoice::TAX_EXPORTED && !$invoice->tax_exported_at) {
+                $payload['tax_exported_at'] = now();
+            }
+
+            if ($status === ArInvoice::TAX_APPROVED) {
+                $payload['tax_approved_at'] = now();
+                $payload['tax_error_message'] = null;
+            }
+
+            $invoice->update($payload);
+
+            return true;
+        });
+
+        return back()->with('success', $result['updated'] . ' hasil pajak keluaran diimport. ' . $result['skipped'] . ' baris dilewati.');
+    }
+
     public function updateOutput(Request $request, ArInvoice $arInvoice)
     {
         $this->ensureBranchAccess($arInvoice->company_branch_id);
@@ -214,6 +258,50 @@ class TaxController extends Controller
             ]);
 
         return back()->with('success', $count . ' pajak masukan ditandai approved.');
+    }
+
+    public function importInputResults(Request $request)
+    {
+        $request->validate([
+            'result_file' => ['required', 'file', 'max:2048'],
+        ]);
+
+        $result = $this->importCsvRows($request->file('result_file')->getRealPath(), function (array $row) {
+            $invoiceNumber = trim((string) ($row['invoice_number'] ?? ''));
+            $status = trim((string) ($row['tax_status'] ?? ''));
+
+            if ($invoiceNumber === '' || !array_key_exists($status, ApInvoice::TAX_STATUS_LIST)) {
+                return false;
+            }
+
+            $invoice = ApInvoice::where('invoice_number', $invoiceNumber)->first();
+
+            if (!$invoice || !$this->canAccessBranch($invoice->company_branch_id)) {
+                return false;
+            }
+
+            $payload = [
+                'tax_status' => $status,
+                'supplier_tax_invoice_number' => $row['supplier_tax_invoice_number'] ?? $invoice->supplier_tax_invoice_number,
+                'supplier_tax_invoice_date' => $row['supplier_tax_invoice_date'] ?? $invoice->supplier_tax_invoice_date,
+                'tax_error_message' => $row['tax_error_message'] ?? null,
+            ];
+
+            if ($status === ApInvoice::TAX_EXPORTED && !$invoice->tax_exported_at) {
+                $payload['tax_exported_at'] = now();
+            }
+
+            if ($status === ApInvoice::TAX_APPROVED) {
+                $payload['tax_approved_at'] = now();
+                $payload['tax_error_message'] = null;
+            }
+
+            $invoice->update($payload);
+
+            return true;
+        });
+
+        return back()->with('success', $result['updated'] . ' hasil pajak masukan diimport. ' . $result['skipped'] . ' baris dilewati.');
     }
 
     public function updateInput(Request $request, ApInvoice $apInvoice)
@@ -343,8 +431,37 @@ class TaxController extends Controller
 
     private function ensureBranchAccess(?int $companyBranchId): void
     {
+        abort_unless($this->canAccessBranch($companyBranchId), 404);
+    }
+
+    private function canAccessBranch(?int $companyBranchId): bool
+    {
         $branchScopeId = $this->currentBranchScopeId();
 
-        abort_if($branchScopeId && (int) $companyBranchId !== (int) $branchScopeId, 404);
+        return !$branchScopeId || (int) $companyBranchId === (int) $branchScopeId;
+    }
+
+    private function importCsvRows(string $path, callable $handler): array
+    {
+        $handle = fopen($path, 'r');
+        $headers = fgetcsv($handle) ?: [];
+        $headers = array_map(fn ($header) => str($header)->trim()->snake()->toString(), $headers);
+        $updated = 0;
+        $skipped = 0;
+
+        while (($values = fgetcsv($handle)) !== false) {
+            $row = array_combine($headers, array_pad($values, count($headers), null));
+
+            if (!$row || !$handler($row)) {
+                $skipped++;
+                continue;
+            }
+
+            $updated++;
+        }
+
+        fclose($handle);
+
+        return compact('updated', 'skipped');
     }
 }
