@@ -40,7 +40,8 @@ class ProductDiscountRuleController extends Controller
     {
         $validated = $request->validate([
             'product_id' => ['nullable', 'exists:products,id'],
-            'customer_id' => ['nullable', 'exists:customers,id'],
+            'customer_ids' => ['nullable', 'array'],
+            'customer_ids.*' => ['exists:customers,id'],
             'customer_type' => ['nullable', 'exists:customer_types,code'],
             'company_branch_id' => ['nullable', 'exists:company_branches,id'],
             'discount_type' => ['required', 'in:percent,nominal'],
@@ -55,13 +56,21 @@ class ProductDiscountRuleController extends Controller
             $request->validate(['discount_value' => ['numeric', 'max:100']]);
         }
 
-        if (!empty($validated['customer_id'])) {
-            $validated['customer_type'] = null;
-        }
-
+        $customerIds = collect($validated['customer_ids'] ?? [])->filter()->unique()->values();
+        unset($validated['customer_ids']);
         $validated['is_active'] = true;
 
-        ProductDiscountRule::create($validated);
+        if ($customerIds->isNotEmpty()) {
+            $validated['customer_type'] = null;
+
+            $customerIds->each(function ($customerId) use ($validated) {
+                ProductDiscountRule::create($validated + ['customer_id' => $customerId]);
+            });
+
+            return back()->with('success', $customerIds->count() . ' aturan diskon customer berhasil ditambahkan.');
+        }
+
+        ProductDiscountRule::create($validated + ['customer_id' => null]);
 
         return back()->with('success', 'Aturan diskon berhasil ditambahkan.');
     }

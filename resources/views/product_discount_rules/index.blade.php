@@ -57,6 +57,10 @@
         justify-content: flex-end;
     }
 
+    .discount-rule-hidden {
+        display: none;
+    }
+
     .discount-rule-scope {
         color: #315076;
         font-size: .82rem;
@@ -151,25 +155,26 @@
                     @endforeach
                 </select>
             </div>
-            <div class="form-group">
+            <div class="form-group span-2">
                 <label class="form-label">Customer Khusus</label>
-                <select name="customer_id" class="form-control">
-                    <option value="">Tidak spesifik</option>
+                <select name="customer_ids[]" id="discount-customer-ids" class="form-control" multiple size="4">
                     @foreach($customers as $customer)
-                        <option value="{{ $customer->id }}" {{ (string) old('customer_id') === (string) $customer->id ? 'selected' : '' }}>{{ $customer->name }}</option>
+                        <option value="{{ $customer->id }}" {{ in_array((string) $customer->id, array_map('strval', old('customer_ids', [])), true) ? 'selected' : '' }}>{{ $customer->name }}</option>
                     @endforeach
                 </select>
-                <small class="dms-form-help">Prioritas tertinggi.</small>
+                <small class="dms-form-help">Bisa pilih lebih dari satu. Jika diisi, sistem membuat rule per customer dan segment tidak dipakai.</small>
+                @error('customer_ids') <span class="dms-error">{{ $message }}</span> @enderror
+                @error('customer_ids.*') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
-            <div class="form-group">
+            <div class="form-group" id="discount-segment-group">
                 <label class="form-label">Segment Customer</label>
-                <select name="customer_type" class="form-control">
+                <select name="customer_type" id="discount-customer-type" class="form-control">
                     <option value="">Semua segment</option>
                     @foreach($customerTypes as $type)
                         <option value="{{ $type->code }}" {{ old('customer_type') === $type->code ? 'selected' : '' }}>{{ $type->name }}</option>
                     @endforeach
                 </select>
-                <small class="dms-form-help">Diabaikan jika customer khusus dipilih.</small>
+                <small class="dms-form-help">Dipakai hanya jika customer khusus kosong.</small>
             </div>
             <div class="form-group">
                 <label class="form-label">Mulai Berlaku <span class="text-danger">*</span></label>
@@ -246,4 +251,28 @@
         {{ $rules->links() }}
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const customerSelect = document.getElementById('discount-customer-ids');
+        const segmentGroup = document.getElementById('discount-segment-group');
+        const segmentSelect = document.getElementById('discount-customer-type');
+
+        function syncSegmentVisibility() {
+            const hasSpecificCustomer = Array.from(customerSelect?.selectedOptions || []).length > 0;
+
+            segmentGroup?.classList.toggle('discount-rule-hidden', hasSpecificCustomer);
+
+            if (segmentSelect) {
+                segmentSelect.disabled = hasSpecificCustomer;
+                if (hasSpecificCustomer) {
+                    segmentSelect.value = '';
+                }
+            }
+        }
+
+        customerSelect?.addEventListener('change', syncSegmentVisibility);
+        syncSegmentVisibility();
+    });
+</script>
 @endsection

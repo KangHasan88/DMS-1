@@ -229,6 +229,73 @@ class PricingRuleFlowTest extends TestCase
         ]);
     }
 
+    public function test_discount_rule_page_can_create_rules_for_multiple_customers(): void
+    {
+        $admin = $this->userWithRole('admin', 'discount-multi-admin@example.test');
+        $branch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $firstUser = $this->userWithRole('customer', 'discount-multi-first@example.test');
+        $secondUser = $this->userWithRole('customer', 'discount-multi-second@example.test');
+        $firstCustomer = Customer::create([
+            'user_id' => $firstUser->id,
+            'company_branch_id' => $branch->id,
+            'name' => 'Customer Promo Pertama',
+            'phone' => '081234567894',
+            'email' => 'discount-multi-first@example.test',
+            'customer_type' => 'regular',
+            'payment_term' => Customer::PAYMENT_CASH,
+            'credit_status' => Customer::CREDIT_NORMAL,
+            'is_active' => true,
+        ]);
+        $secondCustomer = Customer::create([
+            'user_id' => $secondUser->id,
+            'company_branch_id' => $branch->id,
+            'name' => 'Customer Promo Kedua',
+            'phone' => '081234567895',
+            'email' => 'discount-multi-second@example.test',
+            'customer_type' => 'wholesale',
+            'payment_term' => Customer::PAYMENT_CASH,
+            'credit_status' => Customer::CREDIT_NORMAL,
+            'is_active' => true,
+        ]);
+        $product = Product::create([
+            'name' => 'Produk Diskon Multi Customer',
+            'category' => 'Demo',
+            'price' => 18000,
+            'base_price' => 11000,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('product-discount-rules.store'), [
+                'product_id' => $product->id,
+                'customer_ids' => [$firstCustomer->id, $secondCustomer->id],
+                'customer_type' => 'wholesale',
+                'company_branch_id' => $branch->id,
+                'discount_type' => ProductDiscountRule::TYPE_NOMINAL,
+                'discount_value' => 1000,
+                'min_quantity' => 1,
+                'starts_at' => now()->toDateString(),
+                'notes' => 'Promo khusus dua customer',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('product_discount_rules', [
+            'product_id' => $product->id,
+            'customer_id' => $firstCustomer->id,
+            'customer_type' => null,
+            'discount_type' => ProductDiscountRule::TYPE_NOMINAL,
+            'discount_value' => 1000,
+        ]);
+        $this->assertDatabaseHas('product_discount_rules', [
+            'product_id' => $product->id,
+            'customer_id' => $secondCustomer->id,
+            'customer_type' => null,
+            'discount_type' => ProductDiscountRule::TYPE_NOMINAL,
+            'discount_value' => 1000,
+        ]);
+    }
+
     public function test_order_applies_active_discount_rule_when_item_has_no_manual_discount(): void
     {
         $admin = $this->userWithRole('admin', 'discount-order-admin@example.test');
