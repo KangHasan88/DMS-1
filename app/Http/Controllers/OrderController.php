@@ -14,6 +14,7 @@ use App\Models\CompanyBranch;
 use App\Models\CompanyProfile;
 use App\Models\DeliveryTimeSlot;
 use App\Services\OrderReturnablePackagingService;
+use App\Services\ProductBonusService;
 use App\Services\ProductDiscountService;
 use App\Services\ProductPricingService;
 use Illuminate\Http\Request;
@@ -1034,6 +1035,7 @@ class OrderController extends Controller
         $discount = app(ProductDiscountService::class)->resolveItemDiscount($product, $price, $quantity, $customer, $companyBranchId);
         $discountAmount = (int) ($discount['amount'] ?? 0);
         $discountRule = $discount['rule'] ?? null;
+        $bonusRule = app(ProductBonusService::class)->resolveBonus($product, $quantity, $customer, $companyBranchId);
 
         return response()->json([
             'price' => $price,
@@ -1041,6 +1043,9 @@ class OrderController extends Controller
             'auto_discount_amount' => $discountAmount,
             'formatted_auto_discount' => 'Rp ' . number_format($discountAmount, 0, ',', '.'),
             'auto_discount_label' => $discountRule ? $discountRule->discount_label : null,
+            'bonus_label' => $bonusRule ? $bonusRule->bonus_label : null,
+            'bonus_product_id' => $bonusRule?->bonus_product_id,
+            'bonus_quantity' => $bonusRule?->bonus_quantity,
         ]);
     }
 

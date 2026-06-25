@@ -30,6 +30,7 @@ return [
     'products' => 'Produk',
     'price_lists' => 'Daftar Harga',
     'discount_rules' => 'Aturan Diskon',
+    'bonus_rules' => 'Aturan Bonus',
     'finance' => 'Keuangan',
     'accounting' => 'Akuntansi',
     'chart_accounts' => 'Daftar Akun',

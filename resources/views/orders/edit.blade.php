@@ -112,6 +112,7 @@
                                 <div class="auto-discount-hint" style="display: {{ $item->discount > 0 ? 'block' : 'none' }}; margin-top: .25rem; font-size: .72rem; color: var(--k-green); font-weight: 700;">
                                     {{ $item->discount > 0 ? 'Diskon: -Rp ' . number_format($item->discount, 0, ',', '.') : '' }}
                                 </div>
+                                <div class="bonus-rule-hint" style="display: none; margin-top: .25rem; font-size: .72rem; color: var(--k-orange); font-weight: 700;"></div>
                                 <input type="hidden" name="items[{{ $index }}][subtotal]" class="subtotal-input" value="{{ $item->subtotal }}">
                             </td>
                             <td>
@@ -250,6 +251,7 @@ function addProductRow() {
          <td>
             <span class="subtotal-display">Rp 0</span>
             <div class="auto-discount-hint" style="display: none; margin-top: .25rem; font-size: .72rem; color: var(--k-green); font-weight: 700;"></div>
+            <div class="bonus-rule-hint" style="display: none; margin-top: .25rem; font-size: .72rem; color: var(--k-orange); font-weight: 700;"></div>
             <input type="hidden" name="items[${productIndex}][subtotal]" class="subtotal-input" value="0">
          </td>
          <td>
@@ -315,6 +317,7 @@ async function updateProductPrice(select, index) {
 
         row.dataset.autoDiscountAmount = parseInt(data.auto_discount_amount || 0);
         updateAutoDiscountHint(row, data.formatted_auto_discount, data.auto_discount_label);
+        updateBonusRuleHint(row, data.bonus_label);
         calculateSubtotal(row.querySelector('.quantity-input'), index);
     } catch (error) {
         console.warn('Gagal mengambil harga price list', error);
@@ -329,6 +332,19 @@ function updateAutoDiscountHint(row, formattedAmount, label) {
 
     if (amount > 0) {
         hint.innerText = `Auto: -${formattedAmount || ('Rp ' + new Intl.NumberFormat('id-ID').format(amount))}${label ? ' (' + label + ')' : ''}`;
+        hint.style.display = 'block';
+    } else {
+        hint.innerText = '';
+        hint.style.display = 'none';
+    }
+}
+
+function updateBonusRuleHint(row, bonusLabel) {
+    const hint = row.querySelector('.bonus-rule-hint');
+    if (!hint) return;
+
+    if (bonusLabel) {
+        hint.innerText = `Eligible bonus: ${bonusLabel}`;
         hint.style.display = 'block';
     } else {
         hint.innerText = '';

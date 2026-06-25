@@ -30,6 +30,7 @@ return [
     'products' => 'Products',
     'price_lists' => 'Price Lists',
     'discount_rules' => 'Discount Rules',
+    'bonus_rules' => 'Bonus Rules',
     'finance' => 'Finance',
     'accounting' => 'Accounting',
     'chart_accounts' => 'Chart of Accounts',

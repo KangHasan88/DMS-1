@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\ProductBonusRule;
 use App\Models\ProductDiscountRule;
 use App\Models\ProductPriceRule;
 use App\Models\ProductStock;
@@ -298,6 +299,167 @@ class PricingRuleFlowTest extends TestCase
                 'formatted_auto_discount' => 'Rp 2.000',
                 'auto_discount_label' => '10%',
             ]);
+    }
+
+    public function test_bonus_rule_page_can_create_segment_rule(): void
+    {
+        $admin = $this->userWithRole('admin', 'bonus-page-admin@example.test');
+        $branch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $triggerProduct = Product::create([
+            'name' => 'Produk Trigger Bonus',
+            'category' => 'Demo',
+            'price' => 25000,
+            'base_price' => 15000,
+            'is_active' => true,
+        ]);
+        $bonusProduct = Product::create([
+            'name' => 'Produk Bonus Rule',
+            'category' => 'Demo',
+            'price' => 5000,
+            'base_price' => 2500,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('product-bonus-rules.index'))
+            ->assertOk()
+            ->assertSee('Aturan Bonus');
+
+        $this->actingAs($admin)
+            ->post(route('product-bonus-rules.store'), [
+                'trigger_product_id' => $triggerProduct->id,
+                'bonus_product_id' => $bonusProduct->id,
+                'customer_type' => 'wholesale',
+                'company_branch_id' => $branch->id,
+                'min_quantity' => 3,
+                'bonus_quantity' => 1,
+                'starts_at' => now()->toDateString(),
+                'notes' => 'Promo bonus segment',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('product_bonus_rules', [
+            'trigger_product_id' => $triggerProduct->id,
+            'bonus_product_id' => $bonusProduct->id,
+            'customer_type' => 'wholesale',
+            'company_branch_id' => $branch->id,
+            'min_quantity' => 3,
+            'bonus_quantity' => 1,
+            'is_active' => true,
+        ]);
+    }
+
+    public function test_product_price_info_endpoint_returns_bonus_preview(): void
+    {
+        $admin = $this->userWithRole('admin', 'bonus-preview-admin@example.test');
+        $branch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $customerUser = $this->userWithRole('customer', 'bonus-preview-customer@example.test');
+        Customer::create([
+            'user_id' => $customerUser->id,
+            'company_branch_id' => $branch->id,
+            'name' => 'Customer Preview Bonus',
+            'phone' => '081234567900',
+            'email' => 'bonus-preview-customer@example.test',
+            'customer_type' => 'wholesale',
+            'payment_term' => Customer::PAYMENT_CASH,
+            'credit_status' => Customer::CREDIT_NORMAL,
+            'is_active' => true,
+        ]);
+        $triggerProduct = Product::create([
+            'name' => 'Produk Trigger Preview Bonus',
+            'category' => 'Demo',
+            'price' => 30000,
+            'base_price' => 18000,
+            'is_active' => true,
+        ]);
+        $bonusProduct = Product::create([
+            'name' => 'Produk Bonus Preview',
+            'category' => 'Demo',
+            'price' => 6000,
+            'base_price' => 3000,
+            'is_active' => true,
+        ]);
+        ProductBonusRule::create([
+            'trigger_product_id' => $triggerProduct->id,
+            'bonus_product_id' => $bonusProduct->id,
+            'customer_type' => 'wholesale',
+            'company_branch_id' => $branch->id,
+            'min_quantity' => 3,
+            'bonus_quantity' => 1,
+            'starts_at' => now()->subDay()->toDateString(),
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($admin)
+            ->getJson(route('products.price-info', [
+                'product' => $triggerProduct,
+                'user_id' => $customerUser->id,
+                'company_branch_id' => $branch->id,
+                'quantity' => 3,
+            ]))
+            ->assertOk()
+            ->assertJson([
+                'price' => 30000,
+                'bonus_product_id' => $bonusProduct->id,
+                'bonus_quantity' => 1,
+            ]);
+
+        $this->assertStringContainsString('Produk Bonus Preview', $response->json('bonus_label'));
+    }
+
+    public function test_bonus_rule_rejects_overlapping_active_rule_for_same_scope(): void
+    {
+        $admin = $this->userWithRole('admin', 'bonus-overlap-admin@example.test');
+        $branch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $triggerProduct = Product::create([
+            'name' => 'Produk Bonus Overlap',
+            'category' => 'Demo',
+            'price' => 21000,
+            'base_price' => 11000,
+            'is_active' => true,
+        ]);
+        $firstBonusProduct = Product::create([
+            'name' => 'Bonus Pertama',
+            'category' => 'Demo',
+            'price' => 5000,
+            'base_price' => 2500,
+            'is_active' => true,
+        ]);
+        $secondBonusProduct = Product::create([
+            'name' => 'Bonus Kedua',
+            'category' => 'Demo',
+            'price' => 7000,
+            'base_price' => 3500,
+            'is_active' => true,
+        ]);
+        ProductBonusRule::create([
+            'trigger_product_id' => $triggerProduct->id,
+            'bonus_product_id' => $firstBonusProduct->id,
+            'customer_type' => 'wholesale',
+            'company_branch_id' => $branch->id,
+            'min_quantity' => 2,
+            'bonus_quantity' => 1,
+            'starts_at' => now()->subDay()->toDateString(),
+            'ends_at' => now()->addWeek()->toDateString(),
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('product-bonus-rules.index'))
+            ->post(route('product-bonus-rules.store'), [
+                'trigger_product_id' => $triggerProduct->id,
+                'bonus_product_id' => $secondBonusProduct->id,
+                'customer_type' => 'wholesale',
+                'company_branch_id' => $branch->id,
+                'min_quantity' => 2,
+                'bonus_quantity' => 1,
+                'starts_at' => now()->toDateString(),
+            ])
+            ->assertRedirect(route('product-bonus-rules.index'))
+            ->assertSessionHasErrors('starts_at');
+
+        $this->assertSame(1, ProductBonusRule::where('trigger_product_id', $triggerProduct->id)->count());
     }
 
     public function test_price_rule_rejects_overlapping_active_rule_for_same_scope(): void

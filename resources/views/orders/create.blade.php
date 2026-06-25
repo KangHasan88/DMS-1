@@ -221,6 +221,7 @@
                             <td style="padding: 0.5rem;">
                                 <input type="number" name="items[0][discount_percent]" class="discount-percent-input" value="0" min="0" max="100" step="1" onchange="calculateSubtotal(this, 0)" style="width: 100%; padding: 0.4rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.7rem;">
                                 <div class="auto-discount-hint" style="display: none; margin-top: .25rem; font-size: .62rem; color: var(--k-green); font-weight: 700;"></div>
+                                <div class="bonus-rule-hint" style="display: none; margin-top: .25rem; font-size: .62rem; color: var(--k-orange); font-weight: 700;"></div>
                             </td>
                             <td style="padding: 0.5rem;">
                                 <span class="subtotal-display" style="font-weight: 500; color: var(--k-green); font-size: 0.75rem;">Rp 0</span>
@@ -919,6 +920,7 @@ function addProductRow() {
         <td style="padding: 0.5rem;">
             <input type="number" name="items[${productIndex}][discount_percent]" class="discount-percent-input" value="0" min="0" max="100" step="1" onchange="calculateSubtotal(this, ${productIndex})" style="width: 100%; padding: 0.4rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.7rem;">
             <div class="auto-discount-hint" style="display: none; margin-top: .25rem; font-size: .62rem; color: var(--k-green); font-weight: 700;"></div>
+            <div class="bonus-rule-hint" style="display: none; margin-top: .25rem; font-size: .62rem; color: var(--k-orange); font-weight: 700;"></div>
         </td>
         <td style="padding: 0.5rem;">
             <span class="subtotal-display" style="font-weight: 500; color: var(--k-green); font-size: 0.75rem;">Rp 0</span>
@@ -987,6 +989,7 @@ async function updateProductPrice(select, index) {
 
         row.dataset.autoDiscountAmount = parseInt(data.auto_discount_amount || 0);
         updateAutoDiscountHint(row, data.formatted_auto_discount, data.auto_discount_label);
+        updateBonusRuleHint(row, data.bonus_label);
         calculateSubtotal(row.querySelector('.quantity-input'), index);
     } catch (error) {
         console.warn('Gagal mengambil harga price list', error);
@@ -1002,6 +1005,19 @@ function updateAutoDiscountHint(row, formattedAmount, label) {
 
     if (amount > 0 && manualDiscount <= 0) {
         hint.innerText = `Auto: -${formattedAmount || ('Rp ' + new Intl.NumberFormat('id-ID').format(amount))}${label ? ' (' + label + ')' : ''}`;
+        hint.style.display = 'block';
+    } else {
+        hint.innerText = '';
+        hint.style.display = 'none';
+    }
+}
+
+function updateBonusRuleHint(row, bonusLabel) {
+    const hint = row.querySelector('.bonus-rule-hint');
+    if (!hint) return;
+
+    if (bonusLabel) {
+        hint.innerText = `Eligible bonus: ${bonusLabel}`;
         hint.style.display = 'block';
     } else {
         hint.innerText = '';

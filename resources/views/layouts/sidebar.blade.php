@@ -1337,6 +1337,12 @@
                                 <span>{{ __('navigation.discount_rules') }}</span>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{ route('product-bonus-rules.index') }}" class="nav-link {{ request()->routeIs('product-bonus-rules.*') ? 'active' : '' }}">
+                                <i class="bi bi-gift"></i>
+                                <span>{{ __('navigation.bonus_rules') }}</span>
+                            </a>
+                        </li>
                         @endcan
                         
                         <!-- Return Out (Retur) -->
