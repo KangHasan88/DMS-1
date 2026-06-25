@@ -101,7 +101,7 @@
                                 <div class="stock-warning" style="display: none; font-size: 0.65rem; color: var(--k-red); margin-top: 0.25rem;"></div>
                             </td>
                             <td>
-                                <input type="number" name="items[{{ $index }}][quantity]" class="form-control quantity-input" value="{{ $item->quantity }}" min="1" onchange="calculateSubtotal(this, {{ $index }})">
+                                <input type="number" name="items[{{ $index }}][quantity]" class="form-control quantity-input" value="{{ $item->quantity }}" min="1" onchange="updateProductPrice(this.closest('tr').querySelector('.product-select'), {{ $index }})">
                             </td>
                             <td>
                                 <span class="product-price-display">Rp {{ number_format($item->price, 0, ',', '.') }}</span>
@@ -109,6 +109,9 @@
                             </td>
                             <td>
                                 <span class="subtotal-display">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</span>
+                                <div class="auto-discount-hint" style="display: {{ $item->discount > 0 ? 'block' : 'none' }}; margin-top: .25rem; font-size: .72rem; color: var(--k-green); font-weight: 700;">
+                                    {{ $item->discount > 0 ? 'Diskon: -Rp ' . number_format($item->discount, 0, ',', '.') : '' }}
+                                </div>
                                 <input type="hidden" name="items[{{ $index }}][subtotal]" class="subtotal-input" value="{{ $item->subtotal }}">
                             </td>
                             <td>
@@ -238,7 +241,7 @@ function addProductRow() {
             <div class="stock-warning" style="display: none; font-size: 0.65rem; color: var(--k-red); margin-top: 0.25rem;"></div>
          </td>
          <td>
-            <input type="number" name="items[${productIndex}][quantity]" class="form-control quantity-input" value="1" min="1" onchange="calculateSubtotal(this, ${productIndex})">
+            <input type="number" name="items[${productIndex}][quantity]" class="form-control quantity-input" value="1" min="1" onchange="updateProductPrice(this.closest('tr').querySelector('.product-select'), ${productIndex})">
          </td>
          <td>
             <span class="product-price-display">Rp 0</span>
@@ -246,6 +249,7 @@ function addProductRow() {
          </td>
          <td>
             <span class="subtotal-display">Rp 0</span>
+            <div class="auto-discount-hint" style="display: none; margin-top: .25rem; font-size: .72rem; color: var(--k-green); font-weight: 700;"></div>
             <input type="hidden" name="items[${productIndex}][subtotal]" class="subtotal-input" value="0">
          </td>
          <td>
@@ -285,6 +289,7 @@ async function updateProductPrice(select, index) {
     const params = new URLSearchParams({
         user_id: orderCustomerUserId,
         company_branch_id: selectedBranchId(),
+        quantity: row.querySelector('.quantity-input')?.value || 1,
     });
 
     try {
@@ -308,9 +313,26 @@ async function updateProductPrice(select, index) {
             priceInput.value = price;
         }
 
+        row.dataset.autoDiscountAmount = parseInt(data.auto_discount_amount || 0);
+        updateAutoDiscountHint(row, data.formatted_auto_discount, data.auto_discount_label);
         calculateSubtotal(row.querySelector('.quantity-input'), index);
     } catch (error) {
         console.warn('Gagal mengambil harga price list', error);
+    }
+}
+
+function updateAutoDiscountHint(row, formattedAmount, label) {
+    const hint = row.querySelector('.auto-discount-hint');
+    const amount = parseInt(row.dataset.autoDiscountAmount || 0);
+
+    if (!hint) return;
+
+    if (amount > 0) {
+        hint.innerText = `Auto: -${formattedAmount || ('Rp ' + new Intl.NumberFormat('id-ID').format(amount))}${label ? ' (' + label + ')' : ''}`;
+        hint.style.display = 'block';
+    } else {
+        hint.innerText = '';
+        hint.style.display = 'none';
     }
 }
 
@@ -326,7 +348,8 @@ function calculateSubtotal(quantityInput, index) {
     const row = quantityInput.closest('tr');
     const price = parseInt(row.querySelector('.product-price-input')?.value || 0);
     const quantity = parseInt(quantityInput.value) || 0;
-    const subtotal = price * quantity;
+    const discountAmount = parseInt(row.dataset.autoDiscountAmount || 0) || 0;
+    const subtotal = (price * quantity) - discountAmount;
     
     const subtotalDisplay = row.querySelector('.subtotal-display');
     const subtotalInput = row.querySelector('.subtotal-input');
@@ -335,6 +358,7 @@ function calculateSubtotal(quantityInput, index) {
         subtotalDisplay.innerText = 'Rp ' + new Intl.NumberFormat('id-ID').format(subtotal);
         if (subtotalInput) subtotalInput.value = subtotal;
     }
+    updateAutoDiscountHint(row);
     
     calculateGrandTotal();
 }

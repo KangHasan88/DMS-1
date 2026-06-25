@@ -1030,10 +1030,17 @@ class OrderController extends Controller
             ? (int) $request->company_branch_id
             : null;
         $price = app(ProductPricingService::class)->resolvePrice($product, $customer, $companyBranchId);
+        $quantity = max(1, (float) $request->get('quantity', 1));
+        $discount = app(ProductDiscountService::class)->resolveItemDiscount($product, $price, $quantity, $customer, $companyBranchId);
+        $discountAmount = (int) ($discount['amount'] ?? 0);
+        $discountRule = $discount['rule'] ?? null;
 
         return response()->json([
             'price' => $price,
             'formatted_price' => 'Rp ' . number_format($price, 0, ',', '.'),
+            'auto_discount_amount' => $discountAmount,
+            'formatted_auto_discount' => 'Rp ' . number_format($discountAmount, 0, ',', '.'),
+            'auto_discount_label' => $discountRule ? $discountRule->discount_label : null,
         ]);
     }
 

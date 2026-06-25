@@ -212,7 +212,7 @@
                                 <div class="stock-warning" style="display: none; font-size: 0.6rem; color: var(--k-red); margin-top: 0.25rem;"></div>
                             </td>
                             <td style="padding: 0.5rem;">
-                                <input type="number" name="items[0][quantity]" class="quantity-input" value="1" min="1" onchange="calculateSubtotal(this, 0)" style="width: 100%; padding: 0.5rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.75rem;">
+                                <input type="number" name="items[0][quantity]" class="quantity-input" value="1" min="1" onchange="updateProductPrice(this.closest('tr').querySelector('.product-select'), 0)" style="width: 100%; padding: 0.5rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.75rem;">
                             </td>
                             <td style="padding: 0.5rem;">
                                 <span class="product-price-display" style="font-size: 0.75rem;">Rp 0</span>
@@ -220,6 +220,7 @@
                             </td>
                             <td style="padding: 0.5rem;">
                                 <input type="number" name="items[0][discount_percent]" class="discount-percent-input" value="0" min="0" max="100" step="1" onchange="calculateSubtotal(this, 0)" style="width: 100%; padding: 0.4rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.7rem;">
+                                <div class="auto-discount-hint" style="display: none; margin-top: .25rem; font-size: .62rem; color: var(--k-green); font-weight: 700;"></div>
                             </td>
                             <td style="padding: 0.5rem;">
                                 <span class="subtotal-display" style="font-weight: 500; color: var(--k-green); font-size: 0.75rem;">Rp 0</span>
@@ -909,7 +910,7 @@ function addProductRow() {
             <div class="stock-warning" style="display: none; font-size: 0.6rem; color: var(--k-red); margin-top: 0.25rem;"></div>
         </td>
         <td style="padding: 0.5rem;">
-            <input type="number" name="items[${productIndex}][quantity]" class="quantity-input" value="1" min="1" onchange="calculateSubtotal(this, ${productIndex})" style="width: 100%; padding: 0.5rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.75rem;">
+            <input type="number" name="items[${productIndex}][quantity]" class="quantity-input" value="1" min="1" onchange="updateProductPrice(this.closest('tr').querySelector('.product-select'), ${productIndex})" style="width: 100%; padding: 0.5rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.75rem;">
         </td>
         <td style="padding: 0.5rem;">
             <span class="product-price-display" style="font-size: 0.75rem;">Rp 0</span>
@@ -917,6 +918,7 @@ function addProductRow() {
         </td>
         <td style="padding: 0.5rem;">
             <input type="number" name="items[${productIndex}][discount_percent]" class="discount-percent-input" value="0" min="0" max="100" step="1" onchange="calculateSubtotal(this, ${productIndex})" style="width: 100%; padding: 0.4rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.7rem;">
+            <div class="auto-discount-hint" style="display: none; margin-top: .25rem; font-size: .62rem; color: var(--k-green); font-weight: 700;"></div>
         </td>
         <td style="padding: 0.5rem;">
             <span class="subtotal-display" style="font-weight: 500; color: var(--k-green); font-size: 0.75rem;">Rp 0</span>
@@ -959,6 +961,7 @@ async function updateProductPrice(select, index) {
     const params = new URLSearchParams({
         user_id: selectedCustomerId(),
         company_branch_id: selectedBranchId(),
+        quantity: row.querySelector('.quantity-input')?.value || 1,
     });
 
     try {
@@ -982,9 +985,27 @@ async function updateProductPrice(select, index) {
             priceInput.value = price;
         }
 
+        row.dataset.autoDiscountAmount = parseInt(data.auto_discount_amount || 0);
+        updateAutoDiscountHint(row, data.formatted_auto_discount, data.auto_discount_label);
         calculateSubtotal(row.querySelector('.quantity-input'), index);
     } catch (error) {
         console.warn('Gagal mengambil harga price list', error);
+    }
+}
+
+function updateAutoDiscountHint(row, formattedAmount, label) {
+    const hint = row.querySelector('.auto-discount-hint');
+    const manualDiscount = parseFloat(row.querySelector('.discount-percent-input')?.value || 0);
+    const amount = parseInt(row.dataset.autoDiscountAmount || 0);
+
+    if (!hint) return;
+
+    if (amount > 0 && manualDiscount <= 0) {
+        hint.innerText = `Auto: -${formattedAmount || ('Rp ' + new Intl.NumberFormat('id-ID').format(amount))}${label ? ' (' + label + ')' : ''}`;
+        hint.style.display = 'block';
+    } else {
+        hint.innerText = '';
+        hint.style.display = 'none';
     }
 }
 
@@ -1001,7 +1022,9 @@ function calculateSubtotal(input, index) {
     const quantity = parseInt(row.querySelector('.quantity-input').value) || 0;
     const price = parseInt(row.querySelector('.price-input').value) || 0;
     const discountPercent = parseInt(row.querySelector('.discount-percent-input').value) || 0;
-    const discountAmount = (price * discountPercent / 100) * quantity;
+    const discountAmount = discountPercent > 0
+        ? (price * discountPercent / 100) * quantity
+        : (parseInt(row.dataset.autoDiscountAmount || 0) || 0);
     const subtotal = (price * quantity) - discountAmount;
     
     const subtotalDisplay = row.querySelector('.subtotal-display');
@@ -1011,6 +1034,7 @@ function calculateSubtotal(input, index) {
         subtotalDisplay.innerText = 'Rp ' + new Intl.NumberFormat('id-ID').format(subtotal);
         if (subtotalInput) subtotalInput.value = subtotal;
     }
+    updateAutoDiscountHint(row);
     
     calculateGrandTotal();
     

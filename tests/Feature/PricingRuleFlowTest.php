@@ -250,6 +250,56 @@ class PricingRuleFlowTest extends TestCase
             ]);
     }
 
+    public function test_product_price_info_endpoint_returns_auto_discount_preview(): void
+    {
+        $admin = $this->userWithRole('admin', 'discount-preview-admin@example.test');
+        $branch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $customerUser = $this->userWithRole('customer', 'discount-preview-customer@example.test');
+        Customer::create([
+            'user_id' => $customerUser->id,
+            'company_branch_id' => $branch->id,
+            'name' => 'Customer Preview Diskon',
+            'phone' => '081234567899',
+            'email' => 'discount-preview-customer@example.test',
+            'customer_type' => 'wholesale',
+            'payment_term' => Customer::PAYMENT_CASH,
+            'credit_status' => Customer::CREDIT_NORMAL,
+            'is_active' => true,
+        ]);
+        $product = Product::create([
+            'name' => 'Produk Preview Diskon',
+            'category' => 'Demo',
+            'price' => 10000,
+            'base_price' => 6000,
+            'is_active' => true,
+        ]);
+        ProductDiscountRule::create([
+            'product_id' => $product->id,
+            'customer_type' => 'wholesale',
+            'company_branch_id' => $branch->id,
+            'discount_type' => ProductDiscountRule::TYPE_PERCENT,
+            'discount_value' => 10,
+            'min_quantity' => 2,
+            'starts_at' => now()->subDay()->toDateString(),
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->getJson(route('products.price-info', [
+                'product' => $product,
+                'user_id' => $customerUser->id,
+                'company_branch_id' => $branch->id,
+                'quantity' => 2,
+            ]))
+            ->assertOk()
+            ->assertJson([
+                'price' => 10000,
+                'auto_discount_amount' => 2000,
+                'formatted_auto_discount' => 'Rp 2.000',
+                'auto_discount_label' => '10%',
+            ]);
+    }
+
     public function test_price_rule_rejects_overlapping_active_rule_for_same_scope(): void
     {
         $admin = $this->userWithRole('admin', 'price-overlap-admin@example.test');
