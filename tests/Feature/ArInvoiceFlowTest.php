@@ -450,6 +450,14 @@ class ArInvoiceFlowTest extends TestCase
             ->assertSee('Pajak Keluaran')
             ->assertSee('Rp 11.000')
             ->assertSee('Kurang Bayar');
+
+        $this->actingAs($finance)
+            ->get(route('tax.summary.export'))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->assertSee('output_ppn')
+            ->assertSee('11000')
+            ->assertSee('Kurang Bayar');
     }
 
     public function test_finance_can_update_output_tax_metadata(): void

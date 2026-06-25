@@ -234,6 +234,9 @@
                 </select>
             @endif
             <button type="submit" class="dms-btn dms-btn-primary"><i class="bi bi-funnel"></i> Terapkan</button>
+            <a href="{{ route('tax.summary.export', request()->query()) }}" class="dms-btn dms-btn-outline">
+                <i class="bi bi-download"></i> Export CSV
+            </a>
         </form>
     </div>
 

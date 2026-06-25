@@ -509,6 +509,14 @@ class ApInvoiceFlowTest extends TestCase
             ->assertSee('Pajak Masukan')
             ->assertSee('Rp 6.000')
             ->assertSee('Lebih Bayar');
+
+        $this->actingAs($finance)
+            ->get(route('tax.summary.export'))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->assertSee('creditable_input_ppn')
+            ->assertSee('6000')
+            ->assertSee('Lebih Bayar');
     }
 
     public function test_finance_can_update_input_tax_metadata(): void

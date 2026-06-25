@@ -351,6 +351,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('tax/summary', [TaxController::class, 'summary'])
         ->middleware('permission:view invoice')
         ->name('tax.summary');
+    Route::get('tax/summary/export', [TaxController::class, 'exportSummary'])
+        ->middleware('permission:view invoice')
+        ->name('tax.summary.export');
     Route::get('tax/output', [TaxController::class, 'output'])
         ->middleware('permission:view invoice')
         ->name('tax.output');
