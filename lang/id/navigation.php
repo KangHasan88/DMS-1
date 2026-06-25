@@ -29,6 +29,7 @@ return [
     'suppliers' => 'Pemasok',
     'products' => 'Produk',
     'price_lists' => 'Daftar Harga',
+    'discount_rules' => 'Aturan Diskon',
     'finance' => 'Keuangan',
     'accounting' => 'Akuntansi',
     'chart_accounts' => 'Daftar Akun',

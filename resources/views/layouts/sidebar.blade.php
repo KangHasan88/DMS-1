@@ -1331,6 +1331,12 @@
                                 <span>{{ __('navigation.price_lists') }}</span>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{ route('product-discount-rules.index') }}" class="nav-link {{ request()->routeIs('product-discount-rules.*') ? 'active' : '' }}">
+                                <i class="bi bi-percent"></i>
+                                <span>{{ __('navigation.discount_rules') }}</span>
+                            </a>
+                        </li>
                         @endcan
                         
                         <!-- Return Out (Retur) -->

@@ -6,6 +6,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductPriceRuleController;
+use App\Http\Controllers\ProductDiscountRuleController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UnitCategoryController;
@@ -165,6 +166,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('product-price-rules', [ProductPriceRuleController::class, 'index'])->middleware('permission:view products')->name('product-price-rules.index');
     Route::post('product-price-rules', [ProductPriceRuleController::class, 'store'])->middleware('permission:edit products')->name('product-price-rules.store');
     Route::post('product-price-rules/{productPriceRule}/toggle-status', [ProductPriceRuleController::class, 'toggleStatus'])->middleware('permission:edit products')->name('product-price-rules.toggle-status');
+    Route::get('product-discount-rules', [ProductDiscountRuleController::class, 'index'])->middleware('permission:view products')->name('product-discount-rules.index');
+    Route::post('product-discount-rules', [ProductDiscountRuleController::class, 'store'])->middleware('permission:edit products')->name('product-discount-rules.store');
+    Route::post('product-discount-rules/{productDiscountRule}/toggle-status', [ProductDiscountRuleController::class, 'toggleStatus'])->middleware('permission:edit products')->name('product-discount-rules.toggle-status');
     
     // ============= CUSTOMER TYPE MANAGEMENT =============
     Route::get('customer-types', [CustomerTypeController::class, 'index'])->middleware('permission:view customers')->name('customer-types.index');

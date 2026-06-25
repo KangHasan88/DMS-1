@@ -14,6 +14,7 @@ use App\Models\CompanyBranch;
 use App\Models\CompanyProfile;
 use App\Models\DeliveryTimeSlot;
 use App\Services\OrderReturnablePackagingService;
+use App\Services\ProductDiscountService;
 use App\Services\ProductPricingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -217,6 +218,7 @@ class OrderController extends Controller
             $companyBranchId = $this->resolveCompanyBranchId($request->company_branch_id);
             $this->ensureCustomerMatchesBranch($customer, $companyBranchId);
             $pricing = app(ProductPricingService::class);
+            $discounts = app(ProductDiscountService::class);
             
             foreach ($request->items as $item) {
                 $product = Product::findOrFail($item['product_id']);
@@ -226,8 +228,10 @@ class OrderController extends Controller
                 $itemDiscount = 0;
                 if (isset($item['discount_percent']) && $item['discount_percent'] > 0) {
                     $itemDiscount = ($price * $item['discount_percent'] / 100) * $quantity;
-                    $totalItemDiscount += $itemDiscount;
+                } else {
+                    $itemDiscount = $discounts->resolveItemDiscount($product, $price, $quantity, $customer, $companyBranchId)['amount'];
                 }
+                $totalItemDiscount += $itemDiscount;
                 
                 $subtotalItem = ($price * $quantity) - $itemDiscount;
                 $subtotal += $subtotalItem;
@@ -493,6 +497,7 @@ class OrderController extends Controller
             $companyBranchId = $this->resolveCompanyBranchId($request->company_branch_id);
             $this->ensureCustomerMatchesBranch($order->user?->customer, $companyBranchId);
             $pricing = app(ProductPricingService::class);
+            $discounts = app(ProductDiscountService::class);
             
             foreach ($request->items as $item) {
                 $product = Product::findOrFail($item['product_id']);
@@ -502,6 +507,8 @@ class OrderController extends Controller
                 $itemDiscount = 0;
                 if (isset($item['discount_percent']) && $item['discount_percent'] > 0) {
                     $itemDiscount = ($price * $item['discount_percent'] / 100) * $quantity;
+                } else {
+                    $itemDiscount = $discounts->resolveItemDiscount($product, $price, $quantity, $order->user?->customer, $companyBranchId)['amount'];
                 }
                 
                 $subtotalItem = ($price * $quantity) - $itemDiscount;

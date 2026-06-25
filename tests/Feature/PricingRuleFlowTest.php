@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\ProductDiscountRule;
 use App\Models\ProductPriceRule;
 use App\Models\ProductStock;
 use App\Models\User;
@@ -184,6 +185,116 @@ class PricingRuleFlowTest extends TestCase
                 'price' => 11000,
                 'formatted_price' => 'Rp 11.000',
             ]);
+    }
+
+    public function test_discount_rule_page_can_create_segment_rule(): void
+    {
+        $admin = $this->userWithRole('admin', 'discount-page-admin@example.test');
+        $branch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $product = Product::create([
+            'name' => 'Produk Diskon Segment',
+            'category' => 'Demo',
+            'price' => 20000,
+            'base_price' => 12000,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('product-discount-rules.index'))
+            ->assertOk()
+            ->assertSee('Aturan Diskon');
+
+        $this->actingAs($admin)
+            ->post(route('product-discount-rules.store'), [
+                'product_id' => $product->id,
+                'customer_type' => 'wholesale',
+                'company_branch_id' => $branch->id,
+                'discount_type' => ProductDiscountRule::TYPE_PERCENT,
+                'discount_value' => 10,
+                'min_quantity' => 2,
+                'starts_at' => now()->toDateString(),
+                'notes' => 'Promo segment grosir',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('product_discount_rules', [
+            'product_id' => $product->id,
+            'customer_type' => 'wholesale',
+            'company_branch_id' => $branch->id,
+            'discount_type' => ProductDiscountRule::TYPE_PERCENT,
+            'discount_value' => 10,
+            'min_quantity' => 2,
+            'is_active' => true,
+        ]);
+    }
+
+    public function test_order_applies_active_discount_rule_when_item_has_no_manual_discount(): void
+    {
+        $admin = $this->userWithRole('admin', 'discount-order-admin@example.test');
+        $branch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $customerUser = $this->userWithRole('customer', 'discount-order-customer@example.test');
+        Customer::create([
+            'user_id' => $customerUser->id,
+            'company_branch_id' => $branch->id,
+            'name' => 'Toko Promo Grosir',
+            'phone' => '081234567893',
+            'email' => 'discount-order-customer@example.test',
+            'customer_type' => 'wholesale',
+            'payment_term' => Customer::PAYMENT_CASH,
+            'credit_status' => Customer::CREDIT_NORMAL,
+            'is_active' => true,
+        ]);
+        $product = Product::create([
+            'name' => 'Produk Promo Otomatis',
+            'category' => 'Demo',
+            'price' => 10000,
+            'base_price' => 6000,
+            'is_active' => true,
+        ]);
+        ProductStock::create([
+            'product_id' => $product->id,
+            'quantity' => 20,
+        ]);
+        ProductDiscountRule::create([
+            'product_id' => $product->id,
+            'customer_type' => 'wholesale',
+            'company_branch_id' => $branch->id,
+            'discount_type' => ProductDiscountRule::TYPE_PERCENT,
+            'discount_value' => 10,
+            'min_quantity' => 2,
+            'starts_at' => now()->subDay()->toDateString(),
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('orders.store'), [
+                'order_request_token' => 'discount-rule-token',
+                'user_id' => $customerUser->id,
+                'company_branch_id' => $branch->id,
+                'delivery_date' => now()->addDay()->toDateString(),
+                'delivery_time_slot' => '06:00-09:00',
+                'address' => 'Jl. Promo No. 1',
+                'order_source' => Order::ORDER_SOURCE_ADMIN,
+                'fulfillment_type' => Order::FULFILLMENT_STOCK,
+                'payment_timing' => Order::PAYMENT_TIMING_POST_PAID,
+                'payment_method' => Order::PAYMENT_MANUAL,
+                'items' => [
+                    ['product_id' => $product->id, 'quantity' => 2],
+                ],
+                'discount_type' => Order::DISCOUNT_NONE,
+                'discount_value' => 0,
+                'shipping_type' => Order::SHIPPING_NONE,
+                'include_ppn' => false,
+            ])
+            ->assertRedirect();
+
+        $item = OrderItem::where('product_id', $product->id)->firstOrFail();
+        $order = Order::firstOrFail();
+
+        $this->assertSame(2000, $item->discount);
+        $this->assertSame(18000, $item->subtotal);
+        $this->assertSame(18000, $order->subtotal);
     }
 
     private function userWithRole(string $role, string $email): User
