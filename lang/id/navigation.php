@@ -40,6 +40,7 @@ return [
     'customer_payments' => 'Pembayaran Customer',
     'supplier_payments' => 'Pembayaran Supplier',
     'tax' => 'Pajak',
+    'tax_summary' => 'Rekap Pajak',
     'output_tax' => 'Pajak Keluaran',
     'input_tax' => 'Pajak Masukan',
     'ar_aging' => 'Umur Piutang',

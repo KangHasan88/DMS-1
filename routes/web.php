@@ -348,6 +348,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('supplier-payments.void');
 
     // ============= TAX MANAGEMENT =============
+    Route::get('tax/summary', [TaxController::class, 'summary'])
+        ->middleware('permission:view invoice')
+        ->name('tax.summary');
     Route::get('tax/output', [TaxController::class, 'output'])
         ->middleware('permission:view invoice')
         ->name('tax.output');

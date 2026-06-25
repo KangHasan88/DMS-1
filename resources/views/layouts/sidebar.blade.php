@@ -1552,6 +1552,12 @@
                     <ul style="list-style: none; padding: 0;">
                         @can('view invoice')
                         <li class="nav-item">
+                            <a href="{{ route('tax.summary') }}" class="nav-link {{ request()->routeIs('tax.summary') ? 'active' : '' }}">
+                                <i class="bi bi-calculator"></i>
+                                <span>{{ __('navigation.tax_summary') }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="{{ route('tax.output') }}" class="nav-link {{ request()->routeIs('tax.output') ? 'active' : '' }}">
                                 <i class="bi bi-receipt"></i>
                                 <span>{{ __('navigation.output_tax') }}</span>

@@ -6,11 +6,72 @@ use App\Models\ApInvoice;
 use App\Models\ArInvoice;
 use App\Models\CompanyBranch;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
 class TaxController extends Controller
 {
+    public function summary(Request $request)
+    {
+        [$period, $periodStart, $periodEnd] = $this->taxPeriod($request);
+
+        $outputQuery = $this->applyOutputPeriod($this->outputQuery($request, false), $periodStart, $periodEnd);
+        $inputQuery = $this->applyInputPeriod($this->inputQuery($request, false), $periodStart, $periodEnd);
+        $creditableInputStatuses = [ApInvoice::TAX_CLAIMABLE, ApInvoice::TAX_EXPORTED, ApInvoice::TAX_APPROVED];
+        $creditableInputQuery = (clone $inputQuery)->whereIn('tax_status', $creditableInputStatuses);
+
+        $outputPpn = (int) (clone $outputQuery)->sum('ppn_amount');
+        $inputPpn = (int) (clone $creditableInputQuery)->sum('ppn_amount');
+        $netPpn = $outputPpn - $inputPpn;
+
+        $summary = [
+            'period' => $period,
+            'period_label' => $periodStart->translatedFormat('F Y'),
+            'output_count' => (clone $outputQuery)->count(),
+            'input_count' => (clone $inputQuery)->count(),
+            'output_dpp' => (int) (clone $outputQuery)->sum('tax_base_amount'),
+            'input_dpp' => (int) (clone $creditableInputQuery)->sum('tax_base_amount'),
+            'output_ppn' => $outputPpn,
+            'input_ppn' => $inputPpn,
+            'net_ppn' => $netPpn,
+            'net_label' => $netPpn > 0 ? 'Kurang Bayar' : ($netPpn < 0 ? 'Lebih Bayar' : 'Nihil'),
+            'output_ready' => (clone $outputQuery)
+                ->whereIn('tax_status', [ArInvoice::TAX_DRAFT, ArInvoice::TAX_READY])
+                ->whereNotNull('tax_invoice_number')
+                ->where('tax_invoice_number', '!=', '')
+                ->whereNotNull('tax_invoice_date')
+                ->count(),
+            'output_incomplete' => (clone $outputQuery)
+                ->whereIn('tax_status', [ArInvoice::TAX_DRAFT, ArInvoice::TAX_READY])
+                ->where(function ($missing) {
+                    $missing->whereNull('tax_invoice_number')
+                        ->orWhere('tax_invoice_number', '')
+                        ->orWhereNull('tax_invoice_date');
+                })
+                ->count(),
+            'input_ready' => (clone $inputQuery)
+                ->whereIn('tax_status', [ApInvoice::TAX_DRAFT, ApInvoice::TAX_CLAIMABLE])
+                ->whereNotNull('supplier_tax_invoice_number')
+                ->where('supplier_tax_invoice_number', '!=', '')
+                ->whereNotNull('supplier_tax_invoice_date')
+                ->count(),
+            'input_incomplete' => (clone $inputQuery)
+                ->whereIn('tax_status', [ApInvoice::TAX_DRAFT, ApInvoice::TAX_CLAIMABLE])
+                ->where(function ($missing) {
+                    $missing->whereNull('supplier_tax_invoice_number')
+                        ->orWhere('supplier_tax_invoice_number', '')
+                        ->orWhereNull('supplier_tax_invoice_date');
+                })
+                ->count(),
+        ];
+
+        $companyBranches = CompanyBranch::where('is_active', true)->orderBy('name')->get();
+        $canFilterBranches = !$this->currentBranchScopeId();
+
+        return view('tax.summary', compact('summary', 'companyBranches', 'canFilterBranches'));
+    }
+
     public function output(Request $request)
     {
         $query = $this->outputQuery($request);
@@ -354,7 +415,7 @@ class TaxController extends Controller
         return Auth::user()?->scopedCompanyBranchId();
     }
 
-    private function outputQuery(Request $request)
+    private function outputQuery(Request $request, bool $applyStatusFilter = true)
     {
         $query = ArInvoice::with(['customer', 'customerUser', 'companyBranch'])
             ->where('status', '!=', ArInvoice::STATUS_VOID)
@@ -371,7 +432,7 @@ class TaxController extends Controller
             $query->where('company_branch_id', $request->company_branch_id);
         }
 
-        if ($request->filled('tax_status')) {
+        if ($applyStatusFilter && $request->filled('tax_status')) {
             $query->where('tax_status', $request->tax_status);
         }
 
@@ -388,7 +449,7 @@ class TaxController extends Controller
         return $query;
     }
 
-    private function inputQuery(Request $request)
+    private function inputQuery(Request $request, bool $applyStatusFilter = true)
     {
         $query = ApInvoice::with(['supplier', 'companyBranch'])
             ->where('status', '!=', ApInvoice::STATUS_VOID)
@@ -405,7 +466,7 @@ class TaxController extends Controller
             $query->where('company_branch_id', $request->company_branch_id);
         }
 
-        if ($request->filled('tax_status')) {
+        if ($applyStatusFilter && $request->filled('tax_status')) {
             $query->where('tax_status', $request->tax_status);
         }
 
@@ -419,6 +480,42 @@ class TaxController extends Controller
         }
 
         return $query;
+    }
+
+    private function taxPeriod(Request $request): array
+    {
+        $period = $request->input('period', now()->format('Y-m'));
+
+        try {
+            $periodStart = Carbon::createFromFormat('Y-m', $period)->startOfMonth();
+        } catch (\Throwable) {
+            $periodStart = now()->startOfMonth();
+            $period = $periodStart->format('Y-m');
+        }
+
+        return [$period, $periodStart, (clone $periodStart)->endOfMonth()];
+    }
+
+    private function applyOutputPeriod($query, Carbon $periodStart, Carbon $periodEnd)
+    {
+        return $query->where(function ($dateQuery) use ($periodStart, $periodEnd) {
+            $dateQuery->whereBetween('tax_invoice_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
+                ->orWhere(function ($fallback) use ($periodStart, $periodEnd) {
+                    $fallback->whereNull('tax_invoice_date')
+                        ->whereBetween('invoice_date', [$periodStart->toDateString(), $periodEnd->toDateString()]);
+                });
+        });
+    }
+
+    private function applyInputPeriod($query, Carbon $periodStart, Carbon $periodEnd)
+    {
+        return $query->where(function ($dateQuery) use ($periodStart, $periodEnd) {
+            $dateQuery->whereBetween('supplier_tax_invoice_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
+                ->orWhere(function ($fallback) use ($periodStart, $periodEnd) {
+                    $fallback->whereNull('supplier_tax_invoice_date')
+                        ->whereBetween('invoice_date', [$periodStart->toDateString(), $periodEnd->toDateString()]);
+                });
+        });
     }
 
     private function outputSummary($query): array

@@ -40,6 +40,7 @@ return [
     'customer_payments' => 'Customer Payments',
     'supplier_payments' => 'Supplier Payments',
     'tax' => 'Tax',
+    'tax_summary' => 'Tax Summary',
     'output_tax' => 'Output Tax',
     'input_tax' => 'Input Tax',
     'ar_aging' => 'AR Aging',
