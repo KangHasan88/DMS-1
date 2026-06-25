@@ -28,6 +28,7 @@ return [
     'customers' => 'Pelanggan',
     'suppliers' => 'Pemasok',
     'products' => 'Produk',
+    'price_lists' => 'Daftar Harga',
     'finance' => 'Keuangan',
     'accounting' => 'Akuntansi',
     'chart_accounts' => 'Daftar Akun',

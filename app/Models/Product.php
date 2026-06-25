@@ -67,6 +67,11 @@ class Product extends Model
     {
         return $this->hasOne(ProductPriceHistory::class)->latest();
     }
+
+    public function priceRules(): HasMany
+    {
+        return $this->hasMany(ProductPriceRule::class);
+    }
     
     public function stock(): HasOne
     {

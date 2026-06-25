@@ -28,6 +28,7 @@ return [
     'customers' => 'Customers',
     'suppliers' => 'Suppliers',
     'products' => 'Products',
+    'price_lists' => 'Price Lists',
     'finance' => 'Finance',
     'accounting' => 'Accounting',
     'chart_accounts' => 'Chart of Accounts',

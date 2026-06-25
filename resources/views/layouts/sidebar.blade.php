@@ -1325,6 +1325,12 @@
                                 <span>{{ __('navigation.foc_out') }}</span>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{ route('product-price-rules.index') }}" class="nav-link {{ request()->routeIs('product-price-rules.*') ? 'active' : '' }}">
+                                <i class="bi bi-tags"></i>
+                                <span>{{ __('navigation.price_lists') }}</span>
+                            </a>
+                        </li>
                         @endcan
                         
                         <!-- Return Out (Retur) -->

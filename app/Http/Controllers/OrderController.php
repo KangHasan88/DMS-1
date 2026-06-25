@@ -14,6 +14,7 @@ use App\Models\CompanyBranch;
 use App\Models\CompanyProfile;
 use App\Models\DeliveryTimeSlot;
 use App\Services\OrderReturnablePackagingService;
+use App\Services\ProductPricingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -211,11 +212,16 @@ class OrderController extends Controller
             $subtotal = 0;
             $orderItems = [];
             $totalItemDiscount = 0;
+            $customerUser = User::with('customer')->findOrFail($request->user_id);
+            $customer = $customerUser->customer;
+            $companyBranchId = $this->resolveCompanyBranchId($request->company_branch_id);
+            $this->ensureCustomerMatchesBranch($customer, $companyBranchId);
+            $pricing = app(ProductPricingService::class);
             
             foreach ($request->items as $item) {
                 $product = Product::findOrFail($item['product_id']);
                 $quantity = $item['quantity'];
-                $price = $product->price;
+                $price = $pricing->resolvePrice($product, $customer, $companyBranchId);
                 
                 $itemDiscount = 0;
                 if (isset($item['discount_percent']) && $item['discount_percent'] > 0) {
@@ -279,10 +285,6 @@ class OrderController extends Controller
                 $paymentMethod = Order::PAYMENT_MANUAL;
             }
 
-            $customerUser = User::with('customer')->findOrFail($request->user_id);
-            $customer = $customerUser->customer;
-            $companyBranchId = $this->resolveCompanyBranchId($request->company_branch_id);
-            $this->ensureCustomerMatchesBranch($customer, $companyBranchId);
             $salespersonId = $this->resolveSalespersonId(
                 $request->filled('salesperson_id')
                     ? (int) $request->salesperson_id
@@ -487,11 +489,15 @@ class OrderController extends Controller
             $existingItemIds = $order->items->pluck('id')->toArray();
             $newItemIds = [];
             $subtotal = 0;
+            $order->loadMissing('user.customer');
+            $companyBranchId = $this->resolveCompanyBranchId($request->company_branch_id);
+            $this->ensureCustomerMatchesBranch($order->user?->customer, $companyBranchId);
+            $pricing = app(ProductPricingService::class);
             
             foreach ($request->items as $item) {
                 $product = Product::findOrFail($item['product_id']);
                 $quantity = $item['quantity'];
-                $price = $product->price;
+                $price = $pricing->resolvePrice($product, $order->user?->customer, $companyBranchId);
                 
                 $itemDiscount = 0;
                 if (isset($item['discount_percent']) && $item['discount_percent'] > 0) {
@@ -552,10 +558,6 @@ class OrderController extends Controller
                 $request->ppn_rate ?? 11
             );
             
-            $order->loadMissing('user.customer');
-            $companyBranchId = $this->resolveCompanyBranchId($request->company_branch_id);
-            $this->ensureCustomerMatchesBranch($order->user?->customer, $companyBranchId);
-
             $order->update([
                 'company_branch_id' => $companyBranchId,
                 'delivery_date' => $request->delivery_date,
