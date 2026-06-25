@@ -476,7 +476,11 @@ class ArInvoiceFlowTest extends TestCase
             ->get(route('tax.output'))
             ->assertOk()
             ->assertSee('010.000-26.00000002')
-            ->assertSee('Siap Coretax');
+            ->assertSee('Siap Coretax')
+            ->assertSee('Siap Export')
+            ->assertSee('Belum Lengkap')
+            ->assertSee('Approved')
+            ->assertSee('Rejected');
 
         $this->actingAs($finance)
             ->get(route('tax.output.export', ['tax_status' => ArInvoice::TAX_READY]))

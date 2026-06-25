@@ -19,11 +19,7 @@ class TaxController extends Controller
         $statuses = ArInvoice::TAX_STATUS_LIST;
         $companyBranches = CompanyBranch::where('is_active', true)->orderBy('name')->get();
         $canFilterBranches = !$this->currentBranchScopeId();
-        $summary = [
-            'tax_base_amount' => (clone $query)->sum('tax_base_amount'),
-            'ppn_amount' => (clone $query)->sum('ppn_amount'),
-            'count' => (clone $query)->count(),
-        ];
+        $summary = $this->outputSummary($query);
 
         return view('tax.output', compact('invoices', 'statuses', 'companyBranches', 'canFilterBranches', 'summary'));
     }
@@ -194,11 +190,7 @@ class TaxController extends Controller
         $statuses = ApInvoice::TAX_STATUS_LIST;
         $companyBranches = CompanyBranch::where('is_active', true)->orderBy('name')->get();
         $canFilterBranches = !$this->currentBranchScopeId();
-        $summary = [
-            'tax_base_amount' => (clone $query)->sum('tax_base_amount'),
-            'ppn_amount' => (clone $query)->sum('ppn_amount'),
-            'count' => (clone $query)->count(),
-        ];
+        $summary = $this->inputSummary($query);
 
         return view('tax.input', compact('invoices', 'statuses', 'companyBranches', 'canFilterBranches', 'summary'));
     }
@@ -427,6 +419,62 @@ class TaxController extends Controller
         }
 
         return $query;
+    }
+
+    private function outputSummary($query): array
+    {
+        $pendingStatuses = [ArInvoice::TAX_DRAFT, ArInvoice::TAX_READY];
+
+        return [
+            'tax_base_amount' => (clone $query)->sum('tax_base_amount'),
+            'ppn_amount' => (clone $query)->sum('ppn_amount'),
+            'count' => (clone $query)->count(),
+            'ready_count' => (clone $query)
+                ->whereIn('tax_status', $pendingStatuses)
+                ->whereNotNull('tax_invoice_number')
+                ->where('tax_invoice_number', '!=', '')
+                ->whereNotNull('tax_invoice_date')
+                ->count(),
+            'incomplete_count' => (clone $query)
+                ->whereIn('tax_status', $pendingStatuses)
+                ->where(function ($missing) {
+                    $missing->whereNull('tax_invoice_number')
+                        ->orWhere('tax_invoice_number', '')
+                        ->orWhereNull('tax_invoice_date');
+                })
+                ->count(),
+            'exported_count' => (clone $query)->where('tax_status', ArInvoice::TAX_EXPORTED)->count(),
+            'approved_count' => (clone $query)->where('tax_status', ArInvoice::TAX_APPROVED)->count(),
+            'rejected_count' => (clone $query)->where('tax_status', ArInvoice::TAX_REJECTED)->count(),
+        ];
+    }
+
+    private function inputSummary($query): array
+    {
+        $pendingStatuses = [ApInvoice::TAX_DRAFT, ApInvoice::TAX_CLAIMABLE];
+
+        return [
+            'tax_base_amount' => (clone $query)->sum('tax_base_amount'),
+            'ppn_amount' => (clone $query)->sum('ppn_amount'),
+            'count' => (clone $query)->count(),
+            'ready_count' => (clone $query)
+                ->whereIn('tax_status', $pendingStatuses)
+                ->whereNotNull('supplier_tax_invoice_number')
+                ->where('supplier_tax_invoice_number', '!=', '')
+                ->whereNotNull('supplier_tax_invoice_date')
+                ->count(),
+            'incomplete_count' => (clone $query)
+                ->whereIn('tax_status', $pendingStatuses)
+                ->where(function ($missing) {
+                    $missing->whereNull('supplier_tax_invoice_number')
+                        ->orWhere('supplier_tax_invoice_number', '')
+                        ->orWhereNull('supplier_tax_invoice_date');
+                })
+                ->count(),
+            'exported_count' => (clone $query)->where('tax_status', ApInvoice::TAX_EXPORTED)->count(),
+            'approved_count' => (clone $query)->where('tax_status', ApInvoice::TAX_APPROVED)->count(),
+            'rejected_count' => (clone $query)->where('tax_status', ApInvoice::TAX_REJECTED)->count(),
+        ];
     }
 
     private function csvResponse(array $rows, string $filename)

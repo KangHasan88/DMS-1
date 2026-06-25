@@ -526,7 +526,11 @@ class ApInvoiceFlowTest extends TestCase
             ->get(route('tax.input'))
             ->assertOk()
             ->assertSee('010.000-26.00000003')
-            ->assertSee('Dapat Dikreditkan');
+            ->assertSee('Dapat Dikreditkan')
+            ->assertSee('Siap Export')
+            ->assertSee('Belum Lengkap')
+            ->assertSee('Approved')
+            ->assertSee('Rejected');
 
         $this->actingAs($finance)
             ->get(route('tax.input.export', ['tax_status' => ApInvoice::TAX_CLAIMABLE]))

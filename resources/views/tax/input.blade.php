@@ -115,6 +115,62 @@
         margin: 0;
     }
 
+    .tax-status-grid {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: .75rem;
+    }
+
+    .tax-status-card {
+        min-height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        padding: .75rem .85rem;
+        border: 1px solid #dbe4f0;
+        border-radius: 10px;
+        background: #fff;
+    }
+
+    .tax-status-label {
+        display: block;
+        color: #64748b;
+        font-size: .72rem;
+        font-weight: 800;
+        line-height: 1.2;
+        text-transform: uppercase;
+    }
+
+    .tax-status-help {
+        display: block;
+        margin-top: .18rem;
+        color: #7890ad;
+        font-size: .78rem;
+    }
+
+    .tax-status-count {
+        color: #061a3d;
+        font-size: 1.35rem;
+        font-weight: 900;
+        line-height: 1;
+    }
+
+    .tax-status-card.is-success {
+        border-color: #c9f2d9;
+        background: #f5fcf8;
+    }
+
+    .tax-status-card.is-warning {
+        border-color: #fde7b7;
+        background: #fffaf0;
+    }
+
+    .tax-status-card.is-danger {
+        border-color: #ffd2d2;
+        background: #fff7f7;
+    }
+
     .tax-toolbar {
         margin: 0;
     }
@@ -158,6 +214,10 @@
         .tax-actions {
             justify-content: flex-start;
             width: 100%;
+        }
+
+        .tax-status-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
     }
 </style>
@@ -236,6 +296,44 @@
             <div class="stat-label">Total PPN Masukan</div>
             <div class="stat-value" style="font-size: 1rem;">Rp {{ number_format($summary['ppn_amount'], 0, ',', '.') }}</div>
             <div class="dms-muted">Pajak masukan claimable</div>
+        </div>
+    </div>
+
+    <div class="tax-status-grid">
+        <div class="tax-status-card is-success">
+            <div>
+                <span class="tax-status-label">Siap Export</span>
+                <span class="tax-status-help">Faktur lengkap</span>
+            </div>
+            <strong class="tax-status-count">{{ number_format($summary['ready_count']) }}</strong>
+        </div>
+        <div class="tax-status-card is-warning">
+            <div>
+                <span class="tax-status-label">Belum Lengkap</span>
+                <span class="tax-status-help">Perlu nomor/tanggal</span>
+            </div>
+            <strong class="tax-status-count">{{ number_format($summary['incomplete_count']) }}</strong>
+        </div>
+        <div class="tax-status-card">
+            <div>
+                <span class="tax-status-label">Exported</span>
+                <span class="tax-status-help">Sudah kirim CSV</span>
+            </div>
+            <strong class="tax-status-count">{{ number_format($summary['exported_count']) }}</strong>
+        </div>
+        <div class="tax-status-card is-success">
+            <div>
+                <span class="tax-status-label">Approved</span>
+                <span class="tax-status-help">Disetujui Coretax</span>
+            </div>
+            <strong class="tax-status-count">{{ number_format($summary['approved_count']) }}</strong>
+        </div>
+        <div class="tax-status-card is-danger">
+            <div>
+                <span class="tax-status-label">Rejected</span>
+                <span class="tax-status-help">Butuh koreksi</span>
+            </div>
+            <strong class="tax-status-count">{{ number_format($summary['rejected_count']) }}</strong>
         </div>
     </div>
 
