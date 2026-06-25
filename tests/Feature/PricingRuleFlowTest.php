@@ -86,7 +86,7 @@ class PricingRuleFlowTest extends TestCase
             ->assertRedirect();
 
         $item = OrderItem::where('product_id', $product->id)->firstOrFail();
-        $order = Order::firstOrFail();
+        $order = Order::where('user_id', $customerUser->id)->latest('id')->firstOrFail();
 
         $this->assertSame($customer->user_id, $order->user_id);
         $this->assertSame(8000, $item->price);
@@ -460,6 +460,90 @@ class PricingRuleFlowTest extends TestCase
             ->assertSessionHasErrors('starts_at');
 
         $this->assertSame(1, ProductBonusRule::where('trigger_product_id', $triggerProduct->id)->count());
+    }
+
+    public function test_order_bonus_plan_can_prefill_outbound_foc_form(): void
+    {
+        $admin = $this->userWithRole('admin', 'bonus-foc-admin@example.test');
+        $branch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $customerUser = $this->userWithRole('customer', 'bonus-foc-customer@example.test');
+        Customer::create([
+            'user_id' => $customerUser->id,
+            'company_branch_id' => $branch->id,
+            'name' => 'Customer Bonus FOC',
+            'phone' => '081234567901',
+            'email' => 'bonus-foc-customer@example.test',
+            'customer_type' => 'wholesale',
+            'payment_term' => Customer::PAYMENT_CASH,
+            'credit_status' => Customer::CREDIT_NORMAL,
+            'is_active' => true,
+        ]);
+        $triggerProduct = Product::create([
+            'name' => 'Produk Pemicu FOC',
+            'category' => 'Demo',
+            'price' => 12000,
+            'base_price' => 7000,
+            'is_active' => true,
+        ]);
+        $bonusProduct = Product::create([
+            'name' => 'Produk Bonus FOC',
+            'category' => 'Demo',
+            'price' => 4000,
+            'base_price' => 2000,
+            'is_active' => true,
+        ]);
+        ProductStock::create([
+            'product_id' => $triggerProduct->id,
+            'quantity' => 20,
+        ]);
+        ProductBonusRule::create([
+            'trigger_product_id' => $triggerProduct->id,
+            'bonus_product_id' => $bonusProduct->id,
+            'customer_type' => 'wholesale',
+            'company_branch_id' => $branch->id,
+            'min_quantity' => 2,
+            'bonus_quantity' => 1,
+            'starts_at' => now()->subDay()->toDateString(),
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('orders.store'), [
+                'order_request_token' => 'bonus-foc-token',
+                'user_id' => $customerUser->id,
+                'company_branch_id' => $branch->id,
+                'delivery_date' => now()->addDay()->toDateString(),
+                'delivery_time_slot' => '06:00-09:00',
+                'address' => 'Jl. Bonus FOC No. 1',
+                'order_source' => Order::ORDER_SOURCE_ADMIN,
+                'fulfillment_type' => Order::FULFILLMENT_STOCK,
+                'payment_timing' => Order::PAYMENT_TIMING_POST_PAID,
+                'payment_method' => Order::PAYMENT_MANUAL,
+                'items' => [
+                    ['product_id' => $triggerProduct->id, 'quantity' => 2],
+                ],
+                'discount_type' => Order::DISCOUNT_NONE,
+                'discount_value' => 0,
+                'shipping_type' => Order::SHIPPING_NONE,
+                'include_ppn' => false,
+            ])
+            ->assertRedirect();
+
+        $order = Order::where('user_id', $customerUser->id)->latest('id')->firstOrFail();
+
+        $this->actingAs($admin)
+            ->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('Bonus Eligible')
+            ->assertSee('Produk Bonus FOC')
+            ->assertSee('Buat Barang Bonus');
+
+        $this->actingAs($admin)
+            ->get(route('outbound-focs.create', ['order_id' => $order->id]))
+            ->assertOk()
+            ->assertSee('Customer Bonus FOC')
+            ->assertSee('Bonus promo dari order ' . $order->order_number)
+            ->assertSee('Produk Bonus FOC');
     }
 
     public function test_price_rule_rejects_overlapping_active_rule_for_same_scope(): void

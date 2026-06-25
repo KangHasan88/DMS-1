@@ -414,8 +414,23 @@ class OrderController extends Controller
 
         $order->load('user', 'items.product.returnablePackage', 'delivery', 'companyBranch', 'salesperson', 'createdBy');
         $returnablePackagePlan = app(OrderReturnablePackagingService::class)->packagePlan($order);
+        $bonusPlan = $order->items
+            ->map(function ($item) use ($order) {
+                $rule = $item->product
+                    ? app(ProductBonusService::class)->resolveBonus($item->product, $item->quantity, $order->user?->customer, $order->company_branch_id)
+                    : null;
+
+                return $rule ? [
+                    'item' => $item,
+                    'rule' => $rule,
+                    'bonus_product' => $rule->bonusProduct,
+                    'bonus_quantity' => $rule->bonus_quantity,
+                ] : null;
+            })
+            ->filter()
+            ->values();
         
-        return view('orders.show', compact('order', 'returnablePackagePlan'));
+        return view('orders.show', compact('order', 'returnablePackagePlan', 'bonusPlan'));
     }
 
     public function edit(Order $order)

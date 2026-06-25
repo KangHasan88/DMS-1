@@ -20,13 +20,13 @@
             <label class="form-label">Cabang Operasional</label>
             <select name="company_branch_id" class="form-control" {{ $branchLocked ? 'disabled' : '' }}>
                 @foreach($companyBranches as $branch)
-                    <option value="{{ $branch->id }}" {{ (string) old('company_branch_id', $defaultBranchId) === (string) $branch->id ? 'selected' : '' }}>
+                    <option value="{{ $branch->id }}" {{ (string) old('company_branch_id', $prefill['company_branch_id'] ?? $defaultBranchId) === (string) $branch->id ? 'selected' : '' }}>
                         {{ $branch->name }} - {{ $branch->code }}
                     </option>
                 @endforeach
             </select>
             @if($branchLocked)
-                <input type="hidden" name="company_branch_id" value="{{ $defaultBranchId }}">
+                <input type="hidden" name="company_branch_id" value="{{ $prefill['company_branch_id'] ?? $defaultBranchId }}">
             @endif
             <small class="dms-form-help">Cabang yang mencatat pengeluaran barang bonus.</small>
             @error('company_branch_id') <span class="dms-error">{{ $message }}</span> @enderror
@@ -42,19 +42,19 @@
             <div class="dms-form-grid">
                 <div>
                     <label class="form-label">Nama Pelanggan <span class="dms-required">*</span></label>
-                    <input type="text" name="customer_name" class="form-control" required placeholder="Nama pelanggan">
+                    <input type="text" name="customer_name" class="form-control" required placeholder="Nama pelanggan" value="{{ old('customer_name', $prefill['customer_name'] ?? '') }}">
                     @error('customer_name') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
                 
                 <div>
                     <label class="form-label">Telepon</label>
-                    <input type="text" name="customer_phone" class="form-control" placeholder="Nomor telepon">
+                    <input type="text" name="customer_phone" class="form-control" placeholder="Nomor telepon" value="{{ old('customer_phone', $prefill['customer_phone'] ?? '') }}">
                     @error('customer_phone') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
                 
                 <div class="dms-form-span-2">
                     <label class="form-label">Alamat</label>
-                    <textarea name="address" class="form-control" rows="2" placeholder="Alamat pelanggan (opsional)"></textarea>
+                    <textarea name="address" class="form-control" rows="2" placeholder="Alamat pelanggan (opsional)">{{ old('address', $prefill['address'] ?? '') }}</textarea>
                     @error('address') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
             </div>
@@ -79,7 +79,7 @@
                     <select name="reason" class="form-control" required>
                         <option value="">-- Pilih Alasan --</option>
                         @foreach($reasons as $key => $label)
-                            <option value="{{ $key }}">{{ $label }}</option>
+                            <option value="{{ $key }}" {{ old('reason', $prefill['reason'] ?? '') === $key ? 'selected' : '' }}>{{ $label }}</option>
                         @endforeach
                     </select>
                     @error('reason') <span class="dms-error">{{ $message }}</span> @enderror
@@ -87,13 +87,13 @@
                 
                 <div class="dms-form-span-2">
                     <label class="form-label">Detail Alasan</label>
-                    <textarea name="reason_detail" class="form-control" rows="2" placeholder="Detail alasan pemberian barang bonus (opsional)"></textarea>
+                    <textarea name="reason_detail" class="form-control" rows="2" placeholder="Detail alasan pemberian barang bonus (opsional)">{{ old('reason_detail', $prefill['reason_detail'] ?? '') }}</textarea>
                     @error('reason_detail') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
                 
                 <div>
                     <label class="form-label">Referensi Order</label>
-                    <input type="text" name="reference_order" class="form-control" placeholder="Nomor order terkait (opsional)">
+                    <input type="text" name="reference_order" class="form-control" placeholder="Nomor order terkait (opsional)" value="{{ old('reference_order', $prefill['reference_order'] ?? '') }}">
                     @error('reference_order') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
             </div>
@@ -123,19 +123,23 @@
                         </thead>
                     </thead>
                     <tbody id="products-tbody">
+                        @php
+                            $prefillItems = old('items', $prefill['items'] ?? [['product_id' => '', 'quantity' => 1]]);
+                        @endphp
+                        @foreach($prefillItems as $index => $prefillItem)
                         <tr class="product-row" style="border-bottom: 1px solid var(--k-gray-200);">
                             <td style="padding: 0.5rem;">
-                                <select name="items[0][product_id]" class="product-select" required onchange="updateProductPrice(this, 0)" style="width: 100%; padding: 0.5rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.75rem;">
+                                <select name="items[{{ $index }}][product_id]" class="product-select" required onchange="updateProductPrice(this, {{ $index }})" style="width: 100%; padding: 0.5rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.75rem;">
                                     <option value="">-- Pilih Produk --</option>
                                     @foreach($products as $product)
-                                        <option value="{{ $product->id }}" data-price="{{ $product->price ?? 0 }}" data-stock="{{ $product->current_stock }}">
+                                        <option value="{{ $product->id }}" data-price="{{ $product->price ?? 0 }}" data-stock="{{ $product->current_stock }}" {{ (string) ($prefillItem['product_id'] ?? '') === (string) $product->id ? 'selected' : '' }}>
                                             {{ $product->name }} ({{ $product->unit->name ?? '-' }}) - Stok: {{ number_format($product->current_stock) }}
                                         </option>
                                     @endforeach
                                 </select>
                             </thead>
                             <td style="padding: 0.5rem;">
-                                <input type="number" name="items[0][quantity]" class="quantity-input" value="1" min="1" onchange="calculateSubtotal(this, 0)" style="width: 100%; padding: 0.5rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.75rem;">
+                                <input type="number" name="items[{{ $index }}][quantity]" class="quantity-input" value="{{ $prefillItem['quantity'] ?? 1 }}" min="1" onchange="calculateSubtotal(this, {{ $index }})" style="width: 100%; padding: 0.5rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.75rem;">
                             </thead>
                             <td style="padding: 0.5rem;">
                                 <span class="product-price-display" style="font-size: 0.75rem;">Rp 0</span>
@@ -151,6 +155,7 @@
                                 </button>
                             </thead>
                         </tr>
+                        @endforeach
                     </tbody>
                     <tfoot>
                         <tr style="background: var(--k-gray-50); border-top: 1px solid var(--k-gray-200);">
@@ -168,7 +173,7 @@
         <!-- Notes -->
         <div style="margin-bottom: 1.5rem;">
             <label class="form-label">Catatan</label>
-            <textarea name="notes" class="form-control" rows="2" placeholder="Catatan tambahan (opsional)" style="padding: 0.6rem; font-size: 0.8rem;"></textarea>
+            <textarea name="notes" class="form-control" rows="2" placeholder="Catatan tambahan (opsional)" style="padding: 0.6rem; font-size: 0.8rem;">{{ old('notes', $prefill['notes'] ?? '') }}</textarea>
         </div>
         
         <!-- Buttons -->
@@ -184,7 +189,7 @@
 </div>
 
 <script>
-let productIndex = 1;
+let productIndex = {{ count($prefillItems) }};
 
 function addProductRow() {
     const tbody = document.getElementById('products-tbody');
@@ -274,6 +279,11 @@ function calculateGrandTotal() {
 
 // Initial calculation
 document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.product-select').forEach((select, index) => {
+        if (select.value) {
+            updateProductPrice(select, index);
+        }
+    });
     calculateGrandTotal();
 });
 </script>

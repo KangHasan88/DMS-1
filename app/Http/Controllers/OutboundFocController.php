@@ -6,7 +6,9 @@ use App\Models\OutboundFoc;
 use App\Models\OutboundFocItem;
 use App\Models\CompanyBranch;
 use App\Models\CompanyProfile;
+use App\Models\Order;
 use App\Models\Product;
+use App\Services\ProductBonusService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -43,15 +45,63 @@ class OutboundFocController extends Controller
         return view('outbound-focs.index', compact('focs', 'reasons', 'companyBranches', 'canFilterBranches'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
         $products = Product::active()->orderBy('name')->get();
         $reasons = OutboundFoc::REASONS;
         $companyBranches = $this->availableCompanyBranches();
         $branchLocked = (bool) $this->currentBranchScopeId();
         $defaultBranchId = $this->defaultCompanyBranchId();
+        $prefill = [
+            'company_branch_id' => $defaultBranchId,
+            'customer_name' => '',
+            'customer_phone' => '',
+            'address' => '',
+            'reason' => '',
+            'reason_detail' => '',
+            'reference_order' => '',
+            'notes' => '',
+            'items' => [['product_id' => '', 'quantity' => 1]],
+        ];
+
+        if ($request->filled('order_id')) {
+            $order = Order::with(['user.customer', 'items.product'])->findOrFail($request->order_id);
+
+            if (($branchScopeId = $this->currentBranchScopeId()) && (int) $order->company_branch_id !== $branchScopeId) {
+                abort(403);
+            }
+
+            $bonusItems = $order->items
+                ->map(function ($item) use ($order) {
+                    $rule = $item->product
+                        ? app(ProductBonusService::class)->resolveBonus($item->product, $item->quantity, $order->user?->customer, $order->company_branch_id)
+                        : null;
+
+                    return $rule ? [
+                        'product_id' => $rule->bonus_product_id,
+                        'quantity' => $rule->bonus_quantity,
+                    ] : null;
+                })
+                ->filter()
+                ->values()
+                ->all();
+
+            if (!empty($bonusItems)) {
+                $prefill = [
+                    'company_branch_id' => $order->company_branch_id ?: $defaultBranchId,
+                    'customer_name' => $order->user?->customer?->name ?? $order->user?->name ?? '',
+                    'customer_phone' => $order->user?->customer?->phone ?? $order->user?->phone ?? '',
+                    'address' => $order->shipping_address_snapshot ?? $order->address ?? '',
+                    'reason' => OutboundFoc::REASON_PROMOTION,
+                    'reason_detail' => 'Bonus promo dari order ' . $order->order_number,
+                    'reference_order' => $order->order_number,
+                    'notes' => 'Dibuat dari rekomendasi Aturan Bonus.',
+                    'items' => $bonusItems,
+                ];
+            }
+        }
         
-        return view('outbound-focs.create', compact('products', 'reasons', 'companyBranches', 'branchLocked', 'defaultBranchId'));
+        return view('outbound-focs.create', compact('products', 'reasons', 'companyBranches', 'branchLocked', 'defaultBranchId', 'prefill'));
     }
 
     public function store(Request $request)

@@ -354,6 +354,49 @@
         </div>
     </div>
 
+    @if($bonusPlan->isNotEmpty())
+    <div style="margin-top: 2rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--k-gray-200);">
+            <h4 style="font-size: 1rem; font-weight: 600; color: var(--k-gray-800); margin: 0;">
+                <i class="bi bi-gift" style="margin-right: 0.5rem; color: var(--k-orange);"></i>
+                Bonus Eligible
+            </h4>
+            @can('create outbound foc')
+            <a href="{{ route('outbound-focs.create', ['order_id' => $order->id]) }}" class="dms-btn dms-btn-primary">
+                <i class="bi bi-gift"></i> Buat Barang Bonus
+            </a>
+            @endcan
+        </div>
+
+        <div style="background: #fffaf3; border: 1px solid #ffd8ad; border-radius: 10px; overflow: hidden;">
+            <div style="padding: 0.9rem 1rem; color: var(--k-gray-700); font-size: 0.85rem; border-bottom: 1px solid #ffd8ad;">
+                Order ini memenuhi aturan bonus. Buat transaksi Barang Bonus untuk mengurangi stok dan menyimpan audit pengeluaran bonus.
+            </div>
+            <table class="dms-table" style="width: 100%; border-collapse: collapse; margin: 0;">
+                <thead>
+                    <tr>
+                        <th style="padding: 0.75rem; text-align: left;">Pemicu</th>
+                        <th style="padding: 0.75rem; text-align: left;">Bonus</th>
+                        <th style="padding: 0.75rem; text-align: right;">Qty Bonus</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($bonusPlan as $plan)
+                    <tr>
+                        <td style="padding: 0.75rem;">
+                            {{ $plan['item']->product_name }}
+                            <div class="dms-muted">Qty order: {{ number_format($plan['item']->quantity) }}</div>
+                        </td>
+                        <td style="padding: 0.75rem;">{{ $plan['bonus_product']?->name ?? '-' }}</td>
+                        <td style="padding: 0.75rem; text-align: right; font-weight: 700;">{{ number_format($plan['bonus_quantity']) }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    </div>
+    @endif
+
     @if($returnablePackagePlan->isNotEmpty())
     <div style="margin-top: 2rem;">
         <h4 style="font-size: 1rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--k-gray-200);">
