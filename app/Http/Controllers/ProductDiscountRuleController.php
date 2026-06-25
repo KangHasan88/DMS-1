@@ -8,6 +8,7 @@ use App\Models\CustomerType;
 use App\Models\Product;
 use App\Models\ProductDiscountRule;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class ProductDiscountRuleController extends Controller
 {
@@ -62,6 +63,7 @@ class ProductDiscountRuleController extends Controller
 
         if ($customerIds->isNotEmpty()) {
             $validated['customer_type'] = null;
+            $this->ensureNoOverlappingDiscountRules($validated, $customerIds->all());
 
             $customerIds->each(function ($customerId) use ($validated) {
                 ProductDiscountRule::create($validated + ['customer_id' => $customerId]);
@@ -69,6 +71,8 @@ class ProductDiscountRuleController extends Controller
 
             return back()->with('success', $customerIds->count() . ' aturan diskon customer berhasil ditambahkan.');
         }
+
+        $this->ensureNoOverlappingDiscountRules($validated, [null]);
 
         ProductDiscountRule::create($validated + ['customer_id' => null]);
 
@@ -80,5 +84,39 @@ class ProductDiscountRuleController extends Controller
         $productDiscountRule->update(['is_active' => !$productDiscountRule->is_active]);
 
         return back()->with('success', 'Status aturan diskon berhasil diperbarui.');
+    }
+
+    private function ensureNoOverlappingDiscountRules(array $data, array $customerIds): void
+    {
+        foreach ($customerIds as $customerId) {
+            $exists = ProductDiscountRule::query()
+                ->where('is_active', true)
+                ->tap(fn ($query) => $this->whereNullableValue($query, 'product_id', $data['product_id'] ?? null))
+                ->when($customerId, fn ($query) => $query->where('customer_id', $customerId), fn ($query) => $query->whereNull('customer_id'))
+                ->when(
+                    $customerId,
+                    fn ($query) => $query->whereNull('customer_type'),
+                    fn ($query) => $this->whereNullableValue($query, 'customer_type', $data['customer_type'] ?? null)
+                )
+                ->tap(fn ($query) => $this->whereNullableValue($query, 'company_branch_id', $data['company_branch_id'] ?? null))
+                ->where('min_quantity', (int) $data['min_quantity'])
+                ->whereDate('starts_at', '<=', $data['ends_at'] ?? '9999-12-31')
+                ->where(function ($query) use ($data) {
+                    $query->whereNull('ends_at')
+                        ->orWhereDate('ends_at', '>=', $data['starts_at']);
+                })
+                ->exists();
+
+            if ($exists) {
+                throw ValidationException::withMessages([
+                    'starts_at' => 'Periode aturan diskon bentrok dengan aturan aktif pada scope dan minimum qty yang sama.',
+                ]);
+            }
+        }
+    }
+
+    private function whereNullableValue($query, string $column, mixed $value)
+    {
+        return filled($value) ? $query->where($column, $value) : $query->whereNull($column);
     }
 }

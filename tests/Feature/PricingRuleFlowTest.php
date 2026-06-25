@@ -250,6 +250,55 @@ class PricingRuleFlowTest extends TestCase
             ]);
     }
 
+    public function test_price_rule_rejects_overlapping_active_rule_for_same_scope(): void
+    {
+        $admin = $this->userWithRole('admin', 'price-overlap-admin@example.test');
+        $branch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $customerUser = $this->userWithRole('customer', 'price-overlap-customer@example.test');
+        $customer = Customer::create([
+            'user_id' => $customerUser->id,
+            'company_branch_id' => $branch->id,
+            'name' => 'Customer Harga Overlap',
+            'phone' => '081234567898',
+            'email' => 'price-overlap-customer@example.test',
+            'customer_type' => 'regular',
+            'payment_term' => Customer::PAYMENT_CASH,
+            'credit_status' => Customer::CREDIT_NORMAL,
+            'is_active' => true,
+        ]);
+        $product = Product::create([
+            'name' => 'Produk Harga Overlap',
+            'category' => 'Demo',
+            'price' => 20000,
+            'base_price' => 12000,
+            'is_active' => true,
+        ]);
+
+        ProductPriceRule::create([
+            'product_id' => $product->id,
+            'customer_id' => $customer->id,
+            'company_branch_id' => $branch->id,
+            'price' => 16000,
+            'starts_at' => now()->subDay()->toDateString(),
+            'ends_at' => now()->addWeek()->toDateString(),
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('product-price-rules.index'))
+            ->post(route('product-price-rules.store'), [
+                'product_id' => $product->id,
+                'customer_ids' => [$customer->id],
+                'company_branch_id' => $branch->id,
+                'price' => 15500,
+                'starts_at' => now()->toDateString(),
+            ])
+            ->assertRedirect(route('product-price-rules.index'))
+            ->assertSessionHasErrors('starts_at');
+
+        $this->assertSame(1, ProductPriceRule::where('product_id', $product->id)->count());
+    }
+
     public function test_discount_rule_page_can_create_segment_rule(): void
     {
         $admin = $this->userWithRole('admin', 'discount-page-admin@example.test');
@@ -357,6 +406,47 @@ class PricingRuleFlowTest extends TestCase
             'discount_type' => ProductDiscountRule::TYPE_NOMINAL,
             'discount_value' => 1000,
         ]);
+    }
+
+    public function test_discount_rule_rejects_overlapping_active_rule_for_same_scope(): void
+    {
+        $admin = $this->userWithRole('admin', 'discount-overlap-admin@example.test');
+        $branch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $product = Product::create([
+            'name' => 'Produk Diskon Overlap',
+            'category' => 'Demo',
+            'price' => 18000,
+            'base_price' => 10000,
+            'is_active' => true,
+        ]);
+
+        ProductDiscountRule::create([
+            'product_id' => $product->id,
+            'customer_type' => 'wholesale',
+            'company_branch_id' => $branch->id,
+            'discount_type' => ProductDiscountRule::TYPE_PERCENT,
+            'discount_value' => 10,
+            'min_quantity' => 2,
+            'starts_at' => now()->subDay()->toDateString(),
+            'ends_at' => now()->addWeek()->toDateString(),
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('product-discount-rules.index'))
+            ->post(route('product-discount-rules.store'), [
+                'product_id' => $product->id,
+                'customer_type' => 'wholesale',
+                'company_branch_id' => $branch->id,
+                'discount_type' => ProductDiscountRule::TYPE_PERCENT,
+                'discount_value' => 12,
+                'min_quantity' => 2,
+                'starts_at' => now()->toDateString(),
+            ])
+            ->assertRedirect(route('product-discount-rules.index'))
+            ->assertSessionHasErrors('starts_at');
+
+        $this->assertSame(1, ProductDiscountRule::where('product_id', $product->id)->count());
     }
 
     public function test_order_applies_active_discount_rule_when_item_has_no_manual_discount(): void
