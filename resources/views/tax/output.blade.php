@@ -36,15 +36,111 @@
         font-size: .75rem;
         font-weight: 800;
     }
+
+    .tax-page {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .tax-page-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        padding-bottom: .9rem;
+        border-bottom: 1px solid #edf2f7;
+    }
+
+    .tax-page-title {
+        display: flex;
+        align-items: flex-start;
+        gap: .75rem;
+    }
+
+    .tax-page-icon {
+        width: 38px;
+        height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 38px;
+        border-radius: 10px;
+        color: #061a3d;
+        background: #eaf2ff;
+    }
+
+    .tax-page-title h3 {
+        margin: 0;
+    }
+
+    .tax-page-title p {
+        margin: .25rem 0 0;
+    }
+
+    .tax-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: .5rem;
+    }
+
+    .tax-actions form {
+        margin: 0;
+    }
+
+    .tax-actions .dms-btn {
+        min-height: 38px;
+        white-space: nowrap;
+    }
+
+    .tax-readiness-note {
+        display: flex;
+        align-items: center;
+        gap: .55rem;
+        margin: 0;
+        padding: .7rem .85rem;
+        border: 1px solid #dbeafe;
+        border-radius: 10px;
+        color: #315076;
+        background: #f7fbff;
+        font-size: .9rem;
+    }
+
+    .tax-readiness-note i {
+        color: #0b1f3f;
+    }
+
+    .tax-stats {
+        margin: 0;
+    }
+
+    .tax-toolbar {
+        margin: 0;
+    }
+
+    @media (max-width: 900px) {
+        .tax-page-header {
+            flex-direction: column;
+        }
+
+        .tax-actions {
+            justify-content: flex-start;
+            width: 100%;
+        }
+    }
 </style>
 
-    <div class="dms-card">
-    <div class="dms-section-header">
-        <div>
-            <h3 class="dms-section-title">Pajak Keluaran</h3>
-            <p class="dms-section-subtitle">Pantau PPN keluaran dari invoice penjualan sebelum masuk proses Coretax.</p>
+<div class="dms-card tax-page">
+    <div class="tax-page-header">
+        <div class="tax-page-title">
+            <div class="tax-page-icon"><i class="bi bi-receipt"></i></div>
+            <div>
+                <h3 class="dms-section-title">Pajak Keluaran</h3>
+                <p class="dms-section-subtitle">Pantau PPN keluaran dari invoice penjualan sebelum masuk proses Coretax.</p>
+            </div>
         </div>
-        <div class="d-flex align-items-center gap-2">
+        <div class="tax-actions">
             <a href="{{ route('tax.output.export', request()->query()) }}" class="dms-btn dms-btn-outline">
                 <i class="bi bi-download"></i> Export CSV
             </a>
@@ -74,11 +170,12 @@
     @if($errors->any())
         <div class="alert alert-danger">Periksa kembali input pajak yang wajib diisi.</div>
     @endif
-    <div class="alert alert-info">
-        Dokumen hanya bisa ditandai exported jika nomor dan tanggal faktur pajak sudah lengkap.
+    <div class="tax-readiness-note">
+        <i class="bi bi-info-circle"></i>
+        <span>Dokumen hanya bisa ditandai exported jika nomor dan tanggal faktur pajak sudah lengkap.</span>
     </div>
 
-    <div class="stats-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
+    <div class="stats-grid tax-stats" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
         <div class="stat-card">
             <div class="stat-label">Dokumen Pajak</div>
             <div class="stat-value" style="font-size: 1rem;">{{ number_format($summary['count']) }}</div>
@@ -96,7 +193,7 @@
         </div>
     </div>
 
-    <form action="{{ route('tax.output') }}" method="GET" class="dms-toolbar">
+    <form action="{{ route('tax.output') }}" method="GET" class="dms-toolbar tax-toolbar">
         <div class="dms-search-form">
             <div class="dms-search-field">
                 <i class="bi bi-search"></i>
