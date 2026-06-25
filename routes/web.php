@@ -363,6 +363,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('tax/output/import-results', [TaxController::class, 'importOutputResults'])
         ->middleware('permission:create invoice')
         ->name('tax.output.import-results');
+    Route::get('tax/output/import-template', [TaxController::class, 'outputImportTemplate'])
+        ->middleware('permission:view invoice')
+        ->name('tax.output.import-template');
     Route::put('tax/output/{arInvoice}', [TaxController::class, 'updateOutput'])
         ->middleware('permission:create invoice')
         ->name('tax.output.update');
@@ -381,6 +384,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('tax/input/import-results', [TaxController::class, 'importInputResults'])
         ->middleware('permission:create invoice')
         ->name('tax.input.import-results');
+    Route::get('tax/input/import-template', [TaxController::class, 'inputImportTemplate'])
+        ->middleware('permission:view invoice')
+        ->name('tax.input.import-template');
     Route::put('tax/input/{apInvoice}', [TaxController::class, 'updateInput'])
         ->middleware('permission:create invoice')
         ->name('tax.input.update');

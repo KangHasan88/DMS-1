@@ -605,6 +605,13 @@ class ApInvoiceFlowTest extends TestCase
         $invoice->refresh();
         $this->assertSame(ApInvoice::TAX_REJECTED, $invoice->tax_status);
         $this->assertSame('NPWP supplier tidak valid', $invoice->tax_error_message);
+
+        $this->actingAs($finance)
+            ->get(route('tax.input.import-template'))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->assertSee('invoice_number')
+            ->assertSee('supplier_tax_invoice_number');
     }
 
     private function receivedPurchaseOrder(

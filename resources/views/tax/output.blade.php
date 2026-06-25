@@ -214,6 +214,7 @@
             </div>
             <form action="{{ route('tax.output.import-results') }}" method="POST" enctype="multipart/form-data" class="tax-import-form">
                 @csrf
+                <a href="{{ route('tax.output.import-template') }}" class="dms-btn dms-btn-outline"><i class="bi bi-filetype-csv"></i> Template</a>
                 <input type="file" name="result_file" class="form-control" accept=".csv,text/csv,text/plain" required>
                 <button type="submit" class="dms-btn dms-btn-outline"><i class="bi bi-upload"></i> Import</button>
             </form>

@@ -63,6 +63,15 @@ class TaxController extends Controller
         return $this->csvResponse($rows, 'pajak-keluaran-' . now()->format('Ymd-His') . '.csv');
     }
 
+    public function outputImportTemplate()
+    {
+        return $this->csvResponse([
+            ['invoice_number', 'tax_status', 'tax_invoice_number', 'tax_invoice_date', 'tax_error_message'],
+            ['INV-DMS-MAI-20260625-0001', ArInvoice::TAX_APPROVED, '010.000-26.00000001', now()->toDateString(), ''],
+            ['INV-DMS-MAI-20260625-0002', ArInvoice::TAX_REJECTED, '', '', 'NPWP customer tidak valid'],
+        ], 'template-import-pajak-keluaran.csv');
+    }
+
     public function markOutputExported(Request $request)
     {
         $candidates = $this->outputQuery($request)
@@ -225,6 +234,15 @@ class TaxController extends Controller
         }
 
         return $this->csvResponse($rows, 'pajak-masukan-' . now()->format('Ymd-His') . '.csv');
+    }
+
+    public function inputImportTemplate()
+    {
+        return $this->csvResponse([
+            ['invoice_number', 'tax_status', 'supplier_tax_invoice_number', 'supplier_tax_invoice_date', 'tax_error_message'],
+            ['AP-DMS-MAI-20260625-0001', ApInvoice::TAX_APPROVED, '010.000-26.00000001', now()->toDateString(), ''],
+            ['AP-DMS-MAI-20260625-0002', ApInvoice::TAX_REJECTED, '', '', 'NPWP supplier tidak valid'],
+        ], 'template-import-pajak-masukan.csv');
     }
 
     public function markInputExported(Request $request)

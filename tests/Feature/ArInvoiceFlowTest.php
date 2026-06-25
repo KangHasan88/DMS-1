@@ -562,6 +562,13 @@ class ArInvoiceFlowTest extends TestCase
         $this->assertSame(ArInvoice::TAX_APPROVED, $invoice->tax_status);
         $this->assertNotNull($invoice->tax_approved_at);
         $this->assertNull($invoice->tax_error_message);
+
+        $this->actingAs($finance)
+            ->get(route('tax.output.import-template'))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'text/csv; charset=UTF-8')
+            ->assertSee('invoice_number')
+            ->assertSee('tax_invoice_number');
     }
 
     private function deliveredOrder(string $status = Order::STATUS_DELIVERED): array
