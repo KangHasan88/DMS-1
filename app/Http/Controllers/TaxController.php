@@ -76,6 +76,19 @@ class TaxController extends Controller
         return back()->with('success', $count . ' pajak keluaran ditandai exported.');
     }
 
+    public function markOutputApproved(Request $request)
+    {
+        $count = $this->outputQuery($request)
+            ->where('tax_status', ArInvoice::TAX_EXPORTED)
+            ->update([
+                'tax_status' => ArInvoice::TAX_APPROVED,
+                'tax_approved_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        return back()->with('success', $count . ' pajak keluaran ditandai approved.');
+    }
+
     public function updateOutput(Request $request, ArInvoice $arInvoice)
     {
         $this->ensureBranchAccess($arInvoice->company_branch_id);
@@ -174,6 +187,19 @@ class TaxController extends Controller
             ]);
 
         return back()->with('success', $count . ' pajak masukan ditandai exported.');
+    }
+
+    public function markInputApproved(Request $request)
+    {
+        $count = $this->inputQuery($request)
+            ->where('tax_status', ApInvoice::TAX_EXPORTED)
+            ->update([
+                'tax_status' => ApInvoice::TAX_APPROVED,
+                'tax_approved_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        return back()->with('success', $count . ' pajak masukan ditandai approved.');
     }
 
     public function updateInput(Request $request, ApInvoice $apInvoice)

@@ -357,6 +357,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('tax/output/mark-exported', [TaxController::class, 'markOutputExported'])
         ->middleware('permission:create invoice')
         ->name('tax.output.mark-exported');
+    Route::post('tax/output/mark-approved', [TaxController::class, 'markOutputApproved'])
+        ->middleware('permission:create invoice')
+        ->name('tax.output.mark-approved');
     Route::put('tax/output/{arInvoice}', [TaxController::class, 'updateOutput'])
         ->middleware('permission:create invoice')
         ->name('tax.output.update');
@@ -369,6 +372,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('tax/input/mark-exported', [TaxController::class, 'markInputExported'])
         ->middleware('permission:create invoice')
         ->name('tax.input.mark-exported');
+    Route::post('tax/input/mark-approved', [TaxController::class, 'markInputApproved'])
+        ->middleware('permission:create invoice')
+        ->name('tax.input.mark-approved');
     Route::put('tax/input/{apInvoice}', [TaxController::class, 'updateInput'])
         ->middleware('permission:create invoice')
         ->name('tax.input.update');

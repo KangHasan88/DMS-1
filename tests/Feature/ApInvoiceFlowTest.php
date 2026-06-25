@@ -544,6 +544,15 @@ class ApInvoiceFlowTest extends TestCase
         $invoice->refresh();
         $this->assertSame(ApInvoice::TAX_EXPORTED, $invoice->tax_status);
         $this->assertNotNull($invoice->tax_exported_at);
+
+        $this->actingAs($finance)
+            ->post(route('tax.input.mark-approved', ['tax_status' => ApInvoice::TAX_EXPORTED]))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $invoice->refresh();
+        $this->assertSame(ApInvoice::TAX_APPROVED, $invoice->tax_status);
+        $this->assertNotNull($invoice->tax_approved_at);
     }
 
     private function receivedPurchaseOrder(

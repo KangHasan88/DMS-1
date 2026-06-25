@@ -494,6 +494,15 @@ class ArInvoiceFlowTest extends TestCase
         $invoice->refresh();
         $this->assertSame(ArInvoice::TAX_EXPORTED, $invoice->tax_status);
         $this->assertNotNull($invoice->tax_exported_at);
+
+        $this->actingAs($finance)
+            ->post(route('tax.output.mark-approved', ['tax_status' => ArInvoice::TAX_EXPORTED]))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $invoice->refresh();
+        $this->assertSame(ArInvoice::TAX_APPROVED, $invoice->tax_status);
+        $this->assertNotNull($invoice->tax_approved_at);
     }
 
     private function deliveredOrder(string $status = Order::STATUS_DELIVERED): array

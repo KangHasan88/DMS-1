@@ -55,6 +55,12 @@
                         <i class="bi bi-check2-circle"></i> Tandai Exported
                     </button>
                 </form>
+                <form action="{{ route('tax.output.mark-approved', request()->query()) }}" method="POST" onsubmit="return confirm('Tandai pajak keluaran exported sesuai filter saat ini sebagai approved?');">
+                    @csrf
+                    <button type="submit" class="dms-btn dms-btn-outline">
+                        <i class="bi bi-patch-check"></i> Tandai Approved
+                    </button>
+                </form>
             @endcan
         </div>
     </div>
