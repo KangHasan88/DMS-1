@@ -1010,6 +1010,26 @@ class OrderController extends Controller
         ]);
     }
 
+    public function getPriceInfo(Request $request, $productId)
+    {
+        $product = Product::findOrFail($productId);
+        $customer = null;
+
+        if ($request->filled('user_id')) {
+            $customer = Customer::where('user_id', $request->user_id)->first();
+        }
+
+        $companyBranchId = $request->filled('company_branch_id')
+            ? (int) $request->company_branch_id
+            : null;
+        $price = app(ProductPricingService::class)->resolvePrice($product, $customer, $companyBranchId);
+
+        return response()->json([
+            'price' => $price,
+            'formatted_price' => 'Rp ' . number_format($price, 0, ',', '.'),
+        ]);
+    }
+
     private function isCustomerOnly(): bool
     {
         $user = Auth::user();

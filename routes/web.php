@@ -155,6 +155,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     
     // ============= PRODUCT MANAGEMENT =============
     Route::get('products/{product}/stock-info', [OrderController::class, 'getStockInfo'])->middleware('permission:view products')->name('products.stock-info');
+    Route::get('products/{product}/price-info', [OrderController::class, 'getPriceInfo'])->middleware('permission:view products')->name('products.price-info');
     Route::resource('products', ProductController::class)->only(['create', 'store'])->middleware('permission:create products');
     Route::resource('products', ProductController::class)->only(['index', 'show'])->middleware('permission:view products');
     Route::resource('products', ProductController::class)->only(['edit', 'update'])->middleware('permission:edit products');

@@ -43,7 +43,7 @@
                 @if($branchLocked)
                     <input type="hidden" name="company_branch_id" value="{{ $defaultCompanyBranchId }}">
                 @endif
-                <select name="company_branch_id" class="form-control" {{ $branchLocked ? 'disabled' : '' }}>
+                <select name="company_branch_id" id="company_branch_id" class="form-control" {{ $branchLocked ? 'disabled' : '' }}>
                     <option value="">Gunakan cabang default</option>
                     @foreach($companyBranches as $branch)
                         <option value="{{ $branch->id }}" {{ (string) old('company_branch_id', $defaultCompanyBranchId) === (string) $branch->id ? 'selected' : '' }}>
@@ -210,6 +210,16 @@
 
 <script>
 let productIndex = {{ count($order->items) }};
+const orderCustomerUserId = "{{ $order->user_id }}";
+const productPriceInfoUrlTemplate = "{{ route('products.price-info', ['product' => '__PRODUCT__']) }}";
+
+function selectedBranchId() {
+    return document.getElementById('company_branch_id')?.value || '';
+}
+
+function productPriceInfoUrl(productId) {
+    return productPriceInfoUrlTemplate.replace('__PRODUCT__', productId);
+}
 
 function addProductRow() {
     const tbody = document.getElementById('products-tbody');
@@ -254,9 +264,9 @@ function removeProductRow(button) {
     calculateGrandTotal();
 }
 
-function updateProductPrice(select, index) {
+async function updateProductPrice(select, index) {
     const selectedOption = select.options[select.selectedIndex];
-    const price = selectedOption?.getAttribute('data-price') || 0;
+    let price = selectedOption?.getAttribute('data-price') || 0;
     const row = select.closest('tr');
     const priceDisplay = row.querySelector('.product-price-display');
     const priceInput = row.querySelector('.product-price-input');
@@ -267,13 +277,54 @@ function updateProductPrice(select, index) {
     }
     
     calculateSubtotal(row.querySelector('.quantity-input'), index);
+
+    if (!select.value) {
+        return;
+    }
+
+    const params = new URLSearchParams({
+        user_id: orderCustomerUserId,
+        company_branch_id: selectedBranchId(),
+    });
+
+    try {
+        const response = await fetch(`${productPriceInfoUrl(select.value)}?${params.toString()}`, {
+            headers: { 'Accept': 'application/json' },
+        });
+
+        if (!response.ok) {
+            return;
+        }
+
+        const data = await response.json();
+        price = parseInt(data.price || 0);
+        selectedOption.setAttribute('data-price', price);
+
+        if (priceDisplay) {
+            priceDisplay.innerText = data.formatted_price || ('Rp ' + new Intl.NumberFormat('id-ID').format(price));
+        }
+
+        if (priceInput) {
+            priceInput.value = price;
+        }
+
+        calculateSubtotal(row.querySelector('.quantity-input'), index);
+    } catch (error) {
+        console.warn('Gagal mengambil harga price list', error);
+    }
+}
+
+function refreshAllProductPrices() {
+    document.querySelectorAll('.product-select').forEach((select, index) => {
+        if (select.value) {
+            updateProductPrice(select, index);
+        }
+    });
 }
 
 function calculateSubtotal(quantityInput, index) {
     const row = quantityInput.closest('tr');
-    const select = row.querySelector('.product-select');
-    const selectedOption = select.options[select.selectedIndex];
-    const price = parseInt(selectedOption?.getAttribute('data-price') || 0);
+    const price = parseInt(row.querySelector('.product-price-input')?.value || 0);
     const quantity = parseInt(quantityInput.value) || 0;
     const subtotal = price * quantity;
     
@@ -320,6 +371,7 @@ document.addEventListener('DOMContentLoaded', function() {
     calculateGrandTotal();
     togglePackingRequirement();
     document.getElementById('requires_packing').addEventListener('change', togglePackingRequirement);
+    document.getElementById('company_branch_id')?.addEventListener('change', refreshAllProductPrices);
 });
 </script>
 

@@ -142,6 +142,50 @@ class PricingRuleFlowTest extends TestCase
         ]);
     }
 
+    public function test_product_price_info_endpoint_resolves_customer_price(): void
+    {
+        $admin = $this->userWithRole('admin', 'pricing-endpoint-admin@example.test');
+        $branch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $customerUser = $this->userWithRole('customer', 'pricing-endpoint-customer@example.test');
+        $customer = Customer::create([
+            'user_id' => $customerUser->id,
+            'company_branch_id' => $branch->id,
+            'name' => 'Customer Endpoint Harga',
+            'phone' => '081234567892',
+            'email' => 'pricing-endpoint-customer@example.test',
+            'customer_type' => 'regular',
+            'payment_term' => Customer::PAYMENT_CASH,
+            'credit_status' => Customer::CREDIT_NORMAL,
+            'is_active' => true,
+        ]);
+        $product = Product::create([
+            'name' => 'Produk Endpoint Harga',
+            'category' => 'Demo',
+            'price' => 15000,
+            'base_price' => 8000,
+            'is_active' => true,
+        ]);
+        ProductPriceRule::create([
+            'product_id' => $product->id,
+            'customer_id' => $customer->id,
+            'price' => 11000,
+            'starts_at' => now()->subDay()->toDateString(),
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->getJson(route('products.price-info', [
+                'product' => $product,
+                'user_id' => $customerUser->id,
+                'company_branch_id' => $branch->id,
+            ]))
+            ->assertOk()
+            ->assertJson([
+                'price' => 11000,
+                'formatted_price' => 'Rp 11.000',
+            ]);
+    }
+
     private function userWithRole(string $role, string $email): User
     {
         $user = User::factory()->create(['email' => $email]);

@@ -444,6 +444,19 @@
 
 <script>
 let productIndex = 1;
+const productPriceInfoUrlTemplate = "{{ route('products.price-info', ['product' => '__PRODUCT__']) }}";
+
+function selectedCustomerId() {
+    return document.getElementById('customer-select')?.value || '';
+}
+
+function selectedBranchId() {
+    return document.getElementById('company_branch_id')?.value || '';
+}
+
+function productPriceInfoUrl(productId) {
+    return productPriceInfoUrlTemplate.replace('__PRODUCT__', productId);
+}
 
 const orderForm = document.getElementById('order-form');
 const saveOrderButton = document.getElementById('save-order-button');
@@ -926,9 +939,9 @@ function removeProductRow(button) {
     calculateGrandTotal();
 }
 
-function updateProductPrice(select, index) {
+async function updateProductPrice(select, index) {
     const selectedOption = select.options[select.selectedIndex];
-    const price = selectedOption?.getAttribute('data-price') || 0;
+    let price = selectedOption?.getAttribute('data-price') || 0;
     const row = select.closest('tr');
     const priceDisplay = row.querySelector('.product-price-display');
     const priceInput = row.querySelector('.price-input');
@@ -938,6 +951,49 @@ function updateProductPrice(select, index) {
         if (priceInput) priceInput.value = price;
     }
     calculateSubtotal(row.querySelector('.quantity-input'), index);
+
+    if (!select.value) {
+        return;
+    }
+
+    const params = new URLSearchParams({
+        user_id: selectedCustomerId(),
+        company_branch_id: selectedBranchId(),
+    });
+
+    try {
+        const response = await fetch(`${productPriceInfoUrl(select.value)}?${params.toString()}`, {
+            headers: { 'Accept': 'application/json' },
+        });
+
+        if (!response.ok) {
+            return;
+        }
+
+        const data = await response.json();
+        price = parseInt(data.price || 0);
+        selectedOption.setAttribute('data-price', price);
+
+        if (priceDisplay) {
+            priceDisplay.innerText = data.formatted_price || ('Rp ' + new Intl.NumberFormat('id-ID').format(price));
+        }
+
+        if (priceInput) {
+            priceInput.value = price;
+        }
+
+        calculateSubtotal(row.querySelector('.quantity-input'), index);
+    } catch (error) {
+        console.warn('Gagal mengambil harga price list', error);
+    }
+}
+
+function refreshAllProductPrices() {
+    document.querySelectorAll('.product-select').forEach((select, index) => {
+        if (select.value) {
+            updateProductPrice(select, index);
+        }
+    });
 }
 
 function calculateSubtotal(input, index) {
@@ -1074,7 +1130,9 @@ document.addEventListener('DOMContentLoaded', function() {
         filterCustomersByBranch();
         filterSalesOwnersByBranch();
         applySalesOwnerFromCustomer(true);
+        refreshAllProductPrices();
     });
+    document.getElementById('customer-select')?.addEventListener('change', refreshAllProductPrices);
     document.getElementById('invoice-address-select').addEventListener('change', () => updateDeliveryAddressSnapshot(true));
     document.getElementById('shipping-address-select').addEventListener('change', () => updateDeliveryAddressSnapshot(true));
     document.getElementById('shipping_same_as_invoice').addEventListener('change', () => updateDeliveryAddressSnapshot(true));
