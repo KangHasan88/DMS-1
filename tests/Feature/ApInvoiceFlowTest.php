@@ -555,6 +555,28 @@ class ApInvoiceFlowTest extends TestCase
         $this->assertNotNull($invoice->tax_approved_at);
     }
 
+    public function test_input_tax_export_requires_complete_supplier_tax_invoice_data(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ap-tax-incomplete@example.test');
+        [$purchaseOrder] = $this->receivedPurchaseOrder();
+        $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, $finance);
+        $invoice->forceFill([
+            'ppn_amount' => 6000,
+            'tax_base_amount' => 60000,
+            'tax_rate' => 11,
+            'tax_status' => ApInvoice::TAX_CLAIMABLE,
+        ])->save();
+
+        $this->actingAs($finance)
+            ->post(route('tax.input.mark-exported', ['tax_status' => ApInvoice::TAX_CLAIMABLE]))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $invoice->refresh();
+        $this->assertSame(ApInvoice::TAX_CLAIMABLE, $invoice->tax_status);
+        $this->assertNull($invoice->tax_exported_at);
+    }
+
     private function receivedPurchaseOrder(
         string $status = PurchaseOrder::STATUS_RECEIVED,
         int $receivedQuantity = 3,

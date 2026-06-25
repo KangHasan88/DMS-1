@@ -74,6 +74,9 @@
     @if($errors->any())
         <div class="alert alert-danger">Periksa kembali input pajak yang wajib diisi.</div>
     @endif
+    <div class="alert alert-info">
+        Dokumen hanya bisa ditandai exported jika nomor dan tanggal faktur pajak sudah lengkap.
+    </div>
 
     <div class="stats-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
         <div class="stat-card">

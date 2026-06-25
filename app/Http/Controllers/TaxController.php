@@ -65,15 +65,22 @@ class TaxController extends Controller
 
     public function markOutputExported(Request $request)
     {
-        $count = $this->outputQuery($request)
+        $candidates = $this->outputQuery($request)
+            ->whereIn('tax_status', [ArInvoice::TAX_DRAFT, ArInvoice::TAX_READY]);
+        $total = (clone $candidates)->count();
+        $count = (clone $candidates)
+            ->whereNotNull('tax_invoice_number')
+            ->where('tax_invoice_number', '!=', '')
+            ->whereNotNull('tax_invoice_date')
             ->whereIn('tax_status', [ArInvoice::TAX_DRAFT, ArInvoice::TAX_READY])
             ->update([
                 'tax_status' => ArInvoice::TAX_EXPORTED,
                 'tax_exported_at' => now(),
                 'updated_at' => now(),
             ]);
+        $skipped = $total - $count;
 
-        return back()->with('success', $count . ' pajak keluaran ditandai exported.');
+        return back()->with('success', $count . ' pajak keluaran ditandai exported. ' . $skipped . ' dilewati karena data faktur belum lengkap.');
     }
 
     public function markOutputApproved(Request $request)
@@ -178,15 +185,22 @@ class TaxController extends Controller
 
     public function markInputExported(Request $request)
     {
-        $count = $this->inputQuery($request)
+        $candidates = $this->inputQuery($request)
+            ->whereIn('tax_status', [ApInvoice::TAX_DRAFT, ApInvoice::TAX_CLAIMABLE]);
+        $total = (clone $candidates)->count();
+        $count = (clone $candidates)
+            ->whereNotNull('supplier_tax_invoice_number')
+            ->where('supplier_tax_invoice_number', '!=', '')
+            ->whereNotNull('supplier_tax_invoice_date')
             ->whereIn('tax_status', [ApInvoice::TAX_DRAFT, ApInvoice::TAX_CLAIMABLE])
             ->update([
                 'tax_status' => ApInvoice::TAX_EXPORTED,
                 'tax_exported_at' => now(),
                 'updated_at' => now(),
             ]);
+        $skipped = $total - $count;
 
-        return back()->with('success', $count . ' pajak masukan ditandai exported.');
+        return back()->with('success', $count . ' pajak masukan ditandai exported. ' . $skipped . ' dilewati karena data faktur belum lengkap.');
     }
 
     public function markInputApproved(Request $request)

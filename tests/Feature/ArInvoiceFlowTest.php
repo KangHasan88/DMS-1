@@ -505,6 +505,30 @@ class ArInvoiceFlowTest extends TestCase
         $this->assertNotNull($invoice->tax_approved_at);
     }
 
+    public function test_output_tax_export_requires_complete_tax_invoice_data(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ar-tax-incomplete@example.test');
+        [$order] = $this->deliveredOrder();
+        $order->forceFill([
+            'subtotal' => 100000,
+            'total' => 111000,
+            'grand_total' => 111000,
+            'include_ppn' => true,
+            'ppn_amount' => 11000,
+        ])->save();
+        $invoice = ArInvoice::issueFromOrder($order, $finance);
+        $invoice->forceFill(['tax_status' => ArInvoice::TAX_READY])->save();
+
+        $this->actingAs($finance)
+            ->post(route('tax.output.mark-exported', ['tax_status' => ArInvoice::TAX_READY]))
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $invoice->refresh();
+        $this->assertSame(ArInvoice::TAX_READY, $invoice->tax_status);
+        $this->assertNull($invoice->tax_exported_at);
+    }
+
     private function deliveredOrder(string $status = Order::STATUS_DELIVERED): array
     {
         $branch = CompanyBranch::where('is_active', true)->firstOrFail();
