@@ -7,7 +7,9 @@ use App\Models\Customer;
 use App\Models\CustomerType;
 use App\Models\Product;
 use App\Models\ProductBonusRule;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ProductBonusRuleController extends Controller
@@ -82,6 +84,57 @@ class ProductBonusRuleController extends Controller
         $productBonusRule->update(['is_active' => !$productBonusRule->is_active]);
 
         return back()->with('success', 'Status aturan bonus berhasil diperbarui.');
+    }
+
+    public function replace(Request $request, ProductBonusRule $productBonusRule)
+    {
+        $validated = $request->validate([
+            'bonus_product_id' => ['required', 'exists:products,id'],
+            'bonus_quantity' => ['required', 'integer', 'min:1'],
+            'starts_at' => ['required', 'date'],
+            'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
+            'notes' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        if ((int) $validated['bonus_product_id'] === (int) $productBonusRule->trigger_product_id) {
+            throw ValidationException::withMessages([
+                'bonus_product_id' => 'Produk bonus harus berbeda dari produk yang dibeli.',
+            ]);
+        }
+
+        $newStart = Carbon::parse($validated['starts_at'])->startOfDay();
+        $oldStart = $productBonusRule->starts_at?->copy()->startOfDay();
+
+        if ($oldStart && $newStart->lessThanOrEqualTo($oldStart)) {
+            throw ValidationException::withMessages([
+                'starts_at' => 'Tanggal mulai aturan baru harus setelah tanggal mulai aturan lama.',
+            ]);
+        }
+
+        DB::transaction(function () use ($productBonusRule, $validated, $newStart) {
+            $oldRule = $productBonusRule->fresh();
+            $closeDate = $newStart->copy()->subDay();
+
+            $oldRule->update([
+                'ends_at' => $closeDate->toDateString(),
+                'is_active' => $closeDate->greaterThanOrEqualTo(today()),
+            ]);
+
+            $newRule = $oldRule->replicate();
+            $newRule->fill([
+                'bonus_product_id' => $validated['bonus_product_id'],
+                'bonus_quantity' => $validated['bonus_quantity'],
+                'starts_at' => $newStart->toDateString(),
+                'ends_at' => $validated['ends_at'] ?? null,
+                'is_active' => true,
+                'notes' => $validated['notes'] ?? $oldRule->notes,
+            ]);
+
+            $this->ensureNoOverlappingBonusRules($newRule->getAttributes(), [$newRule->customer_id]);
+            $newRule->save();
+        });
+
+        return back()->with('success', 'Aturan bonus lama ditutup dan aturan baru berhasil dibuat.');
     }
 
     private function ensureNoOverlappingBonusRules(array $data, array $customerIds): void

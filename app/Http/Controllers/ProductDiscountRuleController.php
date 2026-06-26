@@ -7,7 +7,9 @@ use App\Models\Customer;
 use App\Models\CustomerType;
 use App\Models\Product;
 use App\Models\ProductDiscountRule;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ProductDiscountRuleController extends Controller
@@ -85,6 +87,55 @@ class ProductDiscountRuleController extends Controller
         $productDiscountRule->update(['is_active' => !$productDiscountRule->is_active]);
 
         return back()->with('success', 'Status aturan diskon berhasil diperbarui.');
+    }
+
+    public function replace(Request $request, ProductDiscountRule $productDiscountRule)
+    {
+        $validated = $request->validate([
+            'discount_type' => ['required', 'in:percent,nominal'],
+            'discount_value' => ['required', 'numeric', 'min:0.01'],
+            'starts_at' => ['required', 'date'],
+            'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
+            'notes' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        if ($validated['discount_type'] === ProductDiscountRule::TYPE_PERCENT) {
+            $request->validate(['discount_value' => ['numeric', 'max:100']]);
+        }
+
+        $newStart = Carbon::parse($validated['starts_at'])->startOfDay();
+        $oldStart = $productDiscountRule->starts_at?->copy()->startOfDay();
+
+        if ($oldStart && $newStart->lessThanOrEqualTo($oldStart)) {
+            throw ValidationException::withMessages([
+                'starts_at' => 'Tanggal mulai aturan baru harus setelah tanggal mulai aturan lama.',
+            ]);
+        }
+
+        DB::transaction(function () use ($productDiscountRule, $validated, $newStart) {
+            $oldRule = $productDiscountRule->fresh();
+            $closeDate = $newStart->copy()->subDay();
+
+            $oldRule->update([
+                'ends_at' => $closeDate->toDateString(),
+                'is_active' => $closeDate->greaterThanOrEqualTo(today()),
+            ]);
+
+            $newRule = $oldRule->replicate();
+            $newRule->fill([
+                'discount_type' => $validated['discount_type'],
+                'discount_value' => $validated['discount_value'],
+                'starts_at' => $newStart->toDateString(),
+                'ends_at' => $validated['ends_at'] ?? null,
+                'is_active' => true,
+                'notes' => $validated['notes'] ?? $oldRule->notes,
+            ]);
+
+            $this->ensureNoOverlappingDiscountRules($newRule->getAttributes(), [$newRule->customer_id]);
+            $newRule->save();
+        });
+
+        return back()->with('success', 'Aturan diskon lama ditutup dan aturan baru berhasil dibuat.');
     }
 
     private function ensureNoOverlappingDiscountRules(array $data, array $customerIds): void

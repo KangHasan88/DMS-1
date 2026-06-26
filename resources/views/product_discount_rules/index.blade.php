@@ -93,6 +93,42 @@
         font-weight: 700;
     }
 
+    .discount-rule-row-actions {
+        display: grid;
+        gap: .45rem;
+        min-width: 220px;
+    }
+
+    .discount-rule-replace {
+        border: 1px solid #dbe4f0;
+        border-radius: 8px;
+        background: #fbfdff;
+    }
+
+    .discount-rule-replace summary {
+        cursor: pointer;
+        padding: .55rem .65rem;
+        color: #061a3d;
+        font-size: .84rem;
+        font-weight: 700;
+        list-style: none;
+    }
+
+    .discount-rule-replace summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .discount-rule-replace form {
+        display: grid;
+        gap: .5rem;
+        padding: 0 .65rem .65rem;
+    }
+
+    .discount-rule-replace .form-control {
+        min-height: 38px;
+        font-size: .86rem;
+    }
+
     .customer-picker-summary {
         min-height: 54px;
         display: flex;
@@ -420,13 +456,32 @@
                         </td>
                         <td>
                             @can('edit products')
-                                <form action="{{ route('product-discount-rules.toggle-status', $rule) }}" method="POST">
-                                    @csrf
-                                    <button type="submit" class="dms-btn dms-btn-outline dms-btn-sm">
-                                        <i class="bi {{ $rule->is_active ? 'bi-pause-circle' : 'bi-play-circle' }}"></i>
-                                        {{ $rule->is_active ? 'Nonaktifkan' : 'Aktifkan' }}
-                                    </button>
-                                </form>
+                                <div class="discount-rule-row-actions">
+                                    @if($rule->is_active)
+                                        <details class="discount-rule-replace">
+                                            <summary><i class="bi bi-arrow-repeat"></i> Ganti Aturan</summary>
+                                            <form action="{{ route('product-discount-rules.replace', $rule) }}" method="POST">
+                                                @csrf
+                                                <select name="discount_type" class="form-control" required>
+                                                    <option value="percent" {{ $rule->discount_type === 'percent' ? 'selected' : '' }}>Persentase</option>
+                                                    <option value="nominal" {{ $rule->discount_type === 'nominal' ? 'selected' : '' }}>Nominal / unit</option>
+                                                </select>
+                                                <input type="number" name="discount_value" value="{{ $rule->discount_value }}" class="form-control" min="0.01" step="0.01" required>
+                                                <input type="date" name="starts_at" class="form-control" value="{{ now()->addDay()->toDateString() }}" required>
+                                                <input type="date" name="ends_at" class="form-control" value="{{ $rule->ends_at?->toDateString() }}">
+                                                <input type="text" name="notes" class="form-control" value="{{ $rule->notes }}" placeholder="Catatan">
+                                                <button type="submit" class="dms-btn dms-btn-primary dms-btn-sm">Simpan Pengganti</button>
+                                            </form>
+                                        </details>
+                                    @endif
+                                    <form action="{{ route('product-discount-rules.toggle-status', $rule) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="dms-btn dms-btn-outline dms-btn-sm">
+                                            <i class="bi {{ $rule->is_active ? 'bi-pause-circle' : 'bi-play-circle' }}"></i>
+                                            {{ $rule->is_active ? 'Nonaktifkan' : 'Aktifkan' }}
+                                        </button>
+                                    </form>
+                                </div>
                             @endcan
                         </td>
                     </tr>

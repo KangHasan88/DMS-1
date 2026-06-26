@@ -14,6 +14,12 @@
     .bonus-rule-actions { display: flex; align-items: flex-end; justify-content: flex-end; gap: .65rem; flex-wrap: wrap; }
     .bonus-rule-scope { color: #315076; font-size: .82rem; font-weight: 700; }
     .bonus-rule-hidden { display: none; }
+    .bonus-rule-row-actions { display: grid; gap: .45rem; min-width: 240px; }
+    .bonus-rule-replace { border: 1px solid #dbe4f0; border-radius: 8px; background: #fbfdff; }
+    .bonus-rule-replace summary { cursor: pointer; padding: .55rem .65rem; color: #061a3d; font-size: .84rem; font-weight: 700; list-style: none; }
+    .bonus-rule-replace summary::-webkit-details-marker { display: none; }
+    .bonus-rule-replace form { display: grid; gap: .5rem; padding: 0 .65rem .65rem; }
+    .bonus-rule-replace .form-control { min-height: 38px; font-size: .86rem; }
     .bonus-rule-footer { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(260px, 1fr) minmax(220px, auto); gap: .85rem; align-items: end; padding-top: .85rem; margin-top: .15rem; border-top: 1px solid #edf2f7; }
     .bonus-rule-submit-panel { display: flex; flex-direction: column; align-items: flex-end; gap: .4rem; }
     .bonus-rule-submit-panel .dms-muted { max-width: 260px; text-align: right; font-size: .78rem; }
@@ -227,13 +233,33 @@
                         </td>
                         <td>
                             @can('edit products')
-                                <form action="{{ route('product-bonus-rules.toggle-status', $rule) }}" method="POST">
-                                    @csrf
-                                    <button type="submit" class="dms-btn dms-btn-outline dms-btn-sm">
-                                        <i class="bi {{ $rule->is_active ? 'bi-pause-circle' : 'bi-play-circle' }}"></i>
-                                        {{ $rule->is_active ? 'Nonaktifkan' : 'Aktifkan' }}
-                                    </button>
-                                </form>
+                                <div class="bonus-rule-row-actions">
+                                    @if($rule->is_active)
+                                        <details class="bonus-rule-replace">
+                                            <summary><i class="bi bi-arrow-repeat"></i> Ganti Aturan</summary>
+                                            <form action="{{ route('product-bonus-rules.replace', $rule) }}" method="POST">
+                                                @csrf
+                                                <select name="bonus_product_id" class="form-control" required>
+                                                    @foreach($products as $product)
+                                                        <option value="{{ $product->id }}" {{ (int) $rule->bonus_product_id === (int) $product->id ? 'selected' : '' }}>{{ $product->name }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <input type="number" name="bonus_quantity" value="{{ $rule->bonus_quantity }}" class="form-control" min="1" required>
+                                                <input type="date" name="starts_at" class="form-control" value="{{ now()->addDay()->toDateString() }}" required>
+                                                <input type="date" name="ends_at" class="form-control" value="{{ $rule->ends_at?->toDateString() }}">
+                                                <input type="text" name="notes" class="form-control" value="{{ $rule->notes }}" placeholder="Catatan">
+                                                <button type="submit" class="dms-btn dms-btn-primary dms-btn-sm">Simpan Pengganti</button>
+                                            </form>
+                                        </details>
+                                    @endif
+                                    <form action="{{ route('product-bonus-rules.toggle-status', $rule) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="dms-btn dms-btn-outline dms-btn-sm">
+                                            <i class="bi {{ $rule->is_active ? 'bi-pause-circle' : 'bi-play-circle' }}"></i>
+                                            {{ $rule->is_active ? 'Nonaktifkan' : 'Aktifkan' }}
+                                        </button>
+                                    </form>
+                                </div>
                             @endcan
                         </td>
                     </tr>

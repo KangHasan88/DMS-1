@@ -185,9 +185,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('product-price-rules/{productPriceRule}/toggle-status', [ProductPriceRuleController::class, 'toggleStatus'])->middleware('permission:edit products')->name('product-price-rules.toggle-status');
     Route::get('product-discount-rules', [ProductDiscountRuleController::class, 'index'])->middleware('permission:view products')->name('product-discount-rules.index');
     Route::post('product-discount-rules', [ProductDiscountRuleController::class, 'store'])->middleware('permission:edit products')->name('product-discount-rules.store');
+    Route::post('product-discount-rules/{productDiscountRule}/replace', [ProductDiscountRuleController::class, 'replace'])->middleware('permission:edit products')->name('product-discount-rules.replace');
     Route::post('product-discount-rules/{productDiscountRule}/toggle-status', [ProductDiscountRuleController::class, 'toggleStatus'])->middleware('permission:edit products')->name('product-discount-rules.toggle-status');
     Route::get('product-bonus-rules', [ProductBonusRuleController::class, 'index'])->middleware('permission:view products')->name('product-bonus-rules.index');
     Route::post('product-bonus-rules', [ProductBonusRuleController::class, 'store'])->middleware('permission:edit products')->name('product-bonus-rules.store');
+    Route::post('product-bonus-rules/{productBonusRule}/replace', [ProductBonusRuleController::class, 'replace'])->middleware('permission:edit products')->name('product-bonus-rules.replace');
     Route::post('product-bonus-rules/{productBonusRule}/toggle-status', [ProductBonusRuleController::class, 'toggleStatus'])->middleware('permission:edit products')->name('product-bonus-rules.toggle-status');
     
     // ============= CUSTOMER TYPE MANAGEMENT =============
