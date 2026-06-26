@@ -60,10 +60,25 @@
     .discount-rule-footer {
         grid-column: 1 / -1;
         display: grid;
-        grid-template-columns: minmax(260px, 1fr) auto;
+        grid-template-columns: minmax(260px, 1fr) minmax(220px, auto);
         gap: .85rem;
         align-items: end;
-        padding-top: .25rem;
+        padding-top: .85rem;
+        margin-top: .15rem;
+        border-top: 1px solid #edf2f7;
+    }
+
+    .discount-rule-submit-panel {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: .4rem;
+    }
+
+    .discount-rule-submit-panel .dms-muted {
+        max-width: 260px;
+        text-align: right;
+        font-size: .78rem;
     }
 
     .discount-rule-hidden {
@@ -145,6 +160,16 @@
         border-bottom: 1px solid #edf2f7;
     }
 
+    .customer-picker-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        margin-top: .6rem;
+        color: #60728c;
+        font-size: .82rem;
+    }
+
     .customer-picker-list {
         overflow-y: auto;
         padding: .5rem;
@@ -166,6 +191,17 @@
     .customer-picker-row input {
         width: 18px;
         height: 18px;
+    }
+
+    .customer-picker-empty {
+        display: none;
+        padding: 1.25rem;
+        color: #60728c;
+        text-align: center;
+    }
+
+    .customer-picker-empty.is-visible {
+        display: block;
     }
 
     @media (max-width: 1100px) {
@@ -300,7 +336,8 @@
                     <label class="form-label">Catatan</label>
                     <input type="text" name="notes" value="{{ old('notes') }}" class="form-control" placeholder="Contoh: Promo grosir Q3">
                 </div>
-                <div class="discount-rule-actions">
+                <div class="discount-rule-submit-panel">
+                    <span class="dms-muted">Sistem akan membuat rule terpisah untuk setiap customer khusus yang dipilih.</span>
                     <button type="submit" class="dms-btn dms-btn-primary"><i class="bi bi-plus-circle"></i> Tambah Diskon</button>
                 </div>
             </div>
@@ -321,6 +358,10 @@
                             <i class="bi bi-search"></i>
                             <input type="text" class="form-control" id="discount-customer-search" placeholder="Cari customer...">
                         </div>
+                        <div class="customer-picker-meta">
+                            <span id="discount-customer-branch-note">Menampilkan semua cabang.</span>
+                            <span id="discount-customer-visible-count">0 customer tampil</span>
+                        </div>
                     </div>
                     <div class="customer-picker-list" id="discount-customer-list">
                         @foreach($customers as $customer)
@@ -332,6 +373,9 @@
                                 </span>
                             </label>
                         @endforeach
+                        <div class="customer-picker-empty" id="discount-customer-empty-state">
+                            Tidak ada customer sesuai cabang/search yang dipilih.
+                        </div>
                     </div>
                     <div class="customer-picker-foot">
                         <span class="dms-muted" id="discount-modal-selected-count">0 customer dipilih</span>
@@ -416,10 +460,17 @@
         const selectedCount = document.getElementById('discount-selected-customer-count');
         const selectedPreview = document.getElementById('discount-selected-customer-preview');
         const modalSelectedCount = document.getElementById('discount-modal-selected-count');
+        const branchNote = document.getElementById('discount-customer-branch-note');
+        const visibleCount = document.getElementById('discount-customer-visible-count');
+        const emptyState = document.getElementById('discount-customer-empty-state');
         const rows = Array.from(document.querySelectorAll('.customer-picker-row'));
 
         function selectedBranchId() {
             return branchSelect?.value || '';
+        }
+
+        function selectedBranchLabel() {
+            return branchSelect?.selectedOptions?.[0]?.textContent?.trim() || '';
         }
 
         function syncSegmentVisibility() {
@@ -466,6 +517,7 @@
         function filterRows() {
             const keyword = (searchInput?.value || '').trim().toLowerCase();
             const branchId = selectedBranchId();
+            let shownRows = 0;
 
             rows.forEach((row) => {
                 const matchesSearch = row.dataset.customerName.includes(keyword);
@@ -478,7 +530,23 @@
                 if (checkbox) {
                     checkbox.disabled = !matchesBranch;
                 }
+
+                if (visible) {
+                    shownRows += 1;
+                }
             });
+
+            if (branchNote) {
+                branchNote.textContent = branchId
+                    ? 'Menampilkan customer cabang ' + selectedBranchLabel() + '.'
+                    : 'Menampilkan semua cabang.';
+            }
+
+            if (visibleCount) {
+                visibleCount.textContent = shownRows + ' customer tampil';
+            }
+
+            emptyState?.classList.toggle('is-visible', shownRows === 0);
         }
 
         function clearCustomersOutsideSelectedBranch() {

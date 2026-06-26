@@ -632,6 +632,9 @@ class PricingRuleFlowTest extends TestCase
             ->assertSee('Pilih Customer')
             ->assertSee('customer-picker-modal')
             ->assertSee('discount-company-branch-id')
+            ->assertSee('discount-customer-branch-note')
+            ->assertSee('discount-customer-visible-count')
+            ->assertSee('discount-customer-empty-state')
             ->assertSee('data-customer-branch-id')
             ->assertDontSee('id="discount-customer-ids"', false);
 
