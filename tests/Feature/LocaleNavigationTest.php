@@ -37,9 +37,14 @@ class LocaleNavigationTest extends TestCase
             ->assertSee('Relasi Bisnis')
             ->assertSee('Laporan Inventori')
             ->assertSee('Stock Opname')
+            ->assertSee('Invoice AR')
+            ->assertSee('Nota Kredit AR')
+            ->assertSee('Invoice AP')
+            ->assertSee('Nota Debit AP')
             ->assertDontSee('Hadiah / FOC')
             ->assertDontSee('PO Pembelian')
-            ->assertDontSee('Role & Hak Akses');
+            ->assertDontSee('Role & Hak Akses')
+            ->assertDontSee('navigation.');
     }
 
     public function test_user_can_switch_navigation_language_to_english(): void
@@ -66,9 +71,12 @@ class LocaleNavigationTest extends TestCase
             ->assertSee('Stock Opname')
             ->assertSee('Catalog')
             ->assertSee('Business Relations')
+            ->assertSee('AR Credit Notes')
+            ->assertSee('AP Debit Notes')
             ->assertSee('Inventory Report')
             ->assertDontSee('FOC / Gift')
-            ->assertDontSee('Pesanan');
+            ->assertDontSee('Pesanan')
+            ->assertDontSee('navigation.');
     }
 
     public function test_profile_link_is_in_topbar_not_sidebar_management(): void
