@@ -11,11 +11,30 @@
     .bonus-rule-icon { width: 38px; height: 38px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 38px; border-radius: 10px; color: #061a3d; background: #fff2e6; }
     .bonus-rule-form { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .85rem; padding: .9rem; border: 1px solid #dbe4f0; border-radius: 10px; background: #fbfdff; }
     .bonus-rule-form .span-2 { grid-column: span 2; }
-    .bonus-rule-actions { display: flex; align-items: flex-end; justify-content: flex-end; }
+    .bonus-rule-actions { display: flex; align-items: flex-end; justify-content: flex-end; gap: .65rem; flex-wrap: wrap; }
     .bonus-rule-scope { color: #315076; font-size: .82rem; font-weight: 700; }
     .bonus-rule-hidden { display: none; }
+    .bonus-rule-footer { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(260px, 1fr) minmax(220px, auto); gap: .85rem; align-items: end; padding-top: .85rem; margin-top: .15rem; border-top: 1px solid #edf2f7; }
+    .bonus-rule-submit-panel { display: flex; flex-direction: column; align-items: flex-end; gap: .4rem; }
+    .bonus-rule-submit-panel .dms-muted { max-width: 260px; text-align: right; font-size: .78rem; }
+    .bonus-customer-summary { min-height: 54px; display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .72rem .85rem; border: 1px solid #c8d6e8; border-radius: 8px; background: #fff; }
+    .bonus-customer-summary strong { display: block; color: #061a3d; font-size: .92rem; }
+    .bonus-customer-summary span { color: #60728c; font-size: .82rem; }
+    .bonus-customer-modal { position: fixed; inset: 0; z-index: 1050; display: none; align-items: center; justify-content: center; padding: 1.25rem; background: rgba(6, 26, 61, .42); }
+    .bonus-customer-modal.is-open { display: flex; }
+    .bonus-customer-dialog { width: min(760px, 100%); max-height: min(760px, 88vh); display: grid; grid-template-rows: auto auto 1fr auto; overflow: hidden; border-radius: 12px; background: #fff; box-shadow: 0 24px 80px rgba(6, 26, 61, .22); }
+    .bonus-customer-head, .bonus-customer-foot { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: 1rem 1.1rem; border-bottom: 1px solid #edf2f7; }
+    .bonus-customer-foot { border-top: 1px solid #edf2f7; border-bottom: 0; }
+    .bonus-customer-search { padding: .85rem 1.1rem; border-bottom: 1px solid #edf2f7; }
+    .bonus-customer-meta { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-top: .6rem; color: #60728c; font-size: .82rem; }
+    .bonus-customer-list { overflow-y: auto; padding: .5rem; }
+    .bonus-customer-row { display: flex; align-items: center; gap: .75rem; padding: .68rem .75rem; border-radius: 8px; cursor: pointer; }
+    .bonus-customer-row:hover { background: #f5f8fc; }
+    .bonus-customer-row input { width: 18px; height: 18px; }
+    .bonus-customer-empty { display: none; padding: 1.25rem; color: #60728c; text-align: center; }
+    .bonus-customer-empty.is-visible { display: block; }
     @media (max-width: 1100px) { .bonus-rule-form { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-    @media (max-width: 760px) { .bonus-rule-header { flex-direction: column; } .bonus-rule-form { grid-template-columns: 1fr; } .bonus-rule-form .span-2 { grid-column: auto; } }
+    @media (max-width: 760px) { .bonus-rule-header { flex-direction: column; } .bonus-rule-form { grid-template-columns: 1fr; } .bonus-rule-form .span-2 { grid-column: auto; } .bonus-rule-footer { grid-template-columns: 1fr; } .bonus-rule-submit-panel { align-items: stretch; } .bonus-rule-submit-panel .dms-muted { text-align: left; } }
 </style>
 
 <div class="dms-card bonus-rule-page">
@@ -78,7 +97,7 @@
             </div>
             <div class="form-group">
                 <label class="form-label">Cabang</label>
-                <select name="company_branch_id" class="form-control">
+                <select name="company_branch_id" id="bonus-company-branch-id" class="form-control">
                     <option value="">Semua cabang</option>
                     @foreach($companyBranches as $branch)
                         <option value="{{ $branch->id }}" {{ (string) old('company_branch_id') === (string) $branch->id ? 'selected' : '' }}>{{ $branch->name }}</option>
@@ -87,12 +106,18 @@
             </div>
             <div class="form-group span-2">
                 <label class="form-label">Customer Khusus</label>
-                <select name="customer_ids[]" id="bonus-customer-ids" class="form-control" multiple size="4">
-                    @foreach($customers as $customer)
-                        <option value="{{ $customer->id }}" {{ in_array((string) $customer->id, array_map('strval', old('customer_ids', [])), true) ? 'selected' : '' }}>{{ $customer->name }}</option>
-                    @endforeach
-                </select>
-                <small class="dms-form-help">Bisa pilih lebih dari satu. Jika diisi, segment customer tidak dipakai.</small>
+                <div class="bonus-customer-summary">
+                    <div>
+                        <strong id="bonus-selected-customer-count">Belum ada customer dipilih</strong>
+                        <span id="bonus-selected-customer-preview">Rule berlaku sesuai segment customer.</span>
+                    </div>
+                    <button type="button" class="dms-btn dms-btn-outline" id="bonus-open-customer-picker">
+                        <i class="bi bi-people"></i> Pilih Customer
+                    </button>
+                </div>
+                <small class="dms-form-help">Gunakan jika bonus hanya berlaku untuk customer tertentu. Segment customer otomatis tidak dipakai.</small>
+                @error('customer_ids') <span class="dms-error">{{ $message }}</span> @enderror
+                @error('customer_ids.*') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
             <div class="form-group" id="bonus-segment-group">
                 <label class="form-label">Segment Customer</label>
@@ -114,12 +139,60 @@
                 <input type="date" name="ends_at" value="{{ old('ends_at') }}" class="form-control">
                 @error('ends_at') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
-            <div class="form-group span-2">
-                <label class="form-label">Catatan</label>
-                <input type="text" name="notes" value="{{ old('notes') }}" class="form-control" placeholder="Contoh: Promo bundling Q3">
+            <div class="bonus-rule-footer">
+                <div class="form-group">
+                    <label class="form-label">Catatan</label>
+                    <input type="text" name="notes" value="{{ old('notes') }}" class="form-control" placeholder="Contoh: Promo bundling Q3">
+                </div>
+                <div class="bonus-rule-submit-panel">
+                    <span class="dms-muted">Sistem akan membuat rule terpisah untuk setiap customer khusus yang dipilih.</span>
+                    <button type="submit" class="dms-btn dms-btn-primary"><i class="bi bi-plus-circle"></i> Tambah Bonus</button>
+                </div>
             </div>
-            <div class="bonus-rule-actions">
-                <button type="submit" class="dms-btn dms-btn-primary"><i class="bi bi-plus-circle"></i> Tambah Bonus</button>
+
+            <div class="bonus-customer-modal" id="bonus-customer-picker-modal" aria-hidden="true">
+                <div class="bonus-customer-dialog">
+                    <div class="bonus-customer-head">
+                        <div>
+                            <h4 class="dms-section-title" style="font-size: 1rem; margin: 0;">Pilih Customer Khusus</h4>
+                            <p class="dms-section-subtitle" style="margin: .2rem 0 0;">Search nama customer, lalu centang customer yang mendapat bonus.</p>
+                        </div>
+                        <button type="button" class="dms-btn dms-btn-outline" id="bonus-close-customer-picker">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                    <div class="bonus-customer-search">
+                        <div class="dms-search-field">
+                            <i class="bi bi-search"></i>
+                            <input type="text" class="form-control" id="bonus-customer-search" placeholder="Cari customer...">
+                        </div>
+                        <div class="bonus-customer-meta">
+                            <span id="bonus-customer-branch-note">Menampilkan semua cabang.</span>
+                            <span id="bonus-customer-visible-count">0 customer tampil</span>
+                        </div>
+                    </div>
+                    <div class="bonus-customer-list" id="bonus-customer-list">
+                        @foreach($customers as $customer)
+                            <label class="bonus-customer-row" data-customer-name="{{ strtolower($customer->name) }}" data-customer-branch-id="{{ $customer->company_branch_id ?? '' }}">
+                                <input type="checkbox" name="customer_ids[]" value="{{ $customer->id }}" data-customer-label="{{ $customer->name }}" {{ in_array((string) $customer->id, array_map('strval', old('customer_ids', [])), true) ? 'checked' : '' }}>
+                                <span>
+                                    {{ $customer->name }}
+                                    <small class="dms-muted" style="display: block;">{{ $customer->companyBranch->name ?? 'Tanpa cabang' }}</small>
+                                </span>
+                            </label>
+                        @endforeach
+                        <div class="bonus-customer-empty" id="bonus-customer-empty-state">
+                            Tidak ada customer sesuai cabang/search yang dipilih.
+                        </div>
+                    </div>
+                    <div class="bonus-customer-foot">
+                        <span class="dms-muted" id="bonus-modal-selected-count">0 customer dipilih</span>
+                        <div class="bonus-rule-actions">
+                            <button type="button" class="dms-btn dms-btn-outline" id="bonus-clear-customers">Bersihkan</button>
+                            <button type="button" class="dms-btn dms-btn-primary" id="bonus-apply-customer-picker">Selesai</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </form>
     @endcan
@@ -181,20 +254,155 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const customerSelect = document.getElementById('bonus-customer-ids');
+        const customerChecks = Array.from(document.querySelectorAll('input[name="customer_ids[]"]'));
         const segmentGroup = document.getElementById('bonus-segment-group');
         const segmentSelect = document.getElementById('bonus-customer-type');
+        const branchSelect = document.getElementById('bonus-company-branch-id');
+        const modal = document.getElementById('bonus-customer-picker-modal');
+        const openButton = document.getElementById('bonus-open-customer-picker');
+        const closeButton = document.getElementById('bonus-close-customer-picker');
+        const applyButton = document.getElementById('bonus-apply-customer-picker');
+        const clearButton = document.getElementById('bonus-clear-customers');
+        const searchInput = document.getElementById('bonus-customer-search');
+        const selectedCount = document.getElementById('bonus-selected-customer-count');
+        const selectedPreview = document.getElementById('bonus-selected-customer-preview');
+        const modalSelectedCount = document.getElementById('bonus-modal-selected-count');
+        const branchNote = document.getElementById('bonus-customer-branch-note');
+        const visibleCount = document.getElementById('bonus-customer-visible-count');
+        const emptyState = document.getElementById('bonus-customer-empty-state');
+        const rows = Array.from(document.querySelectorAll('.bonus-customer-row'));
+
+        function selectedBranchId() {
+            return branchSelect?.value || '';
+        }
+
+        function selectedBranchLabel() {
+            return branchSelect?.selectedOptions?.[0]?.textContent?.trim() || '';
+        }
 
         function syncSegmentVisibility() {
-            const hasSpecificCustomer = Array.from(customerSelect?.selectedOptions || []).length > 0;
+            const checkedCustomers = customerChecks.filter((check) => check.checked);
+            const hasSpecificCustomer = checkedCustomers.length > 0;
+
             segmentGroup?.classList.toggle('bonus-rule-hidden', hasSpecificCustomer);
+
             if (segmentSelect) {
                 segmentSelect.disabled = hasSpecificCustomer;
-                if (hasSpecificCustomer) segmentSelect.value = '';
+                if (hasSpecificCustomer) {
+                    segmentSelect.value = '';
+                }
+            }
+
+            if (selectedCount) {
+                selectedCount.textContent = hasSpecificCustomer
+                    ? checkedCustomers.length + ' customer dipilih'
+                    : 'Belum ada customer dipilih';
+            }
+
+            if (selectedPreview) {
+                selectedPreview.textContent = hasSpecificCustomer
+                    ? checkedCustomers.slice(0, 3).map((check) => check.dataset.customerLabel).join(', ') + (checkedCustomers.length > 3 ? ' +' + (checkedCustomers.length - 3) + ' lainnya' : '')
+                    : 'Rule berlaku sesuai segment customer.';
+            }
+
+            if (modalSelectedCount) {
+                modalSelectedCount.textContent = checkedCustomers.length + ' customer dipilih';
             }
         }
 
-        customerSelect?.addEventListener('change', syncSegmentVisibility);
+        function openModal() {
+            modal?.classList.add('is-open');
+            modal?.setAttribute('aria-hidden', 'false');
+            searchInput?.focus();
+        }
+
+        function closeModal() {
+            modal?.classList.remove('is-open');
+            modal?.setAttribute('aria-hidden', 'true');
+        }
+
+        function filterRows() {
+            const keyword = (searchInput?.value || '').trim().toLowerCase();
+            const branchId = selectedBranchId();
+            let shownRows = 0;
+
+            rows.forEach((row) => {
+                const matchesSearch = row.dataset.customerName.includes(keyword);
+                const matchesBranch = !branchId || row.dataset.customerBranchId === branchId;
+                const visible = matchesSearch && matchesBranch;
+                const checkbox = row.querySelector('input[type="checkbox"]');
+
+                row.style.display = visible ? 'flex' : 'none';
+
+                if (checkbox) {
+                    checkbox.disabled = !matchesBranch;
+                }
+
+                if (visible) {
+                    shownRows += 1;
+                }
+            });
+
+            if (branchNote) {
+                branchNote.textContent = branchId
+                    ? 'Menampilkan customer cabang ' + selectedBranchLabel() + '.'
+                    : 'Menampilkan semua cabang.';
+            }
+
+            if (visibleCount) {
+                visibleCount.textContent = shownRows + ' customer tampil';
+            }
+
+            emptyState?.classList.toggle('is-visible', shownRows === 0);
+        }
+
+        function clearCustomersOutsideSelectedBranch() {
+            const branchId = selectedBranchId();
+
+            if (!branchId) {
+                customerChecks.forEach((check) => {
+                    check.disabled = false;
+                });
+                return;
+            }
+
+            rows.forEach((row) => {
+                const checkbox = row.querySelector('input[type="checkbox"]');
+                if (checkbox && row.dataset.customerBranchId !== branchId) {
+                    checkbox.checked = false;
+                    checkbox.disabled = true;
+                }
+            });
+        }
+
+        customerChecks.forEach((check) => check.addEventListener('change', syncSegmentVisibility));
+        openButton?.addEventListener('click', openModal);
+        closeButton?.addEventListener('click', closeModal);
+        applyButton?.addEventListener('click', closeModal);
+        searchInput?.addEventListener('input', filterRows);
+        clearButton?.addEventListener('click', function () {
+            customerChecks.forEach((check) => {
+                check.checked = false;
+            });
+            syncSegmentVisibility();
+        });
+        branchSelect?.addEventListener('change', function () {
+            clearCustomersOutsideSelectedBranch();
+            filterRows();
+            syncSegmentVisibility();
+        });
+        modal?.addEventListener('click', function (event) {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+        clearCustomersOutsideSelectedBranch();
+        filterRows();
         syncSegmentVisibility();
     });
 </script>

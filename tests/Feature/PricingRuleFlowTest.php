@@ -310,6 +310,18 @@ class PricingRuleFlowTest extends TestCase
     {
         $admin = $this->userWithRole('admin', 'bonus-page-admin@example.test');
         $branch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $customerUser = $this->userWithRole('customer', 'bonus-page-customer@example.test');
+        Customer::create([
+            'user_id' => $customerUser->id,
+            'company_branch_id' => $branch->id,
+            'name' => 'Customer Bonus Page',
+            'phone' => '081234567897',
+            'email' => 'bonus-page-customer@example.test',
+            'customer_type' => 'regular',
+            'payment_term' => Customer::PAYMENT_CASH,
+            'credit_status' => Customer::CREDIT_NORMAL,
+            'is_active' => true,
+        ]);
         $triggerProduct = Product::create([
             'name' => 'Produk Trigger Bonus',
             'category' => 'Demo',
@@ -328,7 +340,16 @@ class PricingRuleFlowTest extends TestCase
         $this->actingAs($admin)
             ->get(route('product-bonus-rules.index'))
             ->assertOk()
-            ->assertSee('Aturan Bonus');
+            ->assertSee('Aturan Bonus')
+            ->assertSee('Pilih Customer Khusus')
+            ->assertSee('Pilih Customer')
+            ->assertSee('bonus-customer-picker-modal')
+            ->assertSee('bonus-company-branch-id')
+            ->assertSee('bonus-customer-branch-note')
+            ->assertSee('bonus-customer-visible-count')
+            ->assertSee('bonus-customer-empty-state')
+            ->assertSee('data-customer-branch-id')
+            ->assertDontSee('id="bonus-customer-ids"', false);
 
         $this->actingAs($admin)
             ->post(route('product-bonus-rules.store'), [
@@ -352,6 +373,64 @@ class PricingRuleFlowTest extends TestCase
             'min_quantity' => 3,
             'bonus_quantity' => 1,
             'is_active' => true,
+        ]);
+    }
+
+    public function test_bonus_rule_rejects_customer_from_different_selected_branch(): void
+    {
+        $admin = $this->userWithRole('admin', 'bonus-branch-admin@example.test');
+        $mainBranch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $otherBranch = CompanyBranch::create([
+            'company_profile_id' => $mainBranch->company_profile_id,
+            'name' => 'Cabang Bonus Lain',
+            'code' => 'CBL',
+            'is_active' => true,
+        ]);
+        $customerUser = $this->userWithRole('customer', 'bonus-branch-customer@example.test');
+        $customer = Customer::create([
+            'user_id' => $customerUser->id,
+            'company_branch_id' => $otherBranch->id,
+            'name' => 'Customer Bonus Cabang Lain',
+            'phone' => '081234567898',
+            'email' => 'bonus-branch-customer@example.test',
+            'customer_type' => 'regular',
+            'payment_term' => Customer::PAYMENT_CASH,
+            'credit_status' => Customer::CREDIT_NORMAL,
+            'is_active' => true,
+        ]);
+        $triggerProduct = Product::create([
+            'name' => 'Produk Trigger Bonus Cabang',
+            'category' => 'Demo',
+            'price' => 25000,
+            'base_price' => 15000,
+            'is_active' => true,
+        ]);
+        $bonusProduct = Product::create([
+            'name' => 'Produk Bonus Cabang',
+            'category' => 'Demo',
+            'price' => 5000,
+            'base_price' => 2500,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('product-bonus-rules.index'))
+            ->post(route('product-bonus-rules.store'), [
+                'trigger_product_id' => $triggerProduct->id,
+                'bonus_product_id' => $bonusProduct->id,
+                'customer_ids' => [$customer->id],
+                'company_branch_id' => $mainBranch->id,
+                'min_quantity' => 3,
+                'bonus_quantity' => 1,
+                'starts_at' => now()->toDateString(),
+            ])
+            ->assertRedirect(route('product-bonus-rules.index'))
+            ->assertSessionHasErrors('customer_ids');
+
+        $this->assertDatabaseMissing('product_bonus_rules', [
+            'trigger_product_id' => $triggerProduct->id,
+            'bonus_product_id' => $bonusProduct->id,
+            'customer_id' => $customer->id,
         ]);
     }
 
