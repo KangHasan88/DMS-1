@@ -57,6 +57,15 @@
         justify-content: flex-end;
     }
 
+    .discount-rule-footer {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: minmax(260px, 1fr) auto;
+        gap: .85rem;
+        align-items: end;
+        padding-top: .25rem;
+    }
+
     .discount-rule-hidden {
         display: none;
     }
@@ -67,9 +76,105 @@
         font-weight: 700;
     }
 
+    .customer-picker-summary {
+        min-height: 54px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        padding: .72rem .85rem;
+        border: 1px solid #c8d6e8;
+        border-radius: 8px;
+        background: #fff;
+    }
+
+    .customer-picker-summary strong {
+        display: block;
+        color: #061a3d;
+        font-size: .92rem;
+    }
+
+    .customer-picker-summary span {
+        color: #60728c;
+        font-size: .82rem;
+    }
+
+    .customer-picker-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 1050;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 1.25rem;
+        background: rgba(6, 26, 61, .42);
+    }
+
+    .customer-picker-modal.is-open {
+        display: flex;
+    }
+
+    .customer-picker-dialog {
+        width: min(760px, 100%);
+        max-height: min(760px, 88vh);
+        display: grid;
+        grid-template-rows: auto auto 1fr auto;
+        overflow: hidden;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 24px 80px rgba(6, 26, 61, .22);
+    }
+
+    .customer-picker-head,
+    .customer-picker-foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .75rem;
+        padding: 1rem 1.1rem;
+        border-bottom: 1px solid #edf2f7;
+    }
+
+    .customer-picker-foot {
+        border-top: 1px solid #edf2f7;
+        border-bottom: 0;
+    }
+
+    .customer-picker-search {
+        padding: .85rem 1.1rem;
+        border-bottom: 1px solid #edf2f7;
+    }
+
+    .customer-picker-list {
+        overflow-y: auto;
+        padding: .5rem;
+    }
+
+    .customer-picker-row {
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+        padding: .68rem .75rem;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    .customer-picker-row:hover {
+        background: #f5f8fc;
+    }
+
+    .customer-picker-row input {
+        width: 18px;
+        height: 18px;
+    }
+
     @media (max-width: 1100px) {
         .discount-rule-form {
             grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .discount-rule-footer {
+            grid-template-columns: 1fr;
         }
     }
 
@@ -157,12 +262,16 @@
             </div>
             <div class="form-group span-2">
                 <label class="form-label">Customer Khusus</label>
-                <select name="customer_ids[]" id="discount-customer-ids" class="form-control" multiple size="4">
-                    @foreach($customers as $customer)
-                        <option value="{{ $customer->id }}" {{ in_array((string) $customer->id, array_map('strval', old('customer_ids', [])), true) ? 'selected' : '' }}>{{ $customer->name }}</option>
-                    @endforeach
-                </select>
-                <small class="dms-form-help">Bisa pilih lebih dari satu. Jika diisi, sistem membuat rule per customer dan segment tidak dipakai.</small>
+                <div class="customer-picker-summary">
+                    <div>
+                        <strong id="discount-selected-customer-count">Belum ada customer dipilih</strong>
+                        <span id="discount-selected-customer-preview">Rule berlaku sesuai segment customer.</span>
+                    </div>
+                    <button type="button" class="dms-btn dms-btn-outline" id="discount-open-customer-picker">
+                        <i class="bi bi-people"></i> Pilih Customer
+                    </button>
+                </div>
+                <small class="dms-form-help">Gunakan jika diskon hanya berlaku untuk customer tertentu. Segment customer otomatis tidak dipakai.</small>
                 @error('customer_ids') <span class="dms-error">{{ $message }}</span> @enderror
                 @error('customer_ids.*') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
@@ -186,12 +295,49 @@
                 <input type="date" name="ends_at" value="{{ old('ends_at') }}" class="form-control">
                 @error('ends_at') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
-            <div class="form-group span-2">
-                <label class="form-label">Catatan</label>
-                <input type="text" name="notes" value="{{ old('notes') }}" class="form-control" placeholder="Contoh: Promo grosir Q3">
+            <div class="discount-rule-footer">
+                <div class="form-group">
+                    <label class="form-label">Catatan</label>
+                    <input type="text" name="notes" value="{{ old('notes') }}" class="form-control" placeholder="Contoh: Promo grosir Q3">
+                </div>
+                <div class="discount-rule-actions">
+                    <button type="submit" class="dms-btn dms-btn-primary"><i class="bi bi-plus-circle"></i> Tambah Diskon</button>
+                </div>
             </div>
-            <div class="discount-rule-actions">
-                <button type="submit" class="dms-btn dms-btn-primary"><i class="bi bi-plus-circle"></i> Tambah Diskon</button>
+
+            <div class="customer-picker-modal" id="discount-customer-picker-modal" aria-hidden="true">
+                <div class="customer-picker-dialog">
+                    <div class="customer-picker-head">
+                        <div>
+                            <h4 class="dms-section-title" style="font-size: 1rem; margin: 0;">Pilih Customer Khusus</h4>
+                            <p class="dms-section-subtitle" style="margin: .2rem 0 0;">Search nama customer, lalu centang customer yang mendapat diskon.</p>
+                        </div>
+                        <button type="button" class="dms-btn dms-btn-outline" id="discount-close-customer-picker">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                    <div class="customer-picker-search">
+                        <div class="dms-search-field">
+                            <i class="bi bi-search"></i>
+                            <input type="text" class="form-control" id="discount-customer-search" placeholder="Cari customer...">
+                        </div>
+                    </div>
+                    <div class="customer-picker-list" id="discount-customer-list">
+                        @foreach($customers as $customer)
+                            <label class="customer-picker-row" data-customer-name="{{ strtolower($customer->name) }}">
+                                <input type="checkbox" name="customer_ids[]" value="{{ $customer->id }}" data-customer-label="{{ $customer->name }}" {{ in_array((string) $customer->id, array_map('strval', old('customer_ids', [])), true) ? 'checked' : '' }}>
+                                <span>{{ $customer->name }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                    <div class="customer-picker-foot">
+                        <span class="dms-muted" id="discount-modal-selected-count">0 customer dipilih</span>
+                        <div class="discount-rule-actions">
+                            <button type="button" class="dms-btn dms-btn-outline" id="discount-clear-customers">Bersihkan</button>
+                            <button type="button" class="dms-btn dms-btn-primary" id="discount-apply-customer-picker">Selesai</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </form>
     @endcan
@@ -254,12 +400,23 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const customerSelect = document.getElementById('discount-customer-ids');
+        const customerChecks = Array.from(document.querySelectorAll('input[name="customer_ids[]"]'));
         const segmentGroup = document.getElementById('discount-segment-group');
         const segmentSelect = document.getElementById('discount-customer-type');
+        const modal = document.getElementById('discount-customer-picker-modal');
+        const openButton = document.getElementById('discount-open-customer-picker');
+        const closeButton = document.getElementById('discount-close-customer-picker');
+        const applyButton = document.getElementById('discount-apply-customer-picker');
+        const clearButton = document.getElementById('discount-clear-customers');
+        const searchInput = document.getElementById('discount-customer-search');
+        const selectedCount = document.getElementById('discount-selected-customer-count');
+        const selectedPreview = document.getElementById('discount-selected-customer-preview');
+        const modalSelectedCount = document.getElementById('discount-modal-selected-count');
+        const rows = Array.from(document.querySelectorAll('.customer-picker-row'));
 
         function syncSegmentVisibility() {
-            const hasSpecificCustomer = Array.from(customerSelect?.selectedOptions || []).length > 0;
+            const checkedCustomers = customerChecks.filter((check) => check.checked);
+            const hasSpecificCustomer = checkedCustomers.length > 0;
 
             segmentGroup?.classList.toggle('discount-rule-hidden', hasSpecificCustomer);
 
@@ -269,9 +426,64 @@
                     segmentSelect.value = '';
                 }
             }
+
+            if (selectedCount) {
+                selectedCount.textContent = hasSpecificCustomer
+                    ? checkedCustomers.length + ' customer dipilih'
+                    : 'Belum ada customer dipilih';
+            }
+
+            if (selectedPreview) {
+                selectedPreview.textContent = hasSpecificCustomer
+                    ? checkedCustomers.slice(0, 3).map((check) => check.dataset.customerLabel).join(', ') + (checkedCustomers.length > 3 ? ' +' + (checkedCustomers.length - 3) + ' lainnya' : '')
+                    : 'Rule berlaku sesuai segment customer.';
+            }
+
+            if (modalSelectedCount) {
+                modalSelectedCount.textContent = checkedCustomers.length + ' customer dipilih';
+            }
         }
 
-        customerSelect?.addEventListener('change', syncSegmentVisibility);
+        function openModal() {
+            modal?.classList.add('is-open');
+            modal?.setAttribute('aria-hidden', 'false');
+            searchInput?.focus();
+        }
+
+        function closeModal() {
+            modal?.classList.remove('is-open');
+            modal?.setAttribute('aria-hidden', 'true');
+        }
+
+        function filterRows() {
+            const keyword = (searchInput?.value || '').trim().toLowerCase();
+
+            rows.forEach((row) => {
+                row.style.display = row.dataset.customerName.includes(keyword) ? 'flex' : 'none';
+            });
+        }
+
+        customerChecks.forEach((check) => check.addEventListener('change', syncSegmentVisibility));
+        openButton?.addEventListener('click', openModal);
+        closeButton?.addEventListener('click', closeModal);
+        applyButton?.addEventListener('click', closeModal);
+        searchInput?.addEventListener('input', filterRows);
+        clearButton?.addEventListener('click', function () {
+            customerChecks.forEach((check) => {
+                check.checked = false;
+            });
+            syncSegmentVisibility();
+        });
+        modal?.addEventListener('click', function (event) {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
         syncSegmentVisibility();
     });
 </script>

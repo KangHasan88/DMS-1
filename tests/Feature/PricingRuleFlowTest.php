@@ -615,7 +615,11 @@ class PricingRuleFlowTest extends TestCase
         $this->actingAs($admin)
             ->get(route('product-discount-rules.index'))
             ->assertOk()
-            ->assertSee('Aturan Diskon');
+            ->assertSee('Aturan Diskon')
+            ->assertSee('Pilih Customer Khusus')
+            ->assertSee('Pilih Customer')
+            ->assertSee('customer-picker-modal')
+            ->assertDontSee('id="discount-customer-ids"', false);
 
         $this->actingAs($admin)
             ->post(route('product-discount-rules.store'), [
