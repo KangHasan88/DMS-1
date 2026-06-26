@@ -8,7 +8,7 @@
     <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.35rem;">Sales Report</h3>
     <p style="font-size: 0.85rem; color: var(--k-gray-500); margin-bottom: 1.25rem;">Ringkasan order dan penjualan berdasarkan periode.</p>
 
-    @include('reports._filters', ['exportType' => 'sales'])
+    @include('reports._filters', ['exportType' => 'sales', 'principalOptions' => $principalOptions, 'selectedPrincipalId' => $selectedPrincipalId])
     @include('reports._summary', ['items' => [
         ['label' => 'Total Orders', 'value' => number_format($summary['total_orders']), 'icon' => 'bi-receipt'],
         ['label' => 'Delivered', 'value' => number_format($summary['delivered_orders']), 'icon' => 'bi-check-circle'],

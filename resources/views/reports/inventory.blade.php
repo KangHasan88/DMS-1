@@ -8,7 +8,7 @@
     <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.35rem;">Inventory Report</h3>
     <p style="font-size: 0.85rem; color: var(--k-gray-500); margin-bottom: 1.25rem;">Ringkasan produk, stok, pergerakan barang, dan indikator week-cover ala DMS distribusi.</p>
 
-    @include('reports._filters', ['exportType' => 'inventory'])
+    @include('reports._filters', ['exportType' => 'inventory', 'principalOptions' => $principalOptions, 'selectedPrincipalId' => $selectedPrincipalId])
     @include('reports._summary', ['items' => [
         ['label' => 'Total Products', 'value' => number_format($summary['total_products']), 'icon' => 'bi-box-seam'],
         ['label' => 'Active Products', 'value' => number_format($summary['active_products']), 'icon' => 'bi-check2-circle'],
@@ -23,6 +23,7 @@
             <thead>
                 <tr>
                     <th>Product</th>
+                    <th>Principal</th>
                     <th>Category</th>
                     <th>Unit</th>
                     <th>Stock</th>
@@ -37,6 +38,7 @@
                     @php($quantity = $product->stock->quantity ?? 0)
                     <tr>
                         <td>{{ $product->name }}</td>
+                        <td>{{ $product->principal?->name ?? '-' }}</td>
                         <td>{{ $product->category ?? '-' }}</td>
                         <td>{{ $product->unit->symbol ?? $product->unit->name ?? '-' }}</td>
                         <td>{{ number_format($quantity) }}</td>
@@ -56,7 +58,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="8" style="text-align: center; color: var(--k-gray-500);">Belum ada produk.</td></tr>
+                    <tr><td colspan="9" style="text-align: center; color: var(--k-gray-500);">Belum ada produk.</td></tr>
                 @endforelse
             </tbody>
         </table>

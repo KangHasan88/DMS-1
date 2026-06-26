@@ -28,29 +28,58 @@ class ReportController extends Controller
     {
         [$startDate, $endDate] = $this->dateRange($request);
 
-        $orders = Order::with('user')
+        $request->validate([
+            'principal_id' => ['nullable', 'exists:product_principals,id'],
+        ]);
+
+        $selectedPrincipalId = $request->input('principal_id');
+        $principalOptions = ProductPrincipal::active()->orderBy('sort_order')->orderBy('name')->get();
+
+        $ordersQuery = Order::with('user')
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->latest()
-            ->paginate(20)
-            ->withQueryString();
+            ->when($selectedPrincipalId, function ($query) use ($selectedPrincipalId) {
+                $query->whereHas('items.product', fn ($query) => $query->where('principal_id', $selectedPrincipalId));
+            });
+
+        $orders = (clone $ordersQuery)->latest()->paginate(20)->withQueryString();
+
+        $grossSales = $selectedPrincipalId
+            ? OrderItem::query()
+                ->join('orders', 'order_items.order_id', '=', 'orders.id')
+                ->join('products', 'order_items.product_id', '=', 'products.id')
+                ->where('products.principal_id', $selectedPrincipalId)
+                ->whereBetween('orders.created_at', [$startDate, $endDate])
+                ->where('orders.status', Order::STATUS_DELIVERED)
+                ->sum('order_items.subtotal')
+            : (clone $ordersQuery)->where('status', Order::STATUS_DELIVERED)->sum('grand_total');
 
         $summary = [
-            'total_orders' => Order::whereBetween('created_at', [$startDate, $endDate])->count(),
-            'delivered_orders' => Order::whereBetween('created_at', [$startDate, $endDate])->where('status', Order::STATUS_DELIVERED)->count(),
-            'gross_sales' => Order::whereBetween('created_at', [$startDate, $endDate])->where('status', Order::STATUS_DELIVERED)->sum('grand_total'),
-            'pending_orders' => Order::whereBetween('created_at', [$startDate, $endDate])->where('status', Order::STATUS_PENDING_PAYMENT)->count(),
+            'total_orders' => (clone $ordersQuery)->count(),
+            'delivered_orders' => (clone $ordersQuery)->where('status', Order::STATUS_DELIVERED)->count(),
+            'gross_sales' => $grossSales,
+            'pending_orders' => (clone $ordersQuery)->where('status', Order::STATUS_PENDING_PAYMENT)->count(),
         ];
 
-        return view('reports.sales', compact('orders', 'summary', 'startDate', 'endDate'));
+        return view('reports.sales', compact('orders', 'summary', 'startDate', 'endDate', 'principalOptions', 'selectedPrincipalId'));
     }
 
     public function inventory(Request $request)
     {
         [$startDate, $endDate] = $this->dateRange($request);
 
+        $request->validate([
+            'principal_id' => ['nullable', 'exists:product_principals,id'],
+        ]);
+
+        $selectedPrincipalId = $request->input('principal_id');
+        $principalOptions = ProductPrincipal::active()->orderBy('sort_order')->orderBy('name')->get();
         $salesWindowStart = now()->subDays(30)->startOfDay();
 
-        $products = Product::with('unit', 'stock')
+        $productBaseQuery = Product::query()
+            ->when($selectedPrincipalId, fn ($query) => $query->where('principal_id', $selectedPrincipalId));
+
+        $products = (clone $productBaseQuery)
+            ->with('principal', 'unit', 'stock')
             ->orderBy('name')
             ->paginate(20)
             ->withQueryString();
@@ -81,7 +110,7 @@ class ReportController extends Controller
             return $product;
         });
 
-        $allProductIds = Product::pluck('id');
+        $allProductIds = (clone $productBaseQuery)->pluck('id');
         $allSalesVelocity = OrderItem::query()
             ->select('product_id', DB::raw('SUM(quantity) as sold_last_30_days'))
             ->whereIn('product_id', $allProductIds)
@@ -92,7 +121,7 @@ class ReportController extends Controller
             ->groupBy('product_id')
             ->pluck('sold_last_30_days', 'product_id');
 
-        $inventorySignals = Product::with('stock')->get()
+        $inventorySignals = (clone $productBaseQuery)->with('stock')->get()
             ->map(function (Product $product) use ($allSalesVelocity) {
                 $quantity = $product->stock?->quantity ?? 0;
                 $soldLast30Days = (int) ($allSalesVelocity[$product->id] ?? 0);
@@ -103,15 +132,21 @@ class ReportController extends Controller
             });
 
         $summary = [
-            'total_products' => Product::count(),
-            'active_products' => Product::where('is_active', true)->count(),
-            'stock_in' => StockMovement::whereBetween('created_at', [$startDate, $endDate])->where('type', StockMovement::TYPE_IN)->sum('quantity'),
-            'stock_out' => StockMovement::whereBetween('created_at', [$startDate, $endDate])->where('type', StockMovement::TYPE_OUT)->sum('quantity'),
+            'total_products' => (clone $productBaseQuery)->count(),
+            'active_products' => (clone $productBaseQuery)->where('is_active', true)->count(),
+            'stock_in' => StockMovement::whereBetween('created_at', [$startDate, $endDate])
+                ->where('type', StockMovement::TYPE_IN)
+                ->when($selectedPrincipalId, fn ($query) => $query->whereHas('product', fn ($query) => $query->where('principal_id', $selectedPrincipalId)))
+                ->sum('quantity'),
+            'stock_out' => StockMovement::whereBetween('created_at', [$startDate, $endDate])
+                ->where('type', StockMovement::TYPE_OUT)
+                ->when($selectedPrincipalId, fn ($query) => $query->whereHas('product', fn ($query) => $query->where('principal_id', $selectedPrincipalId)))
+                ->sum('quantity'),
             'slow_moving' => $inventorySignals->filter(fn (string $type) => $type === 'slow')->count(),
             'overstock' => $inventorySignals->filter(fn (string $type) => $type === 'overstock')->count(),
         ];
 
-        return view('reports.inventory', compact('products', 'summary', 'startDate', 'endDate'));
+        return view('reports.inventory', compact('products', 'summary', 'startDate', 'endDate', 'principalOptions', 'selectedPrincipalId'));
     }
 
     public function principal(Request $request)
