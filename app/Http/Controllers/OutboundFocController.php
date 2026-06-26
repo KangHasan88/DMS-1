@@ -8,6 +8,7 @@ use App\Models\CompanyBranch;
 use App\Models\CompanyProfile;
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\ApprovalWorkflowService;
 use App\Services\ProductBonusService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,7 @@ class OutboundFocController extends Controller
     {
         $branchScopeId = $this->currentBranchScopeId();
         $canFilterBranches = !$branchScopeId;
-        $query = OutboundFoc::with('createdBy', 'companyBranch')->forCompanyBranch($branchScopeId);
+        $query = OutboundFoc::with('createdBy', 'companyBranch', 'approvalRequest')->forCompanyBranch($branchScopeId);
 
         if ($canFilterBranches && $request->filled('company_branch_id')) {
             $query->where('company_branch_id', $request->company_branch_id);
@@ -35,6 +36,10 @@ class OutboundFocController extends Controller
         if ($request->filled('reason')) {
             $query->where('reason', $request->reason);
         }
+
+        if ($request->filled('approval_status')) {
+            $query->where('approval_status', $request->approval_status);
+        }
         
         $perPage = $request->get('per_page', 10);
         $focs = $query->orderBy('foc_date', 'desc')->paginate($perPage);
@@ -42,7 +47,9 @@ class OutboundFocController extends Controller
         $reasons = OutboundFoc::REASONS;
         $companyBranches = $this->availableCompanyBranches();
         
-        return view('outbound-focs.index', compact('focs', 'reasons', 'companyBranches', 'canFilterBranches'));
+        $approvalStatuses = OutboundFoc::APPROVAL_STATUSES;
+
+        return view('outbound-focs.index', compact('focs', 'reasons', 'companyBranches', 'canFilterBranches', 'approvalStatuses'));
     }
 
     public function create(Request $request)
@@ -150,38 +157,46 @@ class OutboundFocController extends Controller
                 'foc_number' => $focNumber,
                 'company_branch_id' => $companyBranchId,
                 'customer_name' => $validated['customer_name'],
-                'customer_phone' => $validated['customer_phone'],
-                'address' => $validated['address'],
+                'customer_phone' => $validated['customer_phone'] ?? null,
+                'address' => $validated['address'] ?? null,
                 'foc_date' => $validated['foc_date'],
                 'reason' => $validated['reason'],
-                'reason_detail' => $validated['reason_detail'],
-                'reference_order' => $validated['reference_order'],
+                'reason_detail' => $validated['reason_detail'] ?? null,
+                'reference_order' => $validated['reference_order'] ?? null,
                 'subtotal' => $subtotal,
                 'total' => $subtotal,
-                'notes' => $validated['notes'],
+                'notes' => $validated['notes'] ?? null,
                 'created_by' => Auth::id(),
+                'approval_status' => OutboundFoc::APPROVAL_PENDING,
             ]);
             
             foreach ($items as $item) {
                 $item['outbound_foc_id'] = $foc->id;
                 OutboundFocItem::create($item);
-                
-                $product = Product::find($item['product_id']);
-                $stockReduced = $product->reduceForFocOut(
-                    $item['quantity'],
-                    $foc->id,
-                    'Barang bonus: ' . $validated['reason'] . ' - ' . ($validated['reason_detail'] ?? '')
-                );
-
-                if (!$stockReduced) {
-                    throw new \Exception("Stok {$product->name} tidak mencukupi untuk barang bonus. Tersedia: {$product->current_stock}");
-                }
             }
+
+            $approvalRequest = app(ApprovalWorkflowService::class)->request([
+                'approval_type' => \App\Models\ApprovalRequest::TYPE_OUTBOUND_FOC,
+                'company_branch_id' => $companyBranchId,
+                'title' => 'Approval Bonus / FOC ' . $foc->foc_number,
+                'description' => 'Pengeluaran barang gratis untuk ' . $foc->customer_name,
+                'request_note' => $foc->reason_detail,
+                'payload' => [
+                    'foc_number' => $foc->foc_number,
+                    'customer' => $foc->customer_name,
+                    'reason' => $foc->reason_label,
+                    'total_items' => collect($items)->sum('quantity'),
+                    'total_value' => $subtotal,
+                    'reference_order' => $foc->reference_order,
+                ],
+            ], $foc);
+
+            $foc->forceFill(['approval_request_id' => $approvalRequest->id])->save();
             
             DB::commit();
             
             return redirect()->route('outbound-focs.show', $foc)
-                ->with('success', 'Barang bonus berhasil dicatat. Stok berkurang.');
+                ->with('success', 'Bonus / FOC berhasil dibuat dan menunggu approval. Stok belum berkurang.');
                 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -193,7 +208,7 @@ class OutboundFocController extends Controller
     {
         $this->authorizeBranch($outboundFoc);
 
-        $outboundFoc->load('items.product', 'createdBy', 'companyBranch');
+        $outboundFoc->load('items.product', 'createdBy', 'companyBranch', 'approvalRequest', 'approvedBy', 'rejectedBy');
         
         return view('outbound-focs.show', compact('outboundFoc'));
     }

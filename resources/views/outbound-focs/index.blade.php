@@ -51,6 +51,15 @@
                     </option>
                 @endforeach
             </select>
+
+            <select name="approval_status" onchange="window.location.href = this.value" class="form-control">
+                <option value="{{ route('outbound-focs.index', array_merge(request()->except('approval_status'), ['approval_status' => null])) }}">Semua Approval</option>
+                @foreach($approvalStatuses as $key => $label)
+                    <option value="{{ route('outbound-focs.index', array_merge(request()->except('approval_status'), ['approval_status' => $key])) }}" {{ request('approval_status') === $key ? 'selected' : '' }}>
+                        {{ $label }}
+                    </option>
+                @endforeach
+            </select>
             
             <!-- Per Page -->
             <select name="per_page" onchange="window.location.href = this.value" class="form-control">
@@ -74,6 +83,7 @@
                     <th>Pelanggan</th>
                     <th>Tanggal</th>
                     <th>Alasan</th>
+                    <th>Approval</th>
                     <th>Total Item</th>
                     <th>Total Nilai</th>
                     <th>Aksi</th>
@@ -103,6 +113,11 @@
                             {{ $foc->reason_label }}
                         </span>
                     </td>
+                    <td>
+                        <span class="dms-badge {{ $foc->approval_status === 'pending' ? 'dms-badge-warning' : ($foc->approval_status === 'approved' ? 'dms-badge-success' : 'dms-badge-danger') }}">
+                            {{ $foc->approval_status_label }}
+                        </span>
+                    </td>
                     <td>{{ number_format($foc->items->sum('quantity')) }}</td>
                     <td style="font-weight: 600;">Rp {{ number_format($foc->total, 0, ',', '.') }}</td>
                     <td>
@@ -115,7 +130,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="{{ $canFilterBranches ? 8 : 7 }}" style="text-align: center; padding: 3rem;">
+                    <td colspan="{{ $canFilterBranches ? 9 : 8 }}" style="text-align: center; padding: 3rem;">
                         <i class="bi bi-gift" style="font-size: 3rem; color: var(--k-gray-300);"></i>
                         <p style="margin-top: 1rem; color: var(--k-gray-500);">Belum ada data bonus/FOC</p>
                         @can('create outbound foc')

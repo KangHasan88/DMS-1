@@ -25,12 +25,21 @@ class OutboundFoc extends Model
         'total',
         'notes',
         'created_by',
+        'approval_request_id',
+        'approval_status',
+        'approved_by',
+        'approved_at',
+        'rejected_by',
+        'rejected_at',
+        'rejection_note',
     ];
 
     protected $casts = [
         'foc_date' => 'date',
         'subtotal' => 'integer',
         'total' => 'integer',
+        'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
     ];
 
     // ===================== REASON CONSTANTS =====================
@@ -49,6 +58,16 @@ class OutboundFoc extends Model
         self::REASON_OTHER => 'Lainnya',
     ];
 
+    const APPROVAL_PENDING = 'pending';
+    const APPROVAL_APPROVED = 'approved';
+    const APPROVAL_REJECTED = 'rejected';
+
+    const APPROVAL_STATUSES = [
+        self::APPROVAL_PENDING => 'Menunggu Approval',
+        self::APPROVAL_APPROVED => 'Disetujui',
+        self::APPROVAL_REJECTED => 'Ditolak',
+    ];
+
     // ===================== RELATIONSHIPS =====================
     
     public function items(): HasMany
@@ -64,6 +83,21 @@ class OutboundFoc extends Model
     public function companyBranch(): BelongsTo
     {
         return $this->belongsTo(CompanyBranch::class);
+    }
+
+    public function approvalRequest(): BelongsTo
+    {
+        return $this->belongsTo(ApprovalRequest::class);
+    }
+
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function rejectedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
     }
 
     // ===================== HELPER METHODS =====================
@@ -84,6 +118,16 @@ class OutboundFoc extends Model
     public function getFormattedTotalAttribute(): string
     {
         return 'Rp ' . number_format($this->total, 0, ',', '.');
+    }
+
+    public function getApprovalStatusLabelAttribute(): string
+    {
+        return self::APPROVAL_STATUSES[$this->approval_status] ?? ucfirst((string) $this->approval_status);
+    }
+
+    public function isApprovalPending(): bool
+    {
+        return $this->approval_status === self::APPROVAL_PENDING;
     }
 
     // ===================== SCOPES =====================

@@ -1,7 +1,7 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Detail Barang Bonus')
-@section('breadcrumb', 'Operasional / Barang Bonus / Detail')
+@section('page-title', 'Detail Bonus / FOC')
+@section('breadcrumb', 'Operasional / Bonus / FOC / Detail')
 
 @section('content')
 <div class="dms-card">
@@ -9,10 +9,10 @@
         <div>
             <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">
                 <i class="bi bi-gift" style="color: var(--k-green);"></i>
-                Detail Barang Bonus
+                Detail Bonus / FOC
             </h3>
             <p style="font-size: 0.85rem; color: var(--k-gray-500); margin-top: 0.25rem;">
-                Barang Bonus #{{ $outboundFoc->foc_number }}
+                Bonus / FOC #{{ $outboundFoc->foc_number }}
             </p>
         </div>
         <div style="display: flex; gap: 0.5rem;">
@@ -23,7 +23,7 @@
     </div>
 
     <!-- Info Cards -->
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem;">
+    <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 2rem;">
         <div style="padding: 1rem; background: var(--k-green-light); border-radius: 8px; text-align: center;">
             <div style="font-size: 0.7rem; color: var(--k-gray-600);">Total Item</div>
             <div style="font-size: 1.5rem; font-weight: 700;">{{ number_format($outboundFoc->items->sum('quantity')) }}</div>
@@ -45,7 +45,35 @@
                 <span class="dms-badge dms-badge-info">{{ $outboundFoc->reason_label }}</span>
             </div>
         </div>
+
+        <div style="padding: 1rem; background: var(--k-gray-50); border-radius: 8px; text-align: center;">
+            <div style="font-size: 0.7rem; color: var(--k-gray-600);">Approval</div>
+            <div>
+                <span class="dms-badge {{ $outboundFoc->approval_status === 'pending' ? 'dms-badge-warning' : ($outboundFoc->approval_status === 'approved' ? 'dms-badge-success' : 'dms-badge-danger') }}">
+                    {{ $outboundFoc->approval_status_label }}
+                </span>
+            </div>
+        </div>
     </div>
+
+    @if($outboundFoc->approvalRequest)
+    <div style="margin-bottom: 2rem; padding: 1rem; background: #fffaf3; border: 1px solid #ffd8ad; border-radius: 8px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+            <div>
+                <div style="font-weight: 700; color: var(--k-gray-800);">
+                    <i class="bi bi-check2-square" style="color: var(--k-orange);"></i>
+                    Approval Request {{ $outboundFoc->approvalRequest->request_number }}
+                </div>
+                <div class="dms-muted">Stok Bonus / FOC baru berkurang setelah approval disetujui.</div>
+            </div>
+            @can('view approvals')
+            <a href="{{ route('approval-requests.show', $outboundFoc->approvalRequest) }}" class="dms-btn dms-btn-outline">
+                <i class="bi bi-eye"></i> Lihat Approval
+            </a>
+            @endcan
+        </div>
+    </div>
+    @endif
 
     <!-- Pelanggan Information -->
     <div style="margin-bottom: 2rem;">

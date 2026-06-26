@@ -9,6 +9,7 @@ use App\Models\DeliveryVehicle;
 use App\Models\DriverVehicleAssignment;
 use App\Models\DirectPurchase;
 use App\Models\ActivityLog;
+use App\Models\ApprovalRequest;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OutboundFoc;
@@ -138,7 +139,7 @@ class InventoryQaRegressionTest extends TestCase
         ]);
     }
 
-    public function test_outbound_foc_rolls_back_when_stock_is_not_enough(): void
+    public function test_outbound_foc_waits_for_approval_before_reducing_stock(): void
     {
         $user = $this->superAdmin();
         $product = Product::create([
@@ -151,7 +152,7 @@ class InventoryQaRegressionTest extends TestCase
 
         ProductStock::create([
             'product_id' => $product->id,
-            'quantity' => 1,
+            'quantity' => 5,
         ]);
 
         $this->actingAs($user)
@@ -167,11 +168,70 @@ class InventoryQaRegressionTest extends TestCase
                     ],
                 ],
             ])
-            ->assertRedirect('/outbound-focs/create')
-            ->assertSessionHas('error');
+            ->assertRedirect();
 
+        $foc = OutboundFoc::firstOrFail();
+        $approvalRequest = ApprovalRequest::firstOrFail();
+
+        $this->assertSame(OutboundFoc::APPROVAL_PENDING, $foc->approval_status);
+        $this->assertSame($foc->id, $approvalRequest->approvable_id);
+        $this->assertSame(OutboundFoc::class, $approvalRequest->approvable_type);
+        $this->assertSame(5, $product->stock()->first()->quantity);
+        $this->assertDatabaseCount('stock_movements', 0);
+
+        $this->actingAs($user)
+            ->post(route('approval-requests.approve', $approvalRequest), [
+                'decision_note' => 'Promo valid.',
+            ])
+            ->assertRedirect(route('approval-requests.show', $approvalRequest));
+
+        $this->assertSame(OutboundFoc::APPROVAL_APPROVED, $foc->refresh()->approval_status);
+        $this->assertSame(3, $product->stock()->first()->quantity);
+        $this->assertDatabaseCount('stock_movements', 1);
+    }
+
+    public function test_outbound_foc_approval_fails_when_stock_is_not_enough(): void
+    {
+        $user = $this->superAdmin();
+        $product = Product::create([
+            'name' => 'Sawi Bonus Test',
+            'category' => 'Sayur',
+            'price' => 4000,
+            'base_price' => 2500,
+            'is_active' => true,
+        ]);
+
+        ProductStock::create([
+            'product_id' => $product->id,
+            'quantity' => 1,
+        ]);
+
+        $this->actingAs($user)
+            ->post('/outbound-focs', [
+                'customer_name' => 'Customer Test',
+                'foc_date' => now()->toDateString(),
+                'reason' => OutboundFoc::REASON_SAMPLE,
+                'items' => [
+                    [
+                        'product_id' => $product->id,
+                        'quantity' => 2,
+                    ],
+                ],
+            ])
+            ->assertRedirect();
+
+        $foc = OutboundFoc::firstOrFail();
+        $approvalRequest = ApprovalRequest::firstOrFail();
+
+        $this->actingAs($user)
+            ->from(route('approval-requests.show', $approvalRequest))
+            ->post(route('approval-requests.approve', $approvalRequest))
+            ->assertRedirect(route('approval-requests.show', $approvalRequest))
+            ->assertSessionHasErrors('approval');
+
+        $this->assertSame(OutboundFoc::APPROVAL_PENDING, $foc->refresh()->approval_status);
+        $this->assertSame(ApprovalRequest::STATUS_PENDING, $approvalRequest->refresh()->status);
         $this->assertSame(1, $product->stock()->first()->quantity);
-        $this->assertDatabaseCount('outbound_focs', 0);
         $this->assertDatabaseCount('stock_movements', 0);
     }
 
