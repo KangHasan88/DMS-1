@@ -1325,30 +1325,6 @@
                                 <span>{{ __('navigation.foc_out') }}</span>
                             </a>
                         </li>
-                        <li class="nav-item">
-                            <a href="{{ route('product-price-rules.index') }}" class="nav-link {{ request()->routeIs('product-price-rules.*') ? 'active' : '' }}">
-                                <i class="bi bi-tags"></i>
-                                <span>{{ __('navigation.price_lists') }}</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('price-impact-review.index') }}" class="nav-link {{ request()->routeIs('price-impact-review.*') ? 'active' : '' }}">
-                                <i class="bi bi-graph-up-arrow"></i>
-                                <span>{{ __('navigation.price_impact_review') }}</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('product-discount-rules.index') }}" class="nav-link {{ request()->routeIs('product-discount-rules.*') ? 'active' : '' }}">
-                                <i class="bi bi-percent"></i>
-                                <span>{{ __('navigation.discount_rules') }}</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="{{ route('product-bonus-rules.index') }}" class="nav-link {{ request()->routeIs('product-bonus-rules.*') ? 'active' : '' }}">
-                                <i class="bi bi-gift"></i>
-                                <span>{{ __('navigation.bonus_rules') }}</span>
-                            </a>
-                        </li>
                         @endcan
                         
                         <!-- Return Out (Retur) -->
@@ -1482,6 +1458,30 @@
                             <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
                                 <i class="bi bi-box-seam"></i>
                                 <span>{{ __('navigation.products') }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('product-price-rules.index') }}" class="nav-link {{ request()->routeIs('product-price-rules.*') ? 'active' : '' }}">
+                                <i class="bi bi-tags"></i>
+                                <span>{{ __('navigation.price_lists') }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('price-impact-review.index') }}" class="nav-link {{ request()->routeIs('price-impact-review.*') ? 'active' : '' }}">
+                                <i class="bi bi-graph-up-arrow"></i>
+                                <span>{{ __('navigation.price_impact_review') }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('product-discount-rules.index') }}" class="nav-link {{ request()->routeIs('product-discount-rules.*') ? 'active' : '' }}">
+                                <i class="bi bi-percent"></i>
+                                <span>{{ __('navigation.discount_rules') }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('product-bonus-rules.index') }}" class="nav-link {{ request()->routeIs('product-bonus-rules.*') ? 'active' : '' }}">
+                                <i class="bi bi-gift"></i>
+                                <span>{{ __('navigation.bonus_rules') }}</span>
                             </a>
                         </li>
                         @endcan
