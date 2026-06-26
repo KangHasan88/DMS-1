@@ -4,6 +4,79 @@
 @section('breadcrumb', 'Katalog / Principal')
 
 @section('content')
+<style>
+    .principal-form-panel {
+        margin-bottom: 1.25rem;
+        padding: 1rem 1rem 1.1rem;
+        border: 1px solid var(--k-gray-200);
+        border-radius: 8px;
+        background: var(--k-gray-50);
+    }
+
+    .principal-form-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.875rem;
+        border-bottom: 1px solid var(--k-gray-200);
+    }
+
+    .principal-form-title-wrap {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .principal-form-icon {
+        width: 42px;
+        height: 42px;
+        flex: 0 0 42px;
+    }
+
+    .principal-form-title {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--k-navy);
+    }
+
+    .principal-form-copy {
+        margin: 0.25rem 0 0;
+        font-size: 0.82rem;
+        color: var(--k-gray-600);
+    }
+
+    .principal-form-primary-grid {
+        display: grid;
+        grid-template-columns: minmax(180px, 0.75fr) minmax(280px, 1.25fr);
+        gap: 1rem;
+    }
+
+    .principal-form-secondary-grid {
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) minmax(180px, 0.8fr) minmax(120px, 0.45fr);
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .principal-form-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--k-gray-200);
+    }
+
+    @media (max-width: 900px) {
+        .principal-form-primary-grid,
+        .principal-form-secondary-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
@@ -30,35 +103,55 @@
     </div>
 
     @can('edit products')
-    <div style="margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--k-gray-200); border-radius: 8px; background: var(--k-gray-50);">
-        <form action="{{ route('product-principals.store') }}" method="POST" class="dms-form-grid" style="align-items: end;">
+    <div class="principal-form-panel">
+        <div class="principal-form-heading">
+            <div class="principal-form-title-wrap">
+                <div class="dms-avatar-soft principal-form-icon">
+                    <i class="bi bi-building"></i>
+                </div>
+                <div>
+                    <h4 class="principal-form-title">Tambah Principal</h4>
+                    <p class="principal-form-copy">Gunakan untuk mengelompokkan produk berdasarkan pemilik brand atau principal.</p>
+                </div>
+            </div>
+        </div>
+
+        <form action="{{ route('product-principals.store') }}" method="POST">
             @csrf
-            <div class="form-group">
-                <label class="form-label">Kode <span class="dms-required">*</span></label>
-                <input type="text" name="code" value="{{ old('code') }}" class="form-control" placeholder="UNILEVER" required>
-                @error('code') <span class="dms-error">{{ $message }}</span> @enderror
+            <div class="principal-form-primary-grid">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Kode <span class="dms-required">*</span></label>
+                    <input type="text" name="code" value="{{ old('code') }}" class="form-control" placeholder="UNILEVER" required>
+                    @error('code') <span class="dms-error">{{ $message }}</span> @enderror
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Nama Principal <span class="dms-required">*</span></label>
+                    <input type="text" name="name" value="{{ old('name') }}" class="form-control" placeholder="Unilever Indonesia" required>
+                    @error('name') <span class="dms-error">{{ $message }}</span> @enderror
+                </div>
             </div>
-            <div class="form-group">
-                <label class="form-label">Nama Principal <span class="dms-required">*</span></label>
-                <input type="text" name="name" value="{{ old('name') }}" class="form-control" placeholder="Unilever" required>
-                @error('name') <span class="dms-error">{{ $message }}</span> @enderror
+
+            <div class="principal-form-secondary-grid">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Contact Person</label>
+                    <input type="text" name="contact_person" value="{{ old('contact_person') }}" class="form-control" placeholder="Nama kontak">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Telepon</label>
+                    <input type="text" name="phone" value="{{ old('phone') }}" class="form-control" placeholder="08xx">
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label class="form-label">Urutan</label>
+                    <input type="number" name="sort_order" value="{{ old('sort_order', 0) }}" class="form-control" min="0">
+                </div>
             </div>
-            <div class="form-group">
-                <label class="form-label">Contact Person</label>
-                <input type="text" name="contact_person" value="{{ old('contact_person') }}" class="form-control" placeholder="Nama kontak">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Telepon</label>
-                <input type="text" name="phone" value="{{ old('phone') }}" class="form-control" placeholder="08xx">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Urutan</label>
-                <input type="number" name="sort_order" value="{{ old('sort_order', 0) }}" class="form-control" min="0">
-            </div>
+
             <input type="hidden" name="is_active" value="1">
-            <button type="submit" class="dms-btn dms-btn-primary">
-                <i class="bi bi-plus-circle"></i> Tambah Principal
-            </button>
+            <div class="principal-form-actions">
+                <button type="submit" class="dms-btn dms-btn-primary">
+                    <i class="bi bi-plus-circle"></i> Tambah Principal
+                </button>
+            </div>
         </form>
     </div>
     @endcan
