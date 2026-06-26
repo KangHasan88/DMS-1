@@ -101,7 +101,7 @@
                                             <option value="{{ $product->id }}"
                                                 data-price="{{ $product->base_price ?: $product->price ?: 0 }}"
                                                 {{ (int) ($item['product_id'] ?? 0) === $product->id ? 'selected' : '' }}>
-                                                {{ $product->name }} ({{ $product->unit->name ?? '-' }}) - Rp {{ number_format($product->base_price ?: $product->price ?: 0, 0, ',', '.') }}{{ $product->is_active ? '' : ' - nonaktif' }}
+                                                {{ $product->display_name }} ({{ $product->unit->name ?? '-' }}) - Rp {{ number_format($product->base_price ?: $product->price ?: 0, 0, ',', '.') }}{{ $product->is_active ? '' : ' - nonaktif' }}
                                             </option>
                                         @endforeach
                                     </select>
@@ -180,7 +180,7 @@ function activeProductOptions() {
         <option value="">-- Pilih Produk --</option>
         @foreach($activeProducts as $product)
             <option value="{{ $product->id }}" data-price="{{ $product->base_price ?: $product->price ?: 0 }}">
-                {{ $product->name }} ({{ $product->unit->name ?? '-' }}) - Rp {{ number_format($product->base_price ?: $product->price ?: 0, 0, ',', '.') }}
+                {{ $product->display_name }} ({{ $product->unit->name ?? '-' }}) - Rp {{ number_format($product->base_price ?: $product->price ?: 0, 0, ',', '.') }}
             </option>
         @endforeach
     `;

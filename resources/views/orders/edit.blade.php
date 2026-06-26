@@ -88,7 +88,7 @@
                                     <option value="">-- Pilih Produk --</option>
                                     @foreach($products as $product)
                                         <option value="{{ $product->id }}" data-price="{{ $product->price }}" data-stock="{{ $productsWithStock[$product->id]['stock'] ?? 0 }}" {{ $item->product_id == $product->id ? 'selected' : '' }}>
-                                            {{ $product->name }} ({{ $product->unit->name ?? '-' }}) - Rp {{ number_format($product->price, 0, ',', '.') }}{{ $product->is_active ? '' : ' - nonaktif' }}
+                                            {{ $product->display_name }} ({{ $product->unit->name ?? '-' }}) - Rp {{ number_format($product->price, 0, ',', '.') }}{{ $product->is_active ? '' : ' - nonaktif' }}
                                         </option>
                                     @endforeach
                                 </select>
@@ -235,7 +235,7 @@ function addProductRow() {
                 <option value="">-- Pilih Produk --</option>
                 @foreach($activeProducts as $product)
                     <option value="{{ $product->id }}" data-price="{{ $product->price }}" data-stock="{{ $productsWithStock[$product->id]['stock'] ?? 0 }}">
-                        {{ $product->name }} ({{ $product->unit->name ?? '-' }}) - Rp {{ number_format($product->price, 0, ',', '.') }}
+                        {{ $product->display_name }} ({{ $product->unit->name ?? '-' }}) - Rp {{ number_format($product->price, 0, ',', '.') }}
                     </option>
                 @endforeach
             </select>

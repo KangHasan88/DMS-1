@@ -238,7 +238,7 @@ class Product extends Model
     public function getDisplayNameAttribute(): string
     {
         return $this->principal
-            ? $this->name.' - '.$this->principal->name
+            ? $this->principal->name.' - '.$this->name
             : $this->name;
     }
 

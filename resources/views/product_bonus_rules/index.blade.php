@@ -80,7 +80,7 @@
                 <select name="trigger_product_id" class="form-control" required>
                     <option value="">-- Pilih Produk --</option>
                     @foreach($products as $product)
-                        <option value="{{ $product->id }}" {{ (string) old('trigger_product_id') === (string) $product->id ? 'selected' : '' }}>{{ $product->name }}</option>
+                        <option value="{{ $product->id }}" {{ (string) old('trigger_product_id') === (string) $product->id ? 'selected' : '' }}>{{ $product->display_name }}</option>
                     @endforeach
                 </select>
                 @error('trigger_product_id') <span class="dms-error">{{ $message }}</span> @enderror
@@ -90,7 +90,7 @@
                 <select name="bonus_product_id" class="form-control" required>
                     <option value="">-- Pilih Produk Bonus --</option>
                     @foreach($products as $product)
-                        <option value="{{ $product->id }}" {{ (string) old('bonus_product_id') === (string) $product->id ? 'selected' : '' }}>{{ $product->name }}</option>
+                        <option value="{{ $product->id }}" {{ (string) old('bonus_product_id') === (string) $product->id ? 'selected' : '' }}>{{ $product->display_name }}</option>
                     @endforeach
                 </select>
                 @error('bonus_product_id') <span class="dms-error">{{ $message }}</span> @enderror
@@ -251,7 +251,7 @@
                                                 @csrf
                                                 <select name="bonus_product_id" class="form-control" required>
                                                     @foreach($products as $product)
-                                                        <option value="{{ $product->id }}" {{ (int) $rule->bonus_product_id === (int) $product->id ? 'selected' : '' }}>{{ $product->name }}</option>
+                                                        <option value="{{ $product->id }}" {{ (int) $rule->bonus_product_id === (int) $product->id ? 'selected' : '' }}>{{ $product->display_name }}</option>
                                                     @endforeach
                                                 </select>
                                                 <input type="number" name="bonus_quantity" value="{{ $rule->bonus_quantity }}" class="form-control" min="1" required>

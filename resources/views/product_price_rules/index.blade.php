@@ -122,7 +122,7 @@
                     <option value="">-- Pilih Produk --</option>
                     @foreach($products as $product)
                         <option value="{{ $product->id }}" {{ (string) old('product_id') === (string) $product->id ? 'selected' : '' }}>
-                            {{ $product->name }} - default Rp {{ number_format($product->price, 0, ',', '.') }}
+                            {{ $product->display_name }} - default Rp {{ number_format($product->price, 0, ',', '.') }}
                         </option>
                     @endforeach
                 </select>

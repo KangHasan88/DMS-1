@@ -330,7 +330,7 @@
                     <option value="">Semua produk</option>
                     @foreach($products as $product)
                         <option value="{{ $product->id }}" {{ (string) old('product_id') === (string) $product->id ? 'selected' : '' }}>
-                            {{ $product->name }}
+                            {{ $product->display_name }}
                         </option>
                     @endforeach
                 </select>

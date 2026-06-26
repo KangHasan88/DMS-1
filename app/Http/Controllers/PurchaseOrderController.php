@@ -73,7 +73,7 @@ class PurchaseOrderController extends Controller
     public function create()
     {
         $suppliers = Supplier::active()->orderBy('name')->get();
-        $products = Product::active()->orderBy('name')->get();
+        $products = Product::with(['principal', 'unit'])->active()->orderBy('name')->get();
         
         return view('purchase-orders.create', compact('suppliers', 'products'));
     }
@@ -86,7 +86,7 @@ class PurchaseOrderController extends Controller
         $targetWeeks = max(1, min(12, (int) $request->get('target_weeks', 4)));
         $salesWindowStart = now()->subDays(30)->startOfDay();
 
-        $products = Product::with('unit', 'stock')
+        $products = Product::with('principal', 'unit', 'stock')
             ->active()
             ->orderBy('name')
             ->get();
@@ -254,7 +254,7 @@ class PurchaseOrderController extends Controller
             })
             ->orderBy('name')
             ->get();
-        $products = Product::query()
+        $products = Product::with(['principal', 'unit'])
             ->where(function ($query) use ($currentProductIds) {
                 $query->active();
 

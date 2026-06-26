@@ -28,7 +28,7 @@ class ProductPriceRuleController extends Controller
             ->paginate($request->get('per_page', 10))
             ->withQueryString();
 
-        $products = Product::active()->orderBy('name')->get();
+        $products = Product::with('principal')->active()->orderBy('name')->get();
         $customers = Customer::where('is_active', true)->orderBy('name')->get();
         $customerTypes = CustomerType::where('is_active', true)->orderBy('name')->get();
         $companyBranches = CompanyBranch::where('is_active', true)->orderBy('name')->get();

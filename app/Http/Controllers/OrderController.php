@@ -99,7 +99,7 @@ class OrderController extends Controller
 
     public function create(Request $request)
     {
-        $products = Product::active()->orderBy('name')->get();
+        $products = Product::with(['principal', 'unit'])->active()->orderBy('name')->get();
         $companyProfile = CompanyProfile::defaultProfile();
         $companyBranches = $this->availableCompanyBranches($companyProfile);
         $defaultCompanyBranchId = $this->defaultCompanyBranchId($companyProfile);
@@ -444,7 +444,7 @@ class OrderController extends Controller
         
         $order->loadMissing('items.product');
         $itemProductIds = $order->items->pluck('product_id')->filter()->unique();
-        $products = Product::query()
+        $products = Product::with(['principal', 'unit'])
             ->where('is_active', true)
             ->when($itemProductIds->isNotEmpty(), fn ($query) => $query->orWhereIn('id', $itemProductIds))
             ->orderBy('name')
