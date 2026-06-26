@@ -604,6 +604,18 @@ class PricingRuleFlowTest extends TestCase
     {
         $admin = $this->userWithRole('admin', 'discount-page-admin@example.test');
         $branch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $customerUser = $this->userWithRole('customer', 'discount-page-customer@example.test');
+        Customer::create([
+            'user_id' => $customerUser->id,
+            'company_branch_id' => $branch->id,
+            'name' => 'Customer Diskon Page',
+            'phone' => '081234567896',
+            'email' => 'discount-page-customer@example.test',
+            'customer_type' => 'regular',
+            'payment_term' => Customer::PAYMENT_CASH,
+            'credit_status' => Customer::CREDIT_NORMAL,
+            'is_active' => true,
+        ]);
         $product = Product::create([
             'name' => 'Produk Diskon Segment',
             'category' => 'Demo',
@@ -619,6 +631,8 @@ class PricingRuleFlowTest extends TestCase
             ->assertSee('Pilih Customer Khusus')
             ->assertSee('Pilih Customer')
             ->assertSee('customer-picker-modal')
+            ->assertSee('discount-company-branch-id')
+            ->assertSee('data-customer-branch-id')
             ->assertDontSee('id="discount-customer-ids"', false);
 
         $this->actingAs($admin)
@@ -711,6 +725,53 @@ class PricingRuleFlowTest extends TestCase
             'discount_type' => ProductDiscountRule::TYPE_NOMINAL,
             'discount_value' => 1000,
         ]);
+    }
+
+    public function test_discount_rule_rejects_customer_from_different_selected_branch(): void
+    {
+        $admin = $this->userWithRole('admin', 'discount-branch-admin@example.test');
+        $mainBranch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $otherBranch = CompanyBranch::create([
+            'company_profile_id' => $mainBranch->company_profile_id,
+            'name' => 'Cabang Test Beda',
+            'code' => 'CTB',
+            'is_active' => true,
+        ]);
+        $customerUser = $this->userWithRole('customer', 'discount-branch-customer@example.test');
+        $otherBranchCustomer = Customer::create([
+            'user_id' => $customerUser->id,
+            'company_branch_id' => $otherBranch->id,
+            'name' => 'Customer Cabang Beda',
+            'phone' => '081234567899',
+            'email' => 'discount-branch-customer@example.test',
+            'customer_type' => 'regular',
+            'payment_term' => Customer::PAYMENT_CASH,
+            'credit_status' => Customer::CREDIT_NORMAL,
+            'is_active' => true,
+        ]);
+        $product = Product::create([
+            'name' => 'Produk Diskon Cabang',
+            'category' => 'Demo',
+            'price' => 18000,
+            'base_price' => 11000,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('product-discount-rules.index'))
+            ->post(route('product-discount-rules.store'), [
+                'product_id' => $product->id,
+                'customer_ids' => [$otherBranchCustomer->id],
+                'company_branch_id' => $mainBranch->id,
+                'discount_type' => ProductDiscountRule::TYPE_NOMINAL,
+                'discount_value' => 1000,
+                'min_quantity' => 1,
+                'starts_at' => now()->toDateString(),
+            ])
+            ->assertRedirect(route('product-discount-rules.index'))
+            ->assertSessionHasErrors('customer_ids');
+
+        $this->assertSame(0, ProductDiscountRule::where('product_id', $product->id)->count());
     }
 
     public function test_discount_rule_rejects_overlapping_active_rule_for_same_scope(): void

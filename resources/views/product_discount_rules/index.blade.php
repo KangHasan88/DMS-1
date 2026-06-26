@@ -253,7 +253,7 @@
             </div>
             <div class="form-group">
                 <label class="form-label">Cabang</label>
-                <select name="company_branch_id" class="form-control">
+                <select name="company_branch_id" id="discount-company-branch-id" class="form-control">
                     <option value="">Semua cabang</option>
                     @foreach($companyBranches as $branch)
                         <option value="{{ $branch->id }}" {{ (string) old('company_branch_id') === (string) $branch->id ? 'selected' : '' }}>{{ $branch->name }}</option>
@@ -324,9 +324,12 @@
                     </div>
                     <div class="customer-picker-list" id="discount-customer-list">
                         @foreach($customers as $customer)
-                            <label class="customer-picker-row" data-customer-name="{{ strtolower($customer->name) }}">
+                            <label class="customer-picker-row" data-customer-name="{{ strtolower($customer->name) }}" data-customer-branch-id="{{ $customer->company_branch_id ?? '' }}">
                                 <input type="checkbox" name="customer_ids[]" value="{{ $customer->id }}" data-customer-label="{{ $customer->name }}" {{ in_array((string) $customer->id, array_map('strval', old('customer_ids', [])), true) ? 'checked' : '' }}>
-                                <span>{{ $customer->name }}</span>
+                                <span>
+                                    {{ $customer->name }}
+                                    <small class="dms-muted" style="display: block;">{{ $customer->companyBranch->name ?? 'Tanpa cabang' }}</small>
+                                </span>
                             </label>
                         @endforeach
                     </div>
@@ -403,6 +406,7 @@
         const customerChecks = Array.from(document.querySelectorAll('input[name="customer_ids[]"]'));
         const segmentGroup = document.getElementById('discount-segment-group');
         const segmentSelect = document.getElementById('discount-customer-type');
+        const branchSelect = document.getElementById('discount-company-branch-id');
         const modal = document.getElementById('discount-customer-picker-modal');
         const openButton = document.getElementById('discount-open-customer-picker');
         const closeButton = document.getElementById('discount-close-customer-picker');
@@ -413,6 +417,10 @@
         const selectedPreview = document.getElementById('discount-selected-customer-preview');
         const modalSelectedCount = document.getElementById('discount-modal-selected-count');
         const rows = Array.from(document.querySelectorAll('.customer-picker-row'));
+
+        function selectedBranchId() {
+            return branchSelect?.value || '';
+        }
 
         function syncSegmentVisibility() {
             const checkedCustomers = customerChecks.filter((check) => check.checked);
@@ -457,9 +465,38 @@
 
         function filterRows() {
             const keyword = (searchInput?.value || '').trim().toLowerCase();
+            const branchId = selectedBranchId();
 
             rows.forEach((row) => {
-                row.style.display = row.dataset.customerName.includes(keyword) ? 'flex' : 'none';
+                const matchesSearch = row.dataset.customerName.includes(keyword);
+                const matchesBranch = !branchId || row.dataset.customerBranchId === branchId;
+                const visible = matchesSearch && matchesBranch;
+                const checkbox = row.querySelector('input[type="checkbox"]');
+
+                row.style.display = visible ? 'flex' : 'none';
+
+                if (checkbox) {
+                    checkbox.disabled = !matchesBranch;
+                }
+            });
+        }
+
+        function clearCustomersOutsideSelectedBranch() {
+            const branchId = selectedBranchId();
+
+            if (!branchId) {
+                customerChecks.forEach((check) => {
+                    check.disabled = false;
+                });
+                return;
+            }
+
+            rows.forEach((row) => {
+                const checkbox = row.querySelector('input[type="checkbox"]');
+                if (checkbox && row.dataset.customerBranchId !== branchId) {
+                    checkbox.checked = false;
+                    checkbox.disabled = true;
+                }
             });
         }
 
@@ -474,6 +511,11 @@
             });
             syncSegmentVisibility();
         });
+        branchSelect?.addEventListener('change', function () {
+            clearCustomersOutsideSelectedBranch();
+            filterRows();
+            syncSegmentVisibility();
+        });
         modal?.addEventListener('click', function (event) {
             if (event.target === modal) {
                 closeModal();
@@ -484,6 +526,8 @@
                 closeModal();
             }
         });
+        clearCustomersOutsideSelectedBranch();
+        filterRows();
         syncSegmentVisibility();
     });
 </script>

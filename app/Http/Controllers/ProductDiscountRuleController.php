@@ -30,7 +30,7 @@ class ProductDiscountRuleController extends Controller
             ->withQueryString();
 
         $products = Product::active()->orderBy('name')->get();
-        $customers = Customer::where('is_active', true)->orderBy('name')->get();
+        $customers = Customer::with('companyBranch')->where('is_active', true)->orderBy('name')->get();
         $customerTypes = CustomerType::where('is_active', true)->orderBy('name')->get();
         $companyBranches = CompanyBranch::where('is_active', true)->orderBy('name')->get();
 
@@ -63,6 +63,7 @@ class ProductDiscountRuleController extends Controller
 
         if ($customerIds->isNotEmpty()) {
             $validated['customer_type'] = null;
+            $this->ensureCustomersBelongToBranch($validated['company_branch_id'] ?? null, $customerIds->all());
             $this->ensureNoOverlappingDiscountRules($validated, $customerIds->all());
 
             $customerIds->each(function ($customerId) use ($validated) {
@@ -112,6 +113,24 @@ class ProductDiscountRuleController extends Controller
                     'starts_at' => 'Periode aturan diskon bentrok dengan aturan aktif pada scope dan minimum qty yang sama.',
                 ]);
             }
+        }
+    }
+
+    private function ensureCustomersBelongToBranch(mixed $companyBranchId, array $customerIds): void
+    {
+        if (!filled($companyBranchId) || empty($customerIds)) {
+            return;
+        }
+
+        $invalidCustomers = Customer::query()
+            ->whereIn('id', $customerIds)
+            ->where('company_branch_id', '!=', $companyBranchId)
+            ->exists();
+
+        if ($invalidCustomers) {
+            throw ValidationException::withMessages([
+                'customer_ids' => 'Customer khusus harus sesuai dengan cabang yang dipilih.',
+            ]);
         }
     }
 
