@@ -14,7 +14,9 @@
     .bonus-rule-actions { display: flex; align-items: flex-end; justify-content: flex-end; gap: .65rem; flex-wrap: wrap; }
     .bonus-rule-scope { color: #315076; font-size: .82rem; font-weight: 700; }
     .bonus-rule-hidden { display: none; }
-    .bonus-rule-row-actions { display: grid; gap: .45rem; min-width: 240px; }
+    .bonus-rule-row-actions { display: grid; gap: .45rem; min-width: 190px; }
+    .bonus-rule-action-button { min-width: 132px; min-height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: .45rem; white-space: nowrap; }
+    .bonus-rule-action-button i { line-height: 1; }
     .bonus-rule-replace { border: 1px solid #dbe4f0; border-radius: 8px; background: #fbfdff; }
     .bonus-rule-replace summary { cursor: pointer; padding: .55rem .65rem; color: #061a3d; font-size: .84rem; font-weight: 700; list-style: none; }
     .bonus-rule-replace summary::-webkit-details-marker { display: none; }
@@ -254,7 +256,7 @@
                                     @endif
                                     <form action="{{ route('product-bonus-rules.toggle-status', $rule) }}" method="POST">
                                         @csrf
-                                        <button type="submit" class="dms-btn dms-btn-outline dms-btn-sm">
+                                        <button type="submit" class="dms-btn dms-btn-outline dms-btn-sm bonus-rule-action-button">
                                             <i class="bi {{ $rule->is_active ? 'bi-pause-circle' : 'bi-play-circle' }}"></i>
                                             {{ $rule->is_active ? 'Nonaktifkan' : 'Aktifkan' }}
                                         </button>

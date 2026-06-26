@@ -96,7 +96,21 @@
     .discount-rule-row-actions {
         display: grid;
         gap: .45rem;
-        min-width: 220px;
+        min-width: 190px;
+    }
+
+    .discount-rule-action-button {
+        min-width: 132px;
+        min-height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        white-space: nowrap;
+    }
+
+    .discount-rule-action-button i {
+        line-height: 1;
     }
 
     .discount-rule-replace {
@@ -476,7 +490,7 @@
                                     @endif
                                     <form action="{{ route('product-discount-rules.toggle-status', $rule) }}" method="POST">
                                         @csrf
-                                        <button type="submit" class="dms-btn dms-btn-outline dms-btn-sm">
+                                        <button type="submit" class="dms-btn dms-btn-outline dms-btn-sm discount-rule-action-button">
                                             <i class="bi {{ $rule->is_active ? 'bi-pause-circle' : 'bi-play-circle' }}"></i>
                                             {{ $rule->is_active ? 'Nonaktifkan' : 'Aktifkan' }}
                                         </button>
