@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ApprovalRequest;
 use App\Models\Product;
 use App\Models\ProductStock;
+use App\Models\StockAdjustmentRequest;
 use App\Models\StockMovement;
+use App\Services\ApprovalWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -161,7 +164,7 @@ class StockController extends Controller
     /**
      * Process stock adjustment.
      */
-    public function adjustment(Request $request, Product $product)
+    public function adjustment(Request $request, Product $product, ApprovalWorkflowService $approvalWorkflowService)
     {
         $validated = $request->validate([
             'new_quantity' => 'required|integer|min:0',
@@ -171,19 +174,52 @@ class StockController extends Controller
         DB::beginTransaction();
         
         try {
-            $product->adjustStock(
-                $validated['new_quantity'],
-                $validated['reason']
-            );
+            $currentQuantity = (int) $product->current_stock;
+            $newQuantity = (int) $validated['new_quantity'];
+
+            $stockAdjustmentRequest = StockAdjustmentRequest::create([
+                'product_id' => $product->id,
+                'current_quantity' => $currentQuantity,
+                'new_quantity' => $newQuantity,
+                'quantity_difference' => $newQuantity - $currentQuantity,
+                'reason' => $validated['reason'],
+                'requested_by' => auth()->id(),
+            ]);
+
+            $approvalRequest = $approvalWorkflowService->request([
+                'approval_type' => ApprovalRequest::TYPE_STOCK_ADJUSTMENT,
+                'title' => 'Approval Penyesuaian Stok ' . $product->name,
+                'description' => sprintf(
+                    'Request %s mengubah stok dari %s menjadi %s.',
+                    $stockAdjustmentRequest->request_number,
+                    number_format($currentQuantity, 0, ',', '.'),
+                    number_format($newQuantity, 0, ',', '.')
+                ),
+                'request_note' => $validated['reason'],
+                'payload' => [
+                    'request_number' => $stockAdjustmentRequest->request_number,
+                    'product' => $product->name,
+                    'current_quantity' => $currentQuantity,
+                    'new_quantity' => $newQuantity,
+                    'quantity_difference' => $newQuantity - $currentQuantity,
+                    'reason' => $validated['reason'],
+                ],
+            ], $stockAdjustmentRequest);
+
+            $stockAdjustmentRequest->forceFill([
+                'approval_request_id' => $approvalRequest->id,
+            ])->save();
             
             DB::commit();
             
-            return redirect()->route('stock.show', $product)
-                ->with('success', 'Stok berhasil disesuaikan');
+            return redirect()->route('approval-requests.show', $approvalRequest)
+                ->with('success', 'Request penyesuaian stok berhasil dibuat. Stok akan berubah setelah disetujui.');
                 
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Gagal menyesuaikan stok: ' . $e->getMessage());
+            return back()
+                ->withInput()
+                ->with('error', 'Gagal membuat request penyesuaian stok: ' . $e->getMessage());
         }
     }
 

@@ -296,6 +296,7 @@ class RolePermissionSeeder extends Seeder
             'view inventory report',
             'download apk',
             'view sync status',
+            'view approvals',
         ]);
 
         // ROLE: OPERATOR / HELPER GUDANG

@@ -21,6 +21,7 @@ use App\Models\PurchaseOrderItem;
 use App\Models\Consignment;
 use App\Models\ConsignmentItem;
 use App\Models\CustomerType;
+use App\Models\StockAdjustmentRequest;
 use App\Models\StockMovement;
 use App\Models\StockOpname;
 use App\Models\Supplier;
@@ -232,6 +233,102 @@ class InventoryQaRegressionTest extends TestCase
         $this->assertSame(OutboundFoc::APPROVAL_PENDING, $foc->refresh()->approval_status);
         $this->assertSame(ApprovalRequest::STATUS_PENDING, $approvalRequest->refresh()->status);
         $this->assertSame(1, $product->stock()->first()->quantity);
+        $this->assertDatabaseCount('stock_movements', 0);
+    }
+
+    public function test_stock_adjustment_waits_for_approval_before_changing_stock(): void
+    {
+        $warehouse = $this->userWithRole('warehouse', 'warehouse-adjustment@example.test');
+        $manager = $this->userWithRole('manager', 'manager-adjustment@example.test');
+        $product = Product::create([
+            'name' => 'Produk Koreksi Stok',
+            'category' => 'Sayur',
+            'price' => 10000,
+            'base_price' => 7000,
+            'is_active' => true,
+        ]);
+
+        ProductStock::create([
+            'product_id' => $product->id,
+            'quantity' => 12,
+        ]);
+
+        $this->actingAs($warehouse)
+            ->post(route('stock.adjustment', $product), [
+                'new_quantity' => 8,
+                'reason' => 'Selisih hasil pengecekan fisik.',
+            ])
+            ->assertRedirect();
+
+        $stockAdjustmentRequest = StockAdjustmentRequest::firstOrFail();
+        $approvalRequest = ApprovalRequest::firstOrFail();
+
+        $this->assertSame(StockAdjustmentRequest::APPROVAL_PENDING, $stockAdjustmentRequest->approval_status);
+        $this->assertSame(ApprovalRequest::TYPE_STOCK_ADJUSTMENT, $approvalRequest->approval_type);
+        $this->assertSame(StockAdjustmentRequest::class, $approvalRequest->approvable_type);
+        $this->assertSame($stockAdjustmentRequest->id, $approvalRequest->approvable_id);
+        $this->assertSame(12, $stockAdjustmentRequest->current_quantity);
+        $this->assertSame(8, $stockAdjustmentRequest->new_quantity);
+        $this->assertSame(-4, $stockAdjustmentRequest->quantity_difference);
+        $this->assertSame(12, $product->stock()->first()->quantity);
+        $this->assertDatabaseCount('stock_movements', 0);
+
+        $this->actingAs($manager)
+            ->post(route('approval-requests.approve', $approvalRequest), [
+                'decision_note' => 'Opname valid.',
+            ])
+            ->assertRedirect(route('approval-requests.show', $approvalRequest));
+
+        $this->assertSame(StockAdjustmentRequest::APPROVAL_APPROVED, $stockAdjustmentRequest->refresh()->approval_status);
+        $this->assertSame(ApprovalRequest::STATUS_APPROVED, $approvalRequest->refresh()->status);
+        $this->assertSame(8, $product->stock()->first()->quantity);
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $product->id,
+            'source_type' => StockMovement::SOURCE_ADJUSTMENT,
+            'type' => StockMovement::TYPE_ADJUSTMENT,
+            'quantity' => 4,
+            'before_quantity' => 12,
+            'after_quantity' => 8,
+        ]);
+    }
+
+    public function test_stock_adjustment_reject_does_not_change_stock(): void
+    {
+        $warehouse = $this->userWithRole('warehouse', 'warehouse-reject-adjustment@example.test');
+        $manager = $this->userWithRole('manager', 'manager-reject-adjustment@example.test');
+        $product = Product::create([
+            'name' => 'Produk Koreksi Ditolak',
+            'category' => 'Sayur',
+            'price' => 10000,
+            'base_price' => 7000,
+            'is_active' => true,
+        ]);
+
+        ProductStock::create([
+            'product_id' => $product->id,
+            'quantity' => 9,
+        ]);
+
+        $this->actingAs($warehouse)
+            ->post(route('stock.adjustment', $product), [
+                'new_quantity' => 3,
+                'reason' => 'Selisih belum ada bukti.',
+            ])
+            ->assertRedirect();
+
+        $stockAdjustmentRequest = StockAdjustmentRequest::firstOrFail();
+        $approvalRequest = ApprovalRequest::firstOrFail();
+
+        $this->actingAs($manager)
+            ->post(route('approval-requests.reject', $approvalRequest), [
+                'decision_note' => 'Butuh opname ulang.',
+            ])
+            ->assertRedirect(route('approval-requests.show', $approvalRequest));
+
+        $this->assertSame(StockAdjustmentRequest::APPROVAL_REJECTED, $stockAdjustmentRequest->refresh()->approval_status);
+        $this->assertSame(ApprovalRequest::STATUS_REJECTED, $approvalRequest->refresh()->status);
+        $this->assertSame('Butuh opname ulang.', $stockAdjustmentRequest->rejection_note);
+        $this->assertSame(9, $product->stock()->first()->quantity);
         $this->assertDatabaseCount('stock_movements', 0);
     }
 

@@ -12,8 +12,7 @@
         </p>
         <div style="margin-top: 0.5rem; padding: 0.5rem 0.75rem; background: var(--k-gray-50); border-radius: 6px; font-size: 0.75rem; color: var(--k-gray-600);">
             <i class="bi bi-info-circle"></i> 
-            Penyesuaian stok digunakan untuk mengoreksi stok fisik yang tidak sesuai dengan sistem.
-            Setiap perubahan akan tercatat di riwayat pergerakan stok.
+            Penyesuaian stok akan dibuat sebagai request approval. Stok sistem baru berubah setelah request disetujui.
         </div>
     </div>
 
@@ -106,7 +105,7 @@
                 <i class="bi bi-arrow-left"></i> Batal
             </a>
             <button type="submit" class="dms-btn dms-btn-primary" style="padding: 0.5rem 1rem; font-size: 0.75rem;">
-                <i class="bi bi-save"></i> Simpan Penyesuaian
+                <i class="bi bi-send"></i> Ajukan Approval
             </button>
         </div>
     </form>

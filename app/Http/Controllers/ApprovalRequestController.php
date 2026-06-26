@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\ApprovalRequest;
 use App\Models\OutboundFoc;
+use App\Models\StockAdjustmentRequest;
 use App\Services\OutboundFocApprovalService;
 use App\Services\ApprovalWorkflowService;
+use App\Services\StockAdjustmentApprovalService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -54,6 +56,8 @@ class ApprovalRequestController extends Controller
 
         if ($approvalRequest->approvable_type === OutboundFoc::class && $approvalRequest->approvable) {
             app(OutboundFocApprovalService::class)->approve($approvalRequest->approvable, $validated['decision_note'] ?? null);
+        } elseif ($approvalRequest->approvable_type === StockAdjustmentRequest::class && $approvalRequest->approvable) {
+            app(StockAdjustmentApprovalService::class)->approve($approvalRequest->approvable, $validated['decision_note'] ?? null);
         } else {
             $service->approve($approvalRequest, $validated['decision_note'] ?? null);
         }
@@ -71,6 +75,8 @@ class ApprovalRequestController extends Controller
 
         if ($approvalRequest->approvable_type === OutboundFoc::class && $approvalRequest->approvable) {
             app(OutboundFocApprovalService::class)->reject($approvalRequest->approvable, $validated['decision_note']);
+        } elseif ($approvalRequest->approvable_type === StockAdjustmentRequest::class && $approvalRequest->approvable) {
+            app(StockAdjustmentApprovalService::class)->reject($approvalRequest->approvable, $validated['decision_note']);
         } else {
             $service->reject($approvalRequest, $validated['decision_note']);
         }
