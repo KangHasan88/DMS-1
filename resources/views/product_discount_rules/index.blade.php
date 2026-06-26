@@ -55,6 +55,8 @@
         display: flex;
         align-items: flex-end;
         justify-content: flex-end;
+        gap: .65rem;
+        flex-wrap: wrap;
     }
 
     .discount-rule-footer {
