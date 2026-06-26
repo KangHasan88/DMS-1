@@ -31,7 +31,16 @@ class PriceImpactReviewController extends Controller
             ->orderBy('name')
             ->get();
 
-        $rows = $products->map(function (Product $product) use ($targetMargin, $costIncreaseThreshold) {
+        $pendingApprovals = ApprovalRequest::query()
+            ->where('approval_type', ApprovalRequest::TYPE_PRICE_CHANGE)
+            ->where('approvable_type', Product::class)
+            ->whereIn('approvable_id', $products->pluck('id'))
+            ->where('status', ApprovalRequest::STATUS_PENDING)
+            ->latest('id')
+            ->get()
+            ->keyBy('approvable_id');
+
+        $rows = $products->map(function (Product $product) use ($targetMargin, $costIncreaseThreshold, $pendingApprovals) {
             $latestPurchaseItem = PurchaseOrderItem::query()
                 ->with(['purchaseOrder.supplier'])
                 ->where('product_id', $product->id)
@@ -75,6 +84,7 @@ class PriceImpactReviewController extends Controller
                 'recommended_price' => $recommendedPrice,
                 'recommended_increase' => $recommendedIncrease,
                 'needs_review' => $needsReview,
+                'pending_approval' => $pendingApprovals->get($product->id),
             ];
         });
 

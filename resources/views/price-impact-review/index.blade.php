@@ -113,6 +113,7 @@
                         $product = $row['product'];
                         $latestItem = $row['latest_purchase_item'];
                         $purchaseOrder = $latestItem?->purchaseOrder;
+                        $pendingApproval = $row['pending_approval'];
                     @endphp
                     <tr>
                         <td>
@@ -174,7 +175,12 @@
                                     <span class="badge bg-success">OK</span>
                                 @endif
                                 @can('edit products')
-                                    @if($row['latest_purchase_price'] > 0)
+                                    @if($pendingApproval)
+                                        <span class="badge bg-info text-dark">Menunggu Approval</span>
+                                        <a href="{{ route('approval-requests.show', $pendingApproval) }}" class="dms-btn dms-btn-outline" style="padding: .42rem .7rem;">
+                                            Lihat Approval
+                                        </a>
+                                    @elseif($row['latest_purchase_price'] > 0)
                                         <form action="{{ route('price-impact-review.apply', $product) }}" method="POST" class="impact-apply">
                                             @csrf
                                             <input type="hidden" name="new_base_price" value="{{ $row['latest_purchase_price'] }}">

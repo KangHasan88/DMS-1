@@ -894,6 +894,13 @@ class PricingRuleFlowTest extends TestCase
             'status' => ApprovalRequest::STATUS_PENDING,
         ]);
         $this->assertSame(0, ProductPriceHistory::where('product_id', $product->id)->count());
+
+        $this->actingAs($admin)
+            ->get(route('price-impact-review.index', ['mode' => 'all']))
+            ->assertOk()
+            ->assertSee('Menunggu Approval')
+            ->assertSee('Lihat Approval')
+            ->assertDontSee('Ajukan');
     }
 
     public function test_price_change_approval_updates_master_prices_and_records_history(): void
