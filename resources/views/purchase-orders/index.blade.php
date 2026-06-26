@@ -120,14 +120,14 @@
                                 <i class="bi bi-eye"></i>
                             </a>
                             @can('edit purchase order')
-                            @if(in_array($po->status, ['draft', 'pending']))
+                            @if($po->status === 'draft' && !$po->isApprovalPending())
                             <a href="{{ route('purchase-orders.edit', $po) }}" class="dms-btn dms-btn-outline dms-btn-sm" title="Edit">
                                 <i class="bi bi-pencil"></i>
                             </a>
                             @endif
                             @endcan
                             @can('delete purchase order')
-                            @if($po->status == 'draft')
+                            @if($po->status == 'draft' && !$po->isApprovalPending())
                             <button onclick="deletePO({{ $po->id }}, '{{ $po->po_number }}')" class="dms-btn dms-btn-outline dms-btn-sm" style="color: var(--k-red);" title="Hapus">
                                 <i class="bi bi-trash"></i>
                             </button>

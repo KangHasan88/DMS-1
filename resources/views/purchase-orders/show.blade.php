@@ -17,18 +17,24 @@
         </div>
         <div style="display: flex; gap: 0.5rem;">
             @can('edit purchase order')
-            @if($purchaseOrder->status == 'draft')
+            @if($purchaseOrder->canApprove())
                 <form action="{{ route('purchase-orders.approve', $purchaseOrder) }}" method="POST" style="display: inline;">
                     @csrf
                     <button type="submit" class="dms-btn dms-btn-primary">
-                        <i class="bi bi-check-circle"></i> Approve PO
+                        <i class="bi bi-send"></i> Ajukan Approval
                     </button>
                 </form>
             @endif
             @endcan
+
+            @if($purchaseOrder->isApprovalPending() && $purchaseOrder->approvalRequest)
+                <a href="{{ route('approval-requests.show', $purchaseOrder->approvalRequest) }}" class="dms-btn dms-btn-outline">
+                    <i class="bi bi-hourglass-split"></i> Lihat Approval
+                </a>
+            @endif
             
             @can('edit purchase order')
-            @if(in_array($purchaseOrder->status, ['pending', 'partially_received']))
+            @if($purchaseOrder->canReceive())
                 <a href="{{ route('purchase-orders.receive-form', $purchaseOrder) }}" class="dms-btn dms-btn-primary">
                     <i class="bi bi-box-seam"></i> Receive Barang
                 </a>
@@ -36,14 +42,14 @@
             @endcan
             
             @can('edit purchase order')
-            @if(in_array($purchaseOrder->status, ['draft', 'pending']))
+            @if($purchaseOrder->status === 'draft' && !$purchaseOrder->isApprovalPending())
                 <a href="{{ route('purchase-orders.edit', $purchaseOrder) }}" class="dms-btn dms-btn-outline">
                     <i class="bi bi-pencil"></i> Edit
                 </a>
             @endif
             @endcan
             @can('delete purchase order')
-            @if(in_array($purchaseOrder->status, ['draft', 'pending']))
+            @if($purchaseOrder->status === 'draft' && !$purchaseOrder->isApprovalPending())
                 <form action="{{ route('purchase-orders.cancel', $purchaseOrder) }}" method="POST" style="display: inline;">
                     @csrf
                     <button type="submit" class="dms-btn dms-btn-outline" style="color: var(--k-red);" onclick="return confirm('Yakin ingin membatalkan PO ini?')">
@@ -60,7 +66,7 @@
     </div>
 
     <!-- PO Status & Info -->
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2rem;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
         <div style="padding: 1rem; background: var(--k-gray-50); border-radius: 8px; text-align: center;">
             <div style="font-size: 0.7rem; color: var(--k-gray-500);">Status</div>
             <div style="margin-top: 0.5rem;">
@@ -87,6 +93,16 @@
             <div style="font-size: 0.7rem; color: var(--k-gray-500);">Diapprove Oleh</div>
             <div style="font-size: 0.9rem; font-weight: 500;">{{ $purchaseOrder->approvedBy->name ?? '-' }}</div>
             <div style="font-size: 0.65rem; color: var(--k-gray-500);">{{ $purchaseOrder->approved_at ? $purchaseOrder->approved_at->format('d M Y H:i') : '-' }}</div>
+        </div>
+
+        <div style="padding: 1rem; background: var(--k-gray-50); border-radius: 8px; text-align: center;">
+            <div style="font-size: 0.7rem; color: var(--k-gray-500);">Approval</div>
+            <div style="font-size: 0.9rem; font-weight: 600;">{{ $purchaseOrder->approval_status_label }}</div>
+            @if($purchaseOrder->rejected_at)
+                <div style="font-size: 0.65rem; color: var(--k-red);">{{ $purchaseOrder->rejection_note }}</div>
+            @elseif($purchaseOrder->approvalRequest)
+                <div style="font-size: 0.65rem; color: var(--k-gray-500);">{{ $purchaseOrder->approvalRequest->request_number }}</div>
+            @endif
         </div>
     </div>
 

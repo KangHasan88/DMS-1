@@ -1201,6 +1201,97 @@ class InventoryQaRegressionTest extends TestCase
         $this->assertDatabaseCount('stock_movements', 0);
     }
 
+    public function test_purchase_order_requires_approval_before_receiving(): void
+    {
+        $warehouse = $this->userWithRole('warehouse', 'warehouse-po-approval@example.test');
+        $manager = $this->userWithRole('manager', 'manager-po-approval@example.test');
+        $supplier = $this->supplier('Supplier Approval PO');
+        $product = $this->product('Produk Approval PO');
+        $purchaseOrder = PurchaseOrder::create([
+            'po_number' => 'POAPPROVAL001',
+            'supplier_id' => $supplier->id,
+            'order_date' => now()->toDateString(),
+            'status' => PurchaseOrder::STATUS_DRAFT,
+            'approval_status' => PurchaseOrder::APPROVAL_NOT_REQUESTED,
+            'subtotal' => 10000,
+            'total' => 10000,
+            'created_by' => $warehouse->id,
+        ]);
+        PurchaseOrderItem::create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'product_id' => $product->id,
+            'quantity' => 2,
+            'received_quantity' => 0,
+            'price' => 5000,
+            'subtotal' => 10000,
+        ]);
+
+        $this->actingAs($warehouse)
+            ->post(route('purchase-orders.approve', $purchaseOrder))
+            ->assertRedirect();
+
+        $approvalRequest = ApprovalRequest::firstOrFail();
+
+        $this->assertSame(PurchaseOrder::STATUS_DRAFT, $purchaseOrder->fresh()->status);
+        $this->assertSame(PurchaseOrder::APPROVAL_PENDING, $purchaseOrder->fresh()->approval_status);
+        $this->assertFalse($purchaseOrder->fresh()->canReceive());
+        $this->assertSame(ApprovalRequest::TYPE_PURCHASE_ORDER, $approvalRequest->approval_type);
+        $this->assertSame(PurchaseOrder::class, $approvalRequest->approvable_type);
+
+        $this->actingAs($manager)
+            ->post(route('approval-requests.approve', $approvalRequest), [
+                'decision_note' => 'Pembelian disetujui.',
+            ])
+            ->assertRedirect(route('approval-requests.show', $approvalRequest));
+
+        $this->assertSame(PurchaseOrder::STATUS_PENDING, $purchaseOrder->fresh()->status);
+        $this->assertSame(PurchaseOrder::APPROVAL_APPROVED, $purchaseOrder->fresh()->approval_status);
+        $this->assertTrue($purchaseOrder->fresh()->canReceive());
+    }
+
+    public function test_rejected_purchase_order_approval_stays_draft_and_cannot_receive(): void
+    {
+        $warehouse = $this->userWithRole('warehouse', 'warehouse-po-reject@example.test');
+        $manager = $this->userWithRole('manager', 'manager-po-reject@example.test');
+        $supplier = $this->supplier('Supplier Reject PO');
+        $product = $this->product('Produk Reject PO');
+        $purchaseOrder = PurchaseOrder::create([
+            'po_number' => 'POREJECT001',
+            'supplier_id' => $supplier->id,
+            'order_date' => now()->toDateString(),
+            'status' => PurchaseOrder::STATUS_DRAFT,
+            'approval_status' => PurchaseOrder::APPROVAL_NOT_REQUESTED,
+            'subtotal' => 10000,
+            'total' => 10000,
+            'created_by' => $warehouse->id,
+        ]);
+        PurchaseOrderItem::create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'product_id' => $product->id,
+            'quantity' => 2,
+            'received_quantity' => 0,
+            'price' => 5000,
+            'subtotal' => 10000,
+        ]);
+
+        $this->actingAs($warehouse)
+            ->post(route('purchase-orders.approve', $purchaseOrder))
+            ->assertRedirect();
+
+        $approvalRequest = ApprovalRequest::firstOrFail();
+
+        $this->actingAs($manager)
+            ->post(route('approval-requests.reject', $approvalRequest), [
+                'decision_note' => 'Harga belum sesuai.',
+            ])
+            ->assertRedirect(route('approval-requests.show', $approvalRequest));
+
+        $this->assertSame(PurchaseOrder::STATUS_DRAFT, $purchaseOrder->fresh()->status);
+        $this->assertSame(PurchaseOrder::APPROVAL_REJECTED, $purchaseOrder->fresh()->approval_status);
+        $this->assertSame('Harga belum sesuai.', $purchaseOrder->fresh()->rejection_note);
+        $this->assertFalse($purchaseOrder->fresh()->canReceive());
+    }
+
     public function test_consignment_return_rejects_items_from_another_consignment(): void
     {
         $user = $this->superAdmin();

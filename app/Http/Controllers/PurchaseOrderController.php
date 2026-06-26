@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ApprovalRequest;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\Supplier;
@@ -9,6 +10,7 @@ use App\Models\Product;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\CompanyBranch;
+use App\Services\ApprovalWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -21,7 +23,7 @@ class PurchaseOrderController extends Controller
     public function index(Request $request)
     {
         $branchScopeId = $this->currentBranchScopeId();
-        $query = PurchaseOrder::with('supplier', 'createdBy', 'companyBranch')
+        $query = PurchaseOrder::with('supplier', 'createdBy', 'companyBranch', 'approvalRequest')
             ->forUserBranch();
 
         if (!$branchScopeId && $request->filled('company_branch_id')) {
@@ -193,6 +195,7 @@ class PurchaseOrderController extends Controller
                 'notes' => $request->notes,
                 'internal_notes' => $request->internal_notes,
                 'status' => PurchaseOrder::STATUS_DRAFT,
+                'approval_status' => PurchaseOrder::APPROVAL_NOT_REQUESTED,
                 'created_by' => Auth::id(),
             ]);
             
@@ -219,7 +222,7 @@ class PurchaseOrderController extends Controller
     {
         $this->authorizeBranchAccess($purchaseOrder);
 
-        $purchaseOrder->load('supplier', 'items.product', 'createdBy', 'approvedBy');
+        $purchaseOrder->load('supplier', 'items.product', 'createdBy', 'approvedBy', 'rejectedBy', 'approvalRequest');
         
         return view('purchase-orders.show', compact('purchaseOrder'));
     }
@@ -231,9 +234,9 @@ class PurchaseOrderController extends Controller
     {
         $this->authorizeBranchAccess($purchaseOrder);
 
-        if (!in_array($purchaseOrder->status, [PurchaseOrder::STATUS_DRAFT, PurchaseOrder::STATUS_PENDING])) {
+        if ($purchaseOrder->status !== PurchaseOrder::STATUS_DRAFT || $purchaseOrder->isApprovalPending()) {
             return redirect()->route('purchase-orders.show', $purchaseOrder)
-                ->with('error', 'PO tidak dapat diedit karena sudah diproses');
+                ->with('error', 'PO tidak dapat diedit karena sudah diajukan atau diproses');
         }
         
         $purchaseOrder->loadMissing('supplier', 'items.product');
@@ -273,8 +276,8 @@ class PurchaseOrderController extends Controller
     {
         $this->authorizeBranchAccess($purchaseOrder);
 
-        if (!in_array($purchaseOrder->status, [PurchaseOrder::STATUS_DRAFT, PurchaseOrder::STATUS_PENDING])) {
-            return back()->with('error', 'PO tidak dapat diupdate karena sudah diproses');
+        if ($purchaseOrder->status !== PurchaseOrder::STATUS_DRAFT || $purchaseOrder->isApprovalPending()) {
+            return back()->with('error', 'PO tidak dapat diupdate karena sudah diajukan atau diproses');
         }
         
         $validated = $request->validate([
@@ -333,6 +336,11 @@ class PurchaseOrderController extends Controller
                 'total' => $subtotal,
                 'notes' => $request->notes,
                 'internal_notes' => $request->internal_notes,
+                'approval_status' => PurchaseOrder::APPROVAL_NOT_REQUESTED,
+                'approval_request_id' => null,
+                'rejected_by' => null,
+                'rejected_at' => null,
+                'rejection_note' => null,
             ]);
             
             DB::commit();
@@ -353,7 +361,7 @@ class PurchaseOrderController extends Controller
     {
         $this->authorizeBranchAccess($purchaseOrder);
 
-        if ($purchaseOrder->status !== PurchaseOrder::STATUS_DRAFT) {
+        if ($purchaseOrder->status !== PurchaseOrder::STATUS_DRAFT || $purchaseOrder->isApprovalPending()) {
             return back()->with('error', 'PO tidak dapat dihapus karena sudah diproses');
         }
         
@@ -366,18 +374,62 @@ class PurchaseOrderController extends Controller
     /**
      * Approve purchase order.
      */
-    public function approve(PurchaseOrder $purchaseOrder)
+    public function approve(PurchaseOrder $purchaseOrder, ApprovalWorkflowService $approvalWorkflowService)
     {
         $this->authorizeBranchAccess($purchaseOrder);
 
         if (!$purchaseOrder->canApprove()) {
-            return back()->with('error', 'PO tidak dapat diapprove');
+            return back()->with('error', 'PO tidak dapat diajukan approval');
         }
-        
-        $purchaseOrder->approve();
-        
-        return redirect()->route('purchase-orders.show', $purchaseOrder)
-            ->with('success', 'PO berhasil diapprove');
+
+        DB::beginTransaction();
+
+        try {
+            $purchaseOrder->loadMissing('supplier', 'items.product');
+
+            $approvalRequest = $approvalWorkflowService->request([
+                'approval_type' => ApprovalRequest::TYPE_PURCHASE_ORDER,
+                'company_branch_id' => $purchaseOrder->company_branch_id,
+                'title' => 'Approval Purchase Order ' . $purchaseOrder->po_number,
+                'description' => sprintf(
+                    'PO %s ke %s dengan total Rp %s.',
+                    $purchaseOrder->po_number,
+                    $purchaseOrder->supplier?->name ?? '-',
+                    number_format((int) $purchaseOrder->total, 0, ',', '.')
+                ),
+                'request_note' => $purchaseOrder->internal_notes ?: $purchaseOrder->notes,
+                'payload' => [
+                    'po_number' => $purchaseOrder->po_number,
+                    'supplier' => $purchaseOrder->supplier?->name,
+                    'order_date' => optional($purchaseOrder->order_date)->format('Y-m-d'),
+                    'expected_delivery_date' => optional($purchaseOrder->expected_delivery_date)->format('Y-m-d'),
+                    'total' => (int) $purchaseOrder->total,
+                    'items' => $purchaseOrder->items->map(fn ($item) => [
+                        'product' => $item->product?->name,
+                        'quantity' => (int) $item->quantity,
+                        'price' => (int) $item->price,
+                        'subtotal' => (int) $item->subtotal,
+                    ])->values()->all(),
+                ],
+            ], $purchaseOrder);
+
+            $purchaseOrder->forceFill([
+                'approval_request_id' => $approvalRequest->id,
+                'approval_status' => PurchaseOrder::APPROVAL_PENDING,
+                'rejected_by' => null,
+                'rejected_at' => null,
+                'rejection_note' => null,
+            ])->save();
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return back()->with('error', 'Gagal mengajukan approval PO: ' . $e->getMessage());
+        }
+
+        return redirect()->route('approval-requests.show', $approvalRequest)
+            ->with('success', 'Approval PO berhasil diajukan. PO baru bisa diterima setelah disetujui.');
     }
     
     /**
@@ -389,6 +441,10 @@ class PurchaseOrderController extends Controller
 
         if ($purchaseOrder->status === PurchaseOrder::STATUS_RECEIVED) {
             return back()->with('error', 'PO yang sudah diterima tidak dapat dibatalkan');
+        }
+
+        if ($purchaseOrder->isApprovalPending()) {
+            return back()->with('error', 'PO sedang menunggu approval dan tidak dapat dibatalkan');
         }
         
         $purchaseOrder->cancel();

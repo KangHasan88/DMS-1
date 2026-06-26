@@ -26,6 +26,11 @@ class PurchaseOrder extends Model
         'created_by',
         'approved_by',
         'approved_at',
+        'approval_request_id',
+        'approval_status',
+        'rejected_by',
+        'rejected_at',
+        'rejection_note',
     ];
 
     protected $casts = [
@@ -33,6 +38,7 @@ class PurchaseOrder extends Model
         'expected_delivery_date' => 'date',
         'received_date' => 'date',
         'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
         'subtotal' => 'integer',
         'total' => 'integer',
     ];
@@ -58,6 +64,18 @@ class PurchaseOrder extends Model
         self::STATUS_PARTIALLY_RECEIVED => 'info',
         self::STATUS_RECEIVED => 'success',
         self::STATUS_CANCELLED => 'danger',
+    ];
+
+    const APPROVAL_NOT_REQUESTED = 'not_requested';
+    const APPROVAL_PENDING = 'pending';
+    const APPROVAL_APPROVED = 'approved';
+    const APPROVAL_REJECTED = 'rejected';
+
+    const APPROVAL_STATUSES = [
+        self::APPROVAL_NOT_REQUESTED => 'Belum Diajukan',
+        self::APPROVAL_PENDING => 'Menunggu Approval',
+        self::APPROVAL_APPROVED => 'Disetujui',
+        self::APPROVAL_REJECTED => 'Ditolak',
     ];
 
     // ===================== RELATIONSHIPS =====================
@@ -92,6 +110,16 @@ class PurchaseOrder extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 
+    public function rejectedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
+    }
+
+    public function approvalRequest(): BelongsTo
+    {
+        return $this->belongsTo(ApprovalRequest::class);
+    }
+
     // ===================== HELPER METHODS =====================
     
     public static function generatePONumber(): string
@@ -113,7 +141,8 @@ class PurchaseOrder extends Model
 
     public function canReceive(): bool
     {
-        return in_array($this->status, [self::STATUS_PENDING, self::STATUS_PARTIALLY_RECEIVED]);
+        return in_array($this->status, [self::STATUS_PENDING, self::STATUS_PARTIALLY_RECEIVED], true)
+            && $this->approval_status === self::APPROVAL_APPROVED;
     }
 
     public function isInvoiceableForAp(): bool
@@ -123,7 +152,13 @@ class PurchaseOrder extends Model
 
     public function canApprove(): bool
     {
-        return $this->status === self::STATUS_DRAFT;
+        return $this->status === self::STATUS_DRAFT
+            && !in_array($this->approval_status, [self::APPROVAL_PENDING, self::APPROVAL_APPROVED], true);
+    }
+
+    public function isApprovalPending(): bool
+    {
+        return $this->approval_status === self::APPROVAL_PENDING;
     }
 
     public function approve(): void
@@ -131,6 +166,7 @@ class PurchaseOrder extends Model
         $this->status = self::STATUS_PENDING;
         $this->approved_by = auth()->id();
         $this->approved_at = now();
+        $this->approval_status = self::APPROVAL_APPROVED;
         $this->save();
     }
 
@@ -148,6 +184,11 @@ class PurchaseOrder extends Model
     public function getStatusColorAttribute(): string
     {
         return self::STATUS_COLORS[$this->status] ?? 'secondary';
+    }
+
+    public function getApprovalStatusLabelAttribute(): string
+    {
+        return self::APPROVAL_STATUSES[$this->approval_status] ?? ucfirst((string) $this->approval_status);
     }
 
     // ===================== SCOPES =====================
