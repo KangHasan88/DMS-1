@@ -74,4 +74,9 @@ class ProductDiscountRule extends Model
 
         return 'Rp ' . number_format((float) $this->discount_value, 0, ',', '.') . ' / unit';
     }
+
+    public function getIsExpiredAttribute(): bool
+    {
+        return $this->ends_at?->isPast() ?? false;
+    }
 }

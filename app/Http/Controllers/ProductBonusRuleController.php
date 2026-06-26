@@ -81,6 +81,12 @@ class ProductBonusRuleController extends Controller
 
     public function toggleStatus(ProductBonusRule $productBonusRule)
     {
+        if (! $productBonusRule->is_active && $productBonusRule->is_expired) {
+            throw ValidationException::withMessages([
+                'status' => 'Aturan bonus yang periodenya sudah lewat tidak bisa diaktifkan kembali.',
+            ]);
+        }
+
         $productBonusRule->update(['is_active' => !$productBonusRule->is_active]);
 
         return back()->with('success', 'Status aturan bonus berhasil diperbarui.');

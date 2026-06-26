@@ -74,4 +74,9 @@ class ProductBonusRule extends Model
             ' ' . ($this->bonusProduct?->unit?->name ?? 'pcs') .
             ' ' . ($this->bonusProduct?->name ?? 'produk bonus');
     }
+
+    public function getIsExpiredAttribute(): bool
+    {
+        return $this->ends_at?->isPast() ?? false;
+    }
 }

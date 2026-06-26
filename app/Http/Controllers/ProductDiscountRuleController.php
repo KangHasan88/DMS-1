@@ -84,6 +84,12 @@ class ProductDiscountRuleController extends Controller
 
     public function toggleStatus(ProductDiscountRule $productDiscountRule)
     {
+        if (! $productDiscountRule->is_active && $productDiscountRule->is_expired) {
+            throw ValidationException::withMessages([
+                'status' => 'Aturan diskon yang periodenya sudah lewat tidak bisa diaktifkan kembali.',
+            ]);
+        }
+
         $productDiscountRule->update(['is_active' => !$productDiscountRule->is_active]);
 
         return back()->with('success', 'Status aturan diskon berhasil diperbarui.');

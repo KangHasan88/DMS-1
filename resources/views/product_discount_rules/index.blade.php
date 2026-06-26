@@ -113,6 +113,11 @@
         line-height: 1;
     }
 
+    .discount-rule-action-button:disabled {
+        cursor: not-allowed;
+        opacity: .58;
+    }
+
     .discount-rule-replace {
         border: 1px solid #dbe4f0;
         border-radius: 8px;
@@ -474,8 +479,8 @@
                             <div class="dms-muted">s/d {{ $rule->ends_at?->format('d M Y') ?? 'seterusnya' }}</div>
                         </td>
                         <td>
-                            <span class="dms-badge {{ $rule->is_active ? 'dms-badge-success' : 'dms-badge-muted' }}">
-                                {{ $rule->is_active ? 'Aktif' : 'Nonaktif' }}
+                            <span class="dms-badge {{ $rule->is_expired ? 'dms-badge-muted' : ($rule->is_active ? 'dms-badge-success' : 'dms-badge-muted') }}">
+                                {{ $rule->is_expired ? 'Expired' : ($rule->is_active ? 'Aktif' : 'Nonaktif') }}
                             </span>
                         </td>
                         <td>
@@ -508,10 +513,13 @@
                                     @endif
                                     <form action="{{ route('product-discount-rules.toggle-status', $rule) }}" method="POST">
                                         @csrf
-                                        <button type="submit" class="dms-btn dms-btn-outline dms-btn-sm discount-rule-action-button">
+                                        <button type="submit" class="dms-btn dms-btn-outline dms-btn-sm discount-rule-action-button" @if(! $rule->is_active && $rule->is_expired) disabled title="Periode sudah lewat" @endif>
                                             <i class="bi {{ $rule->is_active ? 'bi-pause-circle' : 'bi-play-circle' }}"></i>
                                             {{ $rule->is_active ? 'Nonaktifkan' : 'Aktifkan' }}
                                         </button>
+                                        @if(! $rule->is_active && $rule->is_expired)
+                                            <small class="dms-muted">Periode sudah lewat</small>
+                                        @endif
                                     </form>
                                 </div>
                             @endcan
