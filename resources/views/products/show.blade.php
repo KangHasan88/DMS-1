@@ -116,6 +116,10 @@
                 
                 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
                     <div>
+                        <div style="font-size: 0.7rem; color: var(--k-gray-500); margin-bottom: 0.25rem;">Principal</div>
+                        <div style="font-weight: 500; color: var(--k-gray-800);">{{ $product->principal?->name ?? '-' }}</div>
+                    </div>
+                    <div>
                         <div style="font-size: 0.7rem; color: var(--k-gray-500); margin-bottom: 0.25rem;">Kategori</div>
                         <div style="font-weight: 500; color: var(--k-gray-800);">{{ $product->category ?? '-' }}</div>
                     </div>

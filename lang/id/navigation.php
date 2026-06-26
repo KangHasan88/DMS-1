@@ -28,6 +28,7 @@ return [
     'customers' => 'Pelanggan',
     'suppliers' => 'Pemasok',
     'products' => 'Produk',
+    'principals' => 'Principal',
     'price_lists' => 'Daftar Harga',
     'price_impact_review' => 'Review Dampak Harga',
     'discount_rules' => 'Aturan Diskon',

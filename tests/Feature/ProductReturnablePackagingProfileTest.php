@@ -133,7 +133,7 @@ class ProductReturnablePackagingProfileTest extends TestCase
         ]);
         $product = Product::create([
             'name' => 'Produk Legacy',
-            'category' => 'Minuman',
+            'category' => 'Kategori Legacy',
             'unit_id' => $unit->id,
             'price' => 10000,
             'base_price' => 8000,
@@ -143,13 +143,13 @@ class ProductReturnablePackagingProfileTest extends TestCase
         $this->actingAs($user)
             ->get(route('products.edit', $product))
             ->assertOk()
-            ->assertSee('Minuman (belum ada / nonaktif)')
+            ->assertSee('Kategori Legacy (belum ada / nonaktif)')
             ->assertSee('Kategori tersimpan belum ada atau sedang nonaktif');
 
         $this->actingAs($user)
             ->put(route('products.update', $product), [
                 'name' => 'Produk Legacy Update',
-                'category' => 'Minuman',
+                'category' => 'Kategori Legacy',
                 'unit_id' => $unit->id,
                 'price' => 11000,
                 'base_price' => 8000,
@@ -161,7 +161,7 @@ class ProductReturnablePackagingProfileTest extends TestCase
         $this->assertDatabaseHas('products', [
             'id' => $product->id,
             'name' => 'Produk Legacy Update',
-            'category' => 'Minuman',
+            'category' => 'Kategori Legacy',
         ]);
     }
 
@@ -173,12 +173,6 @@ class ProductReturnablePackagingProfileTest extends TestCase
             'name' => 'Box',
             'symbol' => 'box',
             'category' => 'unit',
-            'is_active' => true,
-            'sort_order' => 1,
-        ]);
-        ProductCategory::create([
-            'name' => 'Minuman',
-            'slug' => 'minuman',
             'is_active' => true,
             'sort_order' => 1,
         ]);

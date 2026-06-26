@@ -15,6 +15,7 @@ class Product extends Model
     protected $fillable = [
         'name', 
         'category', 
+        'principal_id',
         'unit_id',
         'returnable_package_id',
         'returnable_package_quantity_per_unit',
@@ -46,6 +47,11 @@ class Product extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    public function principal(): BelongsTo
+    {
+        return $this->belongsTo(ProductPrincipal::class, 'principal_id');
     }
 
     public function returnablePackage(): BelongsTo
@@ -227,6 +233,13 @@ class Product extends Model
             return $this->unit->symbol ?: $this->unit->name;
         }
         return '-';
+    }
+
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->principal
+            ? $this->name.' - '.$this->principal->name
+            : $this->name;
     }
 
     public function hasReturnablePackaging(): bool

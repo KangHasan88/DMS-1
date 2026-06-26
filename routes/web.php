@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductPrincipalController;
 use App\Http\Controllers\PriceImpactReviewController;
 use App\Http\Controllers\ProductPriceRuleController;
 use App\Http\Controllers\ProductDiscountRuleController;
@@ -168,6 +169,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('product-categories/{productCategory}', [ProductCategoryController::class, 'update'])->middleware('permission:edit categories')->name('product-categories.update');
     Route::delete('product-categories/{productCategory}', [ProductCategoryController::class, 'destroy'])->middleware('permission:delete categories')->name('product-categories.destroy');
     Route::post('product-categories/{productCategory}/toggle-status', [ProductCategoryController::class, 'toggleStatus'])->middleware('permission:edit categories')->name('product-categories.toggle-status');
+
+    // ============= PRODUCT PRINCIPAL MANAGEMENT =============
+    Route::get('product-principals', [ProductPrincipalController::class, 'index'])->middleware('permission:view products')->name('product-principals.index');
+    Route::post('product-principals', [ProductPrincipalController::class, 'store'])->middleware('permission:edit products')->name('product-principals.store');
+    Route::put('product-principals/{productPrincipal}', [ProductPrincipalController::class, 'update'])->middleware('permission:edit products')->name('product-principals.update');
+    Route::post('product-principals/{productPrincipal}/toggle-status', [ProductPrincipalController::class, 'toggleStatus'])->middleware('permission:edit products')->name('product-principals.toggle-status');
     
     // ============= PRODUCT MANAGEMENT =============
     Route::get('products/{product}/stock-info', [OrderController::class, 'getStockInfo'])->middleware('permission:view products')->name('products.stock-info');

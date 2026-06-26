@@ -49,6 +49,24 @@
                         @error('name') <span class="dms-error">{{ $message }}</span> @enderror
                     </div>
 
+                    <!-- Principal -->
+                    <div class="form-group">
+                        <label class="form-label">Principal</label>
+                        <select name="principal_id" class="form-control">
+                            <option value="">-- Pilih Principal --</option>
+                            @foreach($principals as $principal)
+                                <option value="{{ $principal->id }}" {{ old('principal_id') == $principal->id ? 'selected' : '' }}>
+                                    {{ $principal->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <small class="dms-form-help">
+                            <i class="bi bi-info-circle"></i>
+                            Principal adalah pemilik brand/distributor utama produk.
+                        </small>
+                        @error('principal_id') <span class="dms-error">{{ $message }}</span> @enderror
+                    </div>
+
                     <!-- Category -->
                     <div class="form-group">
                         <label class="form-label">Kategori</label>
@@ -73,7 +91,7 @@
                     </div>
 
                     <!-- Unit (Dropdown from Master) -->
-                    <div class="form-group">
+                    <div class="form-group dms-form-span-2">
                         <label class="form-label">Satuan <span class="dms-required">*</span></label>
                         <select name="unit_id" class="form-control" required>
                             <option value="">-- Pilih Satuan --</option>

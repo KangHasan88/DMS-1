@@ -1455,6 +1455,12 @@
                         <!-- Products -->
                         @can('view products')
                         <li class="nav-item">
+                            <a href="{{ route('product-principals.index') }}" class="nav-link {{ request()->routeIs('product-principals.*') ? 'active' : '' }}">
+                                <i class="bi bi-building"></i>
+                                <span>{{ __('navigation.principals') }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
                                 <i class="bi bi-box-seam"></i>
                                 <span>{{ __('navigation.products') }}</span>

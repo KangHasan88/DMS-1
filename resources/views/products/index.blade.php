@@ -55,13 +55,22 @@
         <form action="{{ route('products.index') }}" method="GET" class="dms-search-form">
                 <div class="dms-search-field">
                     <i class="bi bi-search"></i>
-                    <input type="text" name="search" placeholder="Cari nama produk, kategori..." 
+                    <input type="text" name="search" placeholder="Cari nama produk, principal, kategori..." 
                            value="{{ request('search') }}"
                            class="form-control">
                 </div>
                 <button type="submit" class="dms-btn dms-btn-primary">Cari</button>
             </form>
         <div class="dms-toolbar-actions">
+            <select name="principal_id" onchange="window.location.href = this.value" class="form-control">
+                <option value="{{ route('products.index', array_merge(request()->except('principal_id'), ['principal_id' => null])) }}">Semua Principal</option>
+                @foreach($principals as $principal)
+                    <option value="{{ route('products.index', array_merge(request()->except('principal_id'), ['principal_id' => $principal->id])) }}" {{ (string) request('principal_id') === (string) $principal->id ? 'selected' : '' }}>
+                        {{ $principal->name }}
+                    </option>
+                @endforeach
+            </select>
+
             <!-- Filter Category -->
             <select name="category" onchange="window.location.href = this.value" class="form-control">
                 <option value="{{ route('products.index', array_merge(request()->except('category'), ['category' => null])) }}">Semua Kategori</option>
@@ -97,6 +106,7 @@
                     <th style="width: 60px;">#</th>
                     <th>Image</th>
                     <th>Nama Produk</th>
+                    <th>Principal</th>
                     <th>Kategori</th>
                     <th>Unit</th>
                     <th>Harga Jual</th>
@@ -122,6 +132,13 @@
                         <div class="dms-strong">{{ $product->name }}</div>
                         @if($product->description)
                             <div style="font-size: 0.7rem; color: var(--k-gray-500);">{{ Str::limit($product->description, 50) }}</div>
+                        @endif
+                    </td>
+                    <td>
+                        @if($product->principal)
+                            <span class="dms-badge dms-badge-info">{{ $product->principal->name }}</span>
+                        @else
+                            <span style="color: var(--k-gray-400);">-</span>
                         @endif
                     </td>
                     <td>
@@ -172,7 +189,7 @@
                   </tr>
                 @empty
                   <tr>
-                    <td colspan="9" style="text-align: center; padding: 3rem;">
+                    <td colspan="10" style="text-align: center; padding: 3rem;">
                         <i class="bi bi-box-seam" style="font-size: 3rem; color: var(--k-gray-300);"></i>
                         <p style="margin-top: 1rem; color: var(--k-gray-500);">Tidak ada data produk</p>
                         @can('create products')

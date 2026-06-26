@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductPriceHistory;
+use App\Models\ProductPrincipal;
 use App\Models\ReturnablePackage;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -18,19 +19,27 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::query();
+        $query = Product::query()->with(['principal', 'unit']);
         
         // Search
         if ($request->filled('search')) {
             $query->where(function ($query) use ($request) {
                 $query->where('name', 'like', '%' . $request->search . '%')
-                    ->orWhere('category', 'like', '%' . $request->search . '%');
+                    ->orWhere('category', 'like', '%' . $request->search . '%')
+                    ->orWhereHas('principal', function ($query) use ($request) {
+                        $query->where('name', 'like', '%' . $request->search . '%')
+                            ->orWhere('code', 'like', '%' . $request->search . '%');
+                    });
             });
         }
         
         // Filter by category
         if ($request->filled('category')) {
             $query->where('category', $request->category);
+        }
+
+        if ($request->filled('principal_id')) {
+            $query->where('principal_id', $request->principal_id);
         }
         
         // Filter by status
@@ -45,8 +54,9 @@ class ProductController extends Controller
         
         // Get categories for filter
         $categories = ProductCategory::active()->orderBy('sort_order')->orderBy('name')->pluck('name');
+        $principals = ProductPrincipal::active()->orderBy('sort_order')->orderBy('name')->get();
         
-        return view('products.index', compact('products', 'categories'));
+        return view('products.index', compact('products', 'categories', 'principals'));
     }
 
     /**
@@ -55,10 +65,11 @@ class ProductController extends Controller
     public function create()
     {
         $categories = ProductCategory::active()->orderBy('sort_order')->orderBy('name')->get();
+        $principals = ProductPrincipal::active()->orderBy('sort_order')->orderBy('name')->get();
         $returnablePackages = ReturnablePackage::active()->orderBy('name')->get();
         $packagingFlows = Product::PACKAGING_FLOW_LIST;
 
-        return view('products.create', compact('categories', 'returnablePackages', 'packagingFlows'));
+        return view('products.create', compact('categories', 'principals', 'returnablePackages', 'packagingFlows'));
     }
 
     /**
@@ -69,6 +80,7 @@ class ProductController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'category' => ['nullable', 'string', 'max:100', $this->activeProductCategoryRule()],
+            'principal_id' => ['nullable', 'exists:product_principals,id'],
             'unit_id' => 'required|exists:units,id',
             'returnable_package_id' => 'nullable|exists:returnable_packages,id',
             'returnable_package_quantity_per_unit' => 'nullable|integer|min:0',
@@ -120,10 +132,18 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $categories = ProductCategory::active()->orderBy('sort_order')->orderBy('name')->get();
+        $principals = ProductPrincipal::query()
+            ->where(function ($query) use ($product) {
+                $query->where('is_active', true)
+                    ->when($product->principal_id, fn ($query) => $query->orWhere('id', $product->principal_id));
+            })
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
         $returnablePackages = ReturnablePackage::active()->orderBy('name')->get();
         $packagingFlows = Product::PACKAGING_FLOW_LIST;
 
-        return view('products.edit', compact('product', 'categories', 'returnablePackages', 'packagingFlows'));
+        return view('products.edit', compact('product', 'categories', 'principals', 'returnablePackages', 'packagingFlows'));
     }
 
     /**
@@ -134,6 +154,7 @@ class ProductController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'category' => ['nullable', 'string', 'max:100', $this->activeProductCategoryRule($product->category)],
+            'principal_id' => ['nullable', 'exists:product_principals,id'],
             'unit_id' => 'required|exists:units,id',
             'returnable_package_id' => 'nullable|exists:returnable_packages,id',
             'returnable_package_quantity_per_unit' => 'nullable|integer|min:0',
