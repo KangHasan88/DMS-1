@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\PriceImpactReviewController;
 use App\Http\Controllers\ProductPriceRuleController;
 use App\Http\Controllers\ProductDiscountRuleController;
 use App\Http\Controllers\ProductBonusRuleController;
@@ -177,6 +178,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('products', ProductController::class)->only(['destroy'])->middleware('permission:delete products');
     Route::post('products/{product}/toggle-status', [ProductController::class, 'toggleStatus'])->middleware('permission:edit products')->name('products.toggle-status');
     Route::get('products/{product}/price-history', [ProductController::class, 'priceHistory'])->middleware('permission:view products')->name('products.price-history');
+    Route::get('price-impact-review', [PriceImpactReviewController::class, 'index'])->middleware('permission:view products')->name('price-impact-review.index');
+    Route::post('price-impact-review/{product}/apply', [PriceImpactReviewController::class, 'apply'])->middleware('permission:edit products')->name('price-impact-review.apply');
     Route::get('product-price-rules', [ProductPriceRuleController::class, 'index'])->middleware('permission:view products')->name('product-price-rules.index');
     Route::post('product-price-rules', [ProductPriceRuleController::class, 'store'])->middleware('permission:edit products')->name('product-price-rules.store');
     Route::post('product-price-rules/{productPriceRule}/toggle-status', [ProductPriceRuleController::class, 'toggleStatus'])->middleware('permission:edit products')->name('product-price-rules.toggle-status');

@@ -29,6 +29,7 @@ return [
     'suppliers' => 'Suppliers',
     'products' => 'Products',
     'price_lists' => 'Price Lists',
+    'price_impact_review' => 'Price Impact Review',
     'discount_rules' => 'Discount Rules',
     'bonus_rules' => 'Bonus Rules',
     'finance' => 'Finance',

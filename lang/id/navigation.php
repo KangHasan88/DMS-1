@@ -29,6 +29,7 @@ return [
     'suppliers' => 'Pemasok',
     'products' => 'Produk',
     'price_lists' => 'Daftar Harga',
+    'price_impact_review' => 'Review Dampak Harga',
     'discount_rules' => 'Aturan Diskon',
     'bonus_rules' => 'Aturan Bonus',
     'finance' => 'Keuangan',

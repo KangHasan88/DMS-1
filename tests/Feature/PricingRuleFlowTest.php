@@ -9,8 +9,12 @@ use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\ProductBonusRule;
 use App\Models\ProductDiscountRule;
+use App\Models\ProductPriceHistory;
 use App\Models\ProductPriceRule;
 use App\Models\ProductStock;
+use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderItem;
+use App\Models\Supplier;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -811,6 +815,87 @@ class PricingRuleFlowTest extends TestCase
         $this->assertSame(2000, $item->discount);
         $this->assertSame(18000, $item->subtotal);
         $this->assertSame(18000, $order->subtotal);
+    }
+
+    public function test_price_impact_review_flags_margin_drop_from_latest_purchase_price(): void
+    {
+        $admin = $this->userWithRole('admin', 'price-impact-admin@example.test');
+        $product = Product::create([
+            'name' => 'Produk Dampak Cost',
+            'category' => 'Demo',
+            'price' => 22000,
+            'base_price' => 18000,
+            'is_active' => true,
+        ]);
+        $supplier = Supplier::create([
+            'name' => 'PT Supplier Naik Harga',
+            'phone' => '081200000001',
+            'is_active' => true,
+        ]);
+        $purchaseOrder = PurchaseOrder::create([
+            'po_number' => 'PO-IMPACT-001',
+            'supplier_id' => $supplier->id,
+            'order_date' => now()->toDateString(),
+            'status' => PurchaseOrder::STATUS_PENDING,
+            'approval_status' => PurchaseOrder::APPROVAL_APPROVED,
+            'subtotal' => 200000,
+            'total' => 200000,
+            'created_by' => $admin->id,
+        ]);
+        PurchaseOrderItem::create([
+            'purchase_order_id' => $purchaseOrder->id,
+            'product_id' => $product->id,
+            'quantity' => 10,
+            'received_quantity' => 0,
+            'price' => 20000,
+            'subtotal' => 200000,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('price-impact-review.index', [
+                'target_margin' => 25,
+                'cost_increase_threshold' => 5,
+            ]))
+            ->assertOk()
+            ->assertSee('Produk Dampak Cost')
+            ->assertSee('Perlu Review')
+            ->assertSee('Rp 27.000');
+    }
+
+    public function test_price_impact_review_apply_updates_master_prices_and_records_history(): void
+    {
+        $admin = $this->userWithRole('admin', 'price-impact-apply-admin@example.test');
+        $product = Product::create([
+            'name' => 'Produk Apply Dampak Cost',
+            'category' => 'Demo',
+            'price' => 22000,
+            'base_price' => 18000,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('price-impact-review.apply', $product), [
+                'new_base_price' => 20000,
+                'new_price' => 27000,
+                'reason' => 'Penyesuaian kenaikan harga pemasok',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $product->refresh();
+
+        $this->assertSame(20000, $product->base_price);
+        $this->assertSame(27000, $product->price);
+        $this->assertDatabaseHas('product_price_histories', [
+            'product_id' => $product->id,
+            'user_id' => $admin->id,
+            'old_price' => 22000,
+            'new_price' => 27000,
+            'old_base_price' => 18000,
+            'new_base_price' => 20000,
+            'reason' => 'Penyesuaian kenaikan harga pemasok',
+        ]);
+        $this->assertSame(1, ProductPriceHistory::where('product_id', $product->id)->count());
     }
 
     private function userWithRole(string $role, string $email): User
