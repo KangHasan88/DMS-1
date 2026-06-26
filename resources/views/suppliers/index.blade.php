@@ -53,13 +53,22 @@
         <form action="{{ route('suppliers.index') }}" method="GET" class="dms-search-form">
                 <div class="dms-search-field">
                     <i class="bi bi-search"></i>
-                    <input type="text" name="search" placeholder="Cari nama, telepon, pasar..." 
+                    <input type="text" name="search" placeholder="Cari nama, telepon, principal..." 
                            value="{{ request('search') }}"
                            class="form-control">
                 </div>
                 <button type="submit" class="dms-btn dms-btn-primary">Cari</button>
             </form>
         <div class="dms-toolbar-actions">
+            <select name="principal_id" onchange="window.location.href = this.value" class="form-control">
+                <option value="{{ route('suppliers.index', array_merge(request()->except('principal_id'), ['principal_id' => null])) }}">Semua Principal</option>
+                @foreach($principals as $principal)
+                    <option value="{{ route('suppliers.index', array_merge(request()->except('principal_id'), ['principal_id' => $principal->id])) }}" {{ (string) request('principal_id') === (string) $principal->id ? 'selected' : '' }}>
+                        {{ $principal->name }}
+                    </option>
+                @endforeach
+            </select>
+
             <!-- Filter Category -->
             <select name="category" onchange="window.location.href = this.value" class="form-control">
                 <option value="{{ route('suppliers.index', array_merge(request()->except('category'), ['category' => null])) }}">Semua Kategori</option>
@@ -96,6 +105,7 @@
                     <th>Nama Pemasok</th>
                     <th>Kontak</th>
                     <th>Lokasi</th>
+                    <th>Principal</th>
                     <th>Kategori</th>
                     <th>Min Order</th>
                     <th>Status</th>
@@ -132,6 +142,15 @@
                             @if($supplier->market_name)
                                 <span style="font-size: 0.75rem;"><i class="bi bi-building"></i> {{ $supplier->market_name }}</span>
                             @endif
+                        </div>
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                            @forelse($supplier->principals as $principal)
+                                <span class="dms-badge dms-badge-info">{{ $principal->name }}</span>
+                            @empty
+                                <span style="color: var(--k-gray-400);">-</span>
+                            @endforelse
                         </div>
                     </td>
                     <td>
@@ -172,7 +191,7 @@
                   </tr>
                 @empty
                   <tr>
-                    <td colspan="8" style="text-align: center; padding: 3rem;">
+                    <td colspan="9" style="text-align: center; padding: 3rem;">
                         <i class="bi bi-shop" style="font-size: 3rem; color: var(--k-gray-300);"></i>
                         <p style="margin-top: 1rem; color: var(--k-gray-500);">Tidak ada data pemasok</p>
                         @can('create suppliers')

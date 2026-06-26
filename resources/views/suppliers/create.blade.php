@@ -65,6 +65,21 @@
                 @error('category') <span class="dms-error">{{ $message }}</span> @enderror
             </div>
 
+            <!-- Principal -->
+            <div class="form-group">
+                <label class="form-label">Principal</label>
+                <select name="principal_ids[]" class="form-control" multiple size="4">
+                    @foreach($principals as $principal)
+                        <option value="{{ $principal->id }}" {{ in_array($principal->id, old('principal_ids', [])) ? 'selected' : '' }}>
+                            {{ $principal->name }}
+                        </option>
+                    @endforeach
+                </select>
+                <small class="dms-form-help">Bisa pilih lebih dari satu principal. Kosongkan jika pemasok belum dikaitkan ke principal tertentu.</small>
+                @error('principal_ids') <span class="dms-error">{{ $message }}</span> @enderror
+                @error('principal_ids.*') <span class="dms-error">{{ $message }}</span> @enderror
+            </div>
+
             <!-- Specialty -->
             <div class="form-group">
                 <label class="form-label">Spesialisasi</label>

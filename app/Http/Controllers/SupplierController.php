@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Supplier;
 use App\Models\SupplierCategory;
+use App\Models\ProductPrincipal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -15,14 +16,18 @@ class SupplierController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Supplier::query();
+        $query = Supplier::with('principals');
         
         // Search
         if ($request->filled('search')) {
             $query->where(function ($query) use ($request) {
                 $query->where('name', 'like', "%{$request->search}%")
                     ->orWhere('phone', 'like', "%{$request->search}%")
-                    ->orWhere('market_name', 'like', "%{$request->search}%");
+                    ->orWhere('market_name', 'like', "%{$request->search}%")
+                    ->orWhereHas('principals', function ($query) use ($request) {
+                        $query->where('name', 'like', "%{$request->search}%")
+                            ->orWhere('code', 'like', "%{$request->search}%");
+                    });
             });
         }
         
@@ -42,14 +47,21 @@ class SupplierController extends Controller
         if ($request->filled('status')) {
             $query->where('is_active', $request->status === 'active');
         }
+
+        if ($request->filled('principal_id')) {
+            $query->whereHas('principals', function ($query) use ($request) {
+                $query->whereKey($request->principal_id);
+            });
+        }
         
         $perPage = $request->get('per_page', 10);
         $suppliers = $query->orderBy('name')->paginate($perPage);
         
         // Get categories for filter
         $categories = SupplierCategory::active()->orderBy('sort_order')->orderBy('name')->pluck('name', 'code');
+        $principals = ProductPrincipal::active()->orderBy('sort_order')->orderBy('name')->get();
         
-        return view('suppliers.index', compact('suppliers', 'categories'));
+        return view('suppliers.index', compact('suppliers', 'categories', 'principals'));
     }
 
     /**
@@ -58,8 +70,9 @@ class SupplierController extends Controller
     public function create()
     {
         $categories = SupplierCategory::active()->orderBy('sort_order')->orderBy('name')->pluck('name', 'code');
+        $principals = ProductPrincipal::active()->orderBy('sort_order')->orderBy('name')->get();
 
-        return view('suppliers.create', compact('categories'));
+        return view('suppliers.create', compact('categories', 'principals'));
     }
 
     /**
@@ -81,12 +94,17 @@ class SupplierController extends Controller
             'min_order' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
             'payment_notes' => 'nullable|string',
+            'principal_ids' => 'nullable|array',
+            'principal_ids.*' => 'exists:product_principals,id',
             'is_active' => 'boolean',
         ]);
         
         $validated['is_active'] = $request->has('is_active');
+        $principalIds = $validated['principal_ids'] ?? [];
+        unset($validated['principal_ids']);
         
-        Supplier::create($validated);
+        $supplier = Supplier::create($validated);
+        $supplier->principals()->sync($principalIds);
         
         return redirect()->route('suppliers.index')
             ->with('success', 'Supplier berhasil ditambahkan');
@@ -110,8 +128,18 @@ class SupplierController extends Controller
     public function edit(Supplier $supplier)
     {
         $categories = SupplierCategory::active()->orderBy('sort_order')->orderBy('name')->pluck('name', 'code');
+        $principals = ProductPrincipal::query()
+            ->where(function ($query) use ($supplier) {
+                $query->where('is_active', true)
+                    ->orWhereIn('id', $supplier->principals()->pluck('product_principals.id'));
+            })
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
 
-        return view('suppliers.edit', compact('supplier', 'categories'));
+        $supplier->load('principals');
+
+        return view('suppliers.edit', compact('supplier', 'categories', 'principals'));
     }
 
     /**
@@ -133,12 +161,17 @@ class SupplierController extends Controller
             'min_order' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
             'payment_notes' => 'nullable|string',
+            'principal_ids' => 'nullable|array',
+            'principal_ids.*' => 'exists:product_principals,id',
             'is_active' => 'boolean',
         ]);
         
         $validated['is_active'] = $request->has('is_active');
+        $principalIds = $validated['principal_ids'] ?? [];
+        unset($validated['principal_ids']);
         
         $supplier->update($validated);
+        $supplier->principals()->sync($principalIds);
         
         return redirect()->route('suppliers.index')
             ->with('success', 'Supplier berhasil diupdate');
