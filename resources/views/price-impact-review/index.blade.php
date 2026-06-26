@@ -181,7 +181,7 @@
                                             <input type="hidden" name="new_price" value="{{ $row['recommended_price'] }}">
                                             <input type="hidden" name="reason" value="Update harga dari kenaikan harga beli {{ $purchaseOrder?->po_number ?? '' }}">
                                             <button type="submit" class="dms-btn dms-btn-primary" style="padding: .42rem .7rem;">
-                                                Terapkan
+                                                Ajukan
                                             </button>
                                         </form>
                                     @endif

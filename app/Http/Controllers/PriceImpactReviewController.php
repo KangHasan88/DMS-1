@@ -3,12 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
-use App\Models\ProductPriceHistory;
+use App\Models\ApprovalRequest;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
+use App\Services\ApprovalWorkflowService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class PriceImpactReviewController extends Controller
 {
@@ -119,7 +119,7 @@ class PriceImpactReviewController extends Controller
         return view('price-impact-review.index', compact('rows', 'targetMargin', 'costIncreaseThreshold', 'mode', 'search', 'stats'));
     }
 
-    public function apply(Request $request, Product $product)
+    public function apply(Request $request, Product $product, ApprovalWorkflowService $approvalWorkflow)
     {
         $validated = $request->validate([
             'new_base_price' => ['required', 'integer', 'min:0'],
@@ -127,26 +127,40 @@ class PriceImpactReviewController extends Controller
             'reason' => ['nullable', 'string', 'max:500'],
         ]);
 
-        DB::transaction(function () use ($product, $validated) {
-            $oldBasePrice = (int) $product->base_price;
-            $oldPrice = (int) $product->price;
+        $pendingApproval = ApprovalRequest::query()
+            ->where('approval_type', ApprovalRequest::TYPE_PRICE_CHANGE)
+            ->where('approvable_type', Product::class)
+            ->where('approvable_id', $product->id)
+            ->where('status', ApprovalRequest::STATUS_PENDING)
+            ->exists();
 
-            $product->update([
-                'base_price' => (int) $validated['new_base_price'],
-                'price' => (int) $validated['new_price'],
+        if ($pendingApproval) {
+            throw ValidationException::withMessages([
+                'approval' => 'Masih ada approval perubahan harga yang menunggu untuk produk ini.',
             ]);
+        }
 
-            ProductPriceHistory::create([
-                'product_id' => $product->id,
-                'user_id' => Auth::id(),
-                'old_price' => $oldPrice,
-                'new_price' => (int) $validated['new_price'],
+        $oldBasePrice = (int) $product->base_price;
+        $oldPrice = (int) $product->price;
+        $newBasePrice = (int) $validated['new_base_price'];
+        $newPrice = (int) $validated['new_price'];
+        $reason = $validated['reason'] ?: 'Review dampak kenaikan harga beli';
+
+        $approvalWorkflow->request([
+            'approval_type' => ApprovalRequest::TYPE_PRICE_CHANGE,
+            'title' => 'Perubahan harga ' . $product->name,
+            'description' => 'Review dan setujui perubahan harga master produk sebelum efektif ke order baru.',
+            'request_note' => $reason,
+            'payload' => [
+                'product' => $product->name,
                 'old_base_price' => $oldBasePrice,
-                'new_base_price' => (int) $validated['new_base_price'],
-                'reason' => $validated['reason'] ?: 'Update harga dari Review Dampak Harga',
-            ]);
-        });
+                'new_base_price' => $newBasePrice,
+                'old_price' => $oldPrice,
+                'new_price' => $newPrice,
+                'reason' => $reason,
+            ],
+        ], $product);
 
-        return back()->with('success', 'Harga master produk berhasil diperbarui dan history harga sudah dicatat.');
+        return back()->with('success', 'Permintaan approval perubahan harga berhasil dibuat. Harga baru akan efektif setelah disetujui.');
     }
 }

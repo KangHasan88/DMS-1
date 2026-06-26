@@ -50,6 +50,7 @@ class ApprovalRequest extends Model
     public const TYPE_STOCK_ADJUSTMENT = 'stock_adjustment';
     public const TYPE_VOID_REVERSAL = 'void_reversal';
     public const TYPE_DISCOUNT_OVERRIDE = 'discount_override';
+    public const TYPE_PRICE_CHANGE = 'price_change';
 
     public const TYPES = [
         self::TYPE_GENERAL => 'Umum',
@@ -58,6 +59,7 @@ class ApprovalRequest extends Model
         self::TYPE_STOCK_ADJUSTMENT => 'Penyesuaian Stok',
         self::TYPE_VOID_REVERSAL => 'Void / Reversal',
         self::TYPE_DISCOUNT_OVERRIDE => 'Override Diskon',
+        self::TYPE_PRICE_CHANGE => 'Perubahan Harga',
     ];
 
     protected static function booted(): void

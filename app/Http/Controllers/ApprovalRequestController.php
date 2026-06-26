@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\ApprovalRequest;
 use App\Models\OutboundFoc;
+use App\Models\Product;
 use App\Models\PurchaseOrder;
 use App\Models\StockAdjustmentRequest;
 use App\Services\OutboundFocApprovalService;
 use App\Services\ApprovalWorkflowService;
+use App\Services\ProductPriceChangeApprovalService;
 use App\Services\PurchaseOrderApprovalService;
 use App\Services\StockAdjustmentApprovalService;
 use Illuminate\Http\Request;
@@ -62,6 +64,8 @@ class ApprovalRequestController extends Controller
             app(PurchaseOrderApprovalService::class)->approve($approvalRequest->approvable, $validated['decision_note'] ?? null);
         } elseif ($approvalRequest->approvable_type === StockAdjustmentRequest::class && $approvalRequest->approvable) {
             app(StockAdjustmentApprovalService::class)->approve($approvalRequest->approvable, $validated['decision_note'] ?? null);
+        } elseif ($approvalRequest->approval_type === ApprovalRequest::TYPE_PRICE_CHANGE && $approvalRequest->approvable_type === Product::class && $approvalRequest->approvable) {
+            app(ProductPriceChangeApprovalService::class)->approve($approvalRequest, $validated['decision_note'] ?? null);
         } else {
             $service->approve($approvalRequest, $validated['decision_note'] ?? null);
         }

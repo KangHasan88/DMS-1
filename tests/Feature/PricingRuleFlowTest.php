@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\CompanyBranch;
+use App\Models\ApprovalRequest;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -862,7 +863,7 @@ class PricingRuleFlowTest extends TestCase
             ->assertSee('Rp 27.000');
     }
 
-    public function test_price_impact_review_apply_updates_master_prices_and_records_history(): void
+    public function test_price_impact_review_apply_creates_approval_before_master_price_changes(): void
     {
         $admin = $this->userWithRole('admin', 'price-impact-apply-admin@example.test');
         $product = Product::create([
@@ -884,6 +885,51 @@ class PricingRuleFlowTest extends TestCase
 
         $product->refresh();
 
+        $this->assertSame(18000, $product->base_price);
+        $this->assertSame(22000, $product->price);
+        $this->assertDatabaseHas('approval_requests', [
+            'approval_type' => ApprovalRequest::TYPE_PRICE_CHANGE,
+            'approvable_type' => Product::class,
+            'approvable_id' => $product->id,
+            'status' => ApprovalRequest::STATUS_PENDING,
+        ]);
+        $this->assertSame(0, ProductPriceHistory::where('product_id', $product->id)->count());
+    }
+
+    public function test_price_change_approval_updates_master_prices_and_records_history(): void
+    {
+        $admin = $this->userWithRole('admin', 'price-impact-approval-admin@example.test');
+        $product = Product::create([
+            'name' => 'Produk Approval Dampak Cost',
+            'category' => 'Demo',
+            'price' => 22000,
+            'base_price' => 18000,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('price-impact-review.apply', $product), [
+                'new_base_price' => 20000,
+                'new_price' => 27000,
+                'reason' => 'Penyesuaian kenaikan harga pemasok',
+            ])
+            ->assertRedirect();
+
+        $approvalRequest = ApprovalRequest::where('approval_type', ApprovalRequest::TYPE_PRICE_CHANGE)
+            ->where('approvable_type', Product::class)
+            ->where('approvable_id', $product->id)
+            ->firstOrFail();
+
+        $this->actingAs($admin)
+            ->post(route('approval-requests.approve', $approvalRequest), [
+                'decision_note' => 'Harga disetujui',
+            ])
+            ->assertRedirect(route('approval-requests.show', $approvalRequest));
+
+        $product->refresh();
+        $approvalRequest->refresh();
+
+        $this->assertSame(ApprovalRequest::STATUS_APPROVED, $approvalRequest->status);
         $this->assertSame(20000, $product->base_price);
         $this->assertSame(27000, $product->price);
         $this->assertDatabaseHas('product_price_histories', [
