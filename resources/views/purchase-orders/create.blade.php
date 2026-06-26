@@ -62,29 +62,29 @@
             </div>
         </section>
 
-        <section style="border: 1px solid var(--k-border); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem; background: var(--k-white);">
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 0.85rem;">
+        <section style="border: 1px solid var(--k-border); border-radius: 8px; margin-bottom: 1.25rem; background: var(--k-white); overflow: hidden;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.95rem 1rem; border-bottom: 1px solid var(--k-border); background: var(--k-gray-50);">
                 <div>
                     <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--k-navy); margin: 0;">Item Pembelian</h4>
-                    <p class="dms-form-subtitle" style="margin: 0.2rem 0 0;">Pilih produk, qty, harga beli, dan catatan item bila diperlukan.</p>
+                    <p class="dms-form-subtitle" style="margin: 0.2rem 0 0;">Masukkan produk, qty, harga beli, dan catatan item.</p>
                 </div>
                 <button type="button" class="dms-btn dms-btn-outline" onclick="addProductRow()">
                     <i class="bi bi-plus-circle"></i> Tambah Produk
                 </button>
             </div>
 
-            @error('items') <span class="dms-error">{{ $message }}</span> @enderror
+            @error('items') <span class="dms-error" style="display: block; margin: 0.75rem 1rem 0;">{{ $message }}</span> @enderror
 
-            <div style="overflow-x: auto;">
-                <table class="dms-table" id="products-table">
+            <div style="overflow-x: auto; padding: 0.85rem 1rem 1rem;">
+                <table class="dms-table" id="products-table" style="border: 1px solid var(--k-border); border-radius: 8px; overflow: hidden;">
                     <thead>
                         <tr>
-                            <th style="width: 34%;">Produk</th>
-                            <th style="width: 12%;">Qty</th>
-                            <th style="width: 18%;">Harga Beli</th>
-                            <th style="width: 18%;">Subtotal</th>
-                            <th style="width: 10%;">Catatan</th>
-                            <th style="width: 8%;">Aksi</th>
+                            <th style="width: 36%;">Produk</th>
+                            <th style="width: 10%; text-align: right;">Qty</th>
+                            <th style="width: 16%; text-align: right;">Harga Beli</th>
+                            <th style="width: 16%; text-align: right;">Subtotal</th>
+                            <th style="width: 16%;">Catatan</th>
+                            <th style="width: 6%; text-align: center;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="products-tbody">
@@ -107,25 +107,25 @@
                                     @error("items.$index.product_id") <span class="dms-error">{{ $message }}</span> @enderror
                                 </td>
                                 <td>
-                                    <input type="number" name="items[{{ $index }}][quantity]" class="form-control quantity-input" value="{{ $item['quantity'] ?? 1 }}" min="1" onchange="calculateSubtotal(this)">
+                                    <input type="number" name="items[{{ $index }}][quantity]" class="form-control quantity-input" value="{{ $item['quantity'] ?? 1 }}" min="1" onchange="calculateSubtotal(this)" style="text-align: right;">
                                     @error("items.$index.quantity") <span class="dms-error">{{ $message }}</span> @enderror
                                 </td>
                                 <td>
                                     <div style="position: relative;">
                                         <span style="position: absolute; left: 0.65rem; top: 50%; transform: translateY(-50%); color: var(--k-gray-500);">Rp</span>
-                                        <input type="number" name="items[{{ $index }}][price]" class="form-control price-input" value="{{ $item['price'] ?? 0 }}" step="1000" min="0" onchange="calculateSubtotal(this)" style="padding-left: 2.25rem;">
+                                        <input type="number" name="items[{{ $index }}][price]" class="form-control price-input" value="{{ $item['price'] ?? 0 }}" step="1000" min="0" onchange="calculateSubtotal(this)" style="padding-left: 2.25rem; text-align: right;">
                                     </div>
                                     @error("items.$index.price") <span class="dms-error">{{ $message }}</span> @enderror
                                 </td>
-                                <td>
+                                <td style="text-align: right; font-weight: 700; color: var(--k-navy); white-space: nowrap;">
                                     <span class="subtotal-display">Rp {{ number_format($item['subtotal'] ?? $itemSubtotal, 0, ',', '.') }}</span>
                                     <input type="hidden" name="items[{{ $index }}][subtotal]" class="subtotal-input" value="{{ $item['subtotal'] ?? $itemSubtotal }}">
                                 </td>
                                 <td>
                                     <input type="text" name="items[{{ $index }}][notes]" class="form-control" value="{{ $item['notes'] ?? '' }}" placeholder="Opsional">
                                 </td>
-                                <td>
-                                    <button type="button" class="dms-btn dms-btn-outline" style="padding: 0.35rem 0.65rem; color: var(--k-red);" onclick="removeProductRow(this)">
+                                <td style="text-align: center;">
+                                    <button type="button" class="dms-btn dms-btn-outline" style="padding: 0.35rem 0.55rem; color: var(--k-red);" onclick="removeProductRow(this)">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </td>
@@ -134,9 +134,13 @@
                     </tbody>
                     <tfoot>
                         <tr style="background: var(--k-gray-50);">
-                            <td colspan="3" style="text-align: right; font-weight: 700;">Total: </td>
-                            <td colspan="3">
-                                <span id="grand-total" style="font-weight: 800; color: var(--k-navy);">Rp 0</span>
+                            <td colspan="6" style="padding: 0.9rem 1rem;">
+                                <div style="display: flex; justify-content: flex-end;">
+                                    <div style="min-width: 300px; display: flex; justify-content: space-between; align-items: center; gap: 2rem; padding: 0.75rem 1rem; border: 1px solid var(--k-border); border-radius: 8px; background: var(--k-white);">
+                                        <span style="font-size: 0.8rem; font-weight: 800; color: var(--k-gray-600); text-transform: uppercase;">Total PO</span>
+                                        <span id="grand-total" style="font-weight: 900; color: var(--k-navy); font-size: 1.05rem;">Rp 0</span>
+                                    </div>
+                                </div>
                                 <input type="hidden" name="total" id="total-input" value="0">
                             </td>
                         </tr>
@@ -195,23 +199,23 @@ function addProductRow() {
             </select>
         </td>
         <td>
-            <input type="number" name="items[${productIndex}][quantity]" class="form-control quantity-input" value="1" min="1" onchange="calculateSubtotal(this)">
+            <input type="number" name="items[${productIndex}][quantity]" class="form-control quantity-input" value="1" min="1" onchange="calculateSubtotal(this)" style="text-align: right;">
         </td>
         <td>
             <div style="position: relative;">
                 <span style="position: absolute; left: 0.65rem; top: 50%; transform: translateY(-50%); color: var(--k-gray-500);">Rp</span>
-                <input type="number" name="items[${productIndex}][price]" class="form-control price-input" value="0" step="1000" min="0" onchange="calculateSubtotal(this)" style="padding-left: 2.25rem;">
+                <input type="number" name="items[${productIndex}][price]" class="form-control price-input" value="0" step="1000" min="0" onchange="calculateSubtotal(this)" style="padding-left: 2.25rem; text-align: right;">
             </div>
         </td>
-        <td>
+        <td style="text-align: right; font-weight: 700; color: var(--k-navy); white-space: nowrap;">
             <span class="subtotal-display">Rp 0</span>
             <input type="hidden" name="items[${productIndex}][subtotal]" class="subtotal-input" value="0">
         </td>
         <td>
             <input type="text" name="items[${productIndex}][notes]" class="form-control" placeholder="Opsional">
         </td>
-        <td>
-            <button type="button" class="dms-btn dms-btn-outline" style="padding: 0.35rem 0.65rem; color: var(--k-red);" onclick="removeProductRow(this)">
+        <td style="text-align: center;">
+            <button type="button" class="dms-btn dms-btn-outline" style="padding: 0.35rem 0.55rem; color: var(--k-red);" onclick="removeProductRow(this)">
                 <i class="bi bi-trash"></i>
             </button>
         </td>
