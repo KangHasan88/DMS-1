@@ -3,138 +3,186 @@
 @section('page-title', 'Buat Purchase Order')
 @section('breadcrumb', 'Purchase Orders / Tambah')
 
+@php
+    $formItems = old('items') ?: [[
+        'product_id' => '',
+        'quantity' => 1,
+        'price' => 0,
+        'subtotal' => 0,
+        'notes' => '',
+    ]];
+@endphp
+
 @section('content')
 <div class="dms-card">
-    <div class="dms-form-header">
-        <h3 class="dms-form-title">Buat Purchase Order Baru</h3>
-        <p class="dms-form-subtitle">Isi form berikut untuk membuat pesanan pembelian ke pemasok</p>
+    <div class="dms-form-header" style="margin-bottom: 1.25rem;">
+        <h3 class="dms-form-title">Detail Purchase Order</h3>
+        <p class="dms-form-subtitle">Lengkapi pemasok, tanggal dokumen, dan daftar produk sebelum PO diajukan approval.</p>
     </div>
 
     <form action="{{ route('purchase-orders.store') }}" method="POST">
         @csrf
-        
-        <!-- Pemasok & Order Info -->
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
-            <div class="form-group">
-                <label class="form-label">Pemasok <span class="dms-required">*</span></label>
-                <select name="supplier_id" class="form-control" required>
-                    <option value="">-- Pilih Pemasok --</option>
-                    @foreach($suppliers as $supplier)
-                        <option value="{{ $supplier->id }}" {{ old('supplier_id') == $supplier->id ? 'selected' : '' }}>
-                            {{ $supplier->name }} ({{ $supplier->phone }})
-                        </option>
-                    @endforeach
-                </select>
-                <small class="dms-form-help">
-                    <a href="{{ route('suppliers.create') }}" target="_blank" style="color: var(--k-green);">+ Tambah Pemasok Baru</a>
-                </small>
-                @error('supplier_id') <span class="dms-error">{{ $message }}</span> @enderror
+
+        <section style="border: 1px solid var(--k-border); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem; background: var(--k-white);">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.85rem;">
+                <div>
+                    <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--k-navy); margin: 0;">Informasi Dokumen</h4>
+                    <p class="dms-form-subtitle" style="margin: 0.2rem 0 0;">Data header PO yang menjadi dasar approval dan penerimaan barang.</p>
+                </div>
             </div>
-            
-            <div class="form-group">
-                <label class="form-label">Tanggal PO <span class="dms-required">*</span></label>
-                <input type="date" name="order_date" class="form-control" value="{{ old('order_date', date('Y-m-d')) }}" required>
-                @error('order_date') <span class="dms-error">{{ $message }}</span> @enderror
+
+            <div class="dms-form-grid" style="grid-template-columns: minmax(320px, 1.4fr) minmax(180px, 0.8fr) minmax(180px, 0.8fr); gap: 1rem; align-items: start;">
+                <div class="form-group">
+                    <label class="form-label">Pemasok <span class="dms-required">*</span></label>
+                    <select name="supplier_id" class="form-control" required>
+                        <option value="">-- Pilih Pemasok --</option>
+                        @foreach($suppliers as $supplier)
+                            <option value="{{ $supplier->id }}" {{ (int) old('supplier_id') === $supplier->id ? 'selected' : '' }}>
+                                {{ $supplier->name }}{{ $supplier->phone ? ' (' . $supplier->phone . ')' : '' }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <small class="dms-form-help">
+                        <a href="{{ route('suppliers.create') }}" target="_blank" style="color: var(--k-navy); font-weight: 700;">+ Tambah Pemasok Baru</a>
+                    </small>
+                    @error('supplier_id') <span class="dms-error">{{ $message }}</span> @enderror
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Tanggal PO <span class="dms-required">*</span></label>
+                    <input type="date" name="order_date" class="form-control" value="{{ old('order_date', date('Y-m-d')) }}" required>
+                    @error('order_date') <span class="dms-error">{{ $message }}</span> @enderror
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Estimasi Datang</label>
+                    <input type="date" name="expected_delivery_date" class="form-control" value="{{ old('expected_delivery_date') }}">
+                    @error('expected_delivery_date') <span class="dms-error">{{ $message }}</span> @enderror
+                </div>
             </div>
-            
-            <div class="form-group">
-                <label class="form-label">Tanggal Perkiraan Datang</label>
-                <input type="date" name="expected_delivery_date" class="form-control" value="{{ old('expected_delivery_date') }}">
-                @error('expected_delivery_date') <span class="dms-error">{{ $message }}</span> @enderror
-            </div>
-        </div>
-        
-        <!-- Products Section -->
-        <div style="margin-bottom: 2rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h4 style="font-size: 1rem; font-weight: 600; color: var(--k-gray-800);">Daftar Produk</h4>
+        </section>
+
+        <section style="border: 1px solid var(--k-border); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem; background: var(--k-white);">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 0.85rem;">
+                <div>
+                    <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--k-navy); margin: 0;">Item Pembelian</h4>
+                    <p class="dms-form-subtitle" style="margin: 0.2rem 0 0;">Pilih produk, qty, harga beli, dan catatan item bila diperlukan.</p>
+                </div>
                 <button type="button" class="dms-btn dms-btn-outline" onclick="addProductRow()">
                     <i class="bi bi-plus-circle"></i> Tambah Produk
                 </button>
             </div>
-            
+
+            @error('items') <span class="dms-error">{{ $message }}</span> @enderror
+
             <div style="overflow-x: auto;">
                 <table class="dms-table" id="products-table">
                     <thead>
-                         <tr>
-                            <th style="width: 35%;">Produk</th>
-                            <th style="width: 15%;">Qty</th>
-                            <th style="width: 20%;">Harga Beli</th>
-                            <th style="width: 20%;">Subtotal</th>
-                            <th style="width: 10%;">Aksi</th>
+                        <tr>
+                            <th style="width: 34%;">Produk</th>
+                            <th style="width: 12%;">Qty</th>
+                            <th style="width: 18%;">Harga Beli</th>
+                            <th style="width: 18%;">Subtotal</th>
+                            <th style="width: 10%;">Catatan</th>
+                            <th style="width: 8%;">Aksi</th>
                         </tr>
                     </thead>
                     <tbody id="products-tbody">
-                        <tr class="product-row">
-                            <td>
-                                <select name="items[0][product_id]" class="form-control product-select" required onchange="updateProductPrice(this, 0)">
-                                    <option value="">-- Pilih Produk --</option>
-                                    @foreach($products as $product)
-                                        <option value="{{ $product->id }}" data-price="{{ $product->price ?? 0 }}" data-name="{{ $product->name }}">
-                                            {{ $product->name }} ({{ $product->unit->name ?? '-' }}) - Rp {{ number_format($product->price, 0, ',', '.') }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </td>
-                            <td>
-                                <input type="number" name="items[0][quantity]" class="form-control quantity-input" value="1" min="1" onchange="calculateSubtotal(this, 0)">
-                            </td>
-                            <td>
-                                <div style="position: relative;">
-                                    <span style="position: absolute; left: 0.5rem; top: 50%; transform: translateY(-50%);">Rp</span>
-                                    <input type="number" name="items[0][price]" class="form-control price-input" value="0" step="1000" onchange="calculateSubtotal(this, 0)" style="padding-left: 2rem;">
-                                </div>
-                            </td>
-                            <td>
-                                <span class="subtotal-display">Rp 0</span>
-                                <input type="hidden" name="items[0][subtotal]" class="subtotal-input" value="0">
-                            </td>
-                            <td>
-                                <button type="button" class="dms-btn dms-btn-outline" style="padding: 0.2rem 0.5rem; color: var(--k-red);" onclick="removeProductRow(this)">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
+                        @foreach($formItems as $index => $item)
+                            @php
+                                $itemSubtotal = (int) (($item['quantity'] ?? 0) * ($item['price'] ?? 0));
+                            @endphp
+                            <tr class="product-row">
+                                <td>
+                                    <select name="items[{{ $index }}][product_id]" class="form-control product-select" required onchange="updateProductPrice(this)">
+                                        <option value="">-- Pilih Produk --</option>
+                                        @foreach($products as $product)
+                                            <option value="{{ $product->id }}"
+                                                data-price="{{ $product->base_price ?: $product->price ?: 0 }}"
+                                                {{ (int) ($item['product_id'] ?? 0) === $product->id ? 'selected' : '' }}>
+                                                {{ $product->name }} ({{ $product->unit->name ?? '-' }}) - Rp {{ number_format($product->base_price ?: $product->price ?: 0, 0, ',', '.') }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error("items.$index.product_id") <span class="dms-error">{{ $message }}</span> @enderror
+                                </td>
+                                <td>
+                                    <input type="number" name="items[{{ $index }}][quantity]" class="form-control quantity-input" value="{{ $item['quantity'] ?? 1 }}" min="1" onchange="calculateSubtotal(this)">
+                                    @error("items.$index.quantity") <span class="dms-error">{{ $message }}</span> @enderror
+                                </td>
+                                <td>
+                                    <div style="position: relative;">
+                                        <span style="position: absolute; left: 0.65rem; top: 50%; transform: translateY(-50%); color: var(--k-gray-500);">Rp</span>
+                                        <input type="number" name="items[{{ $index }}][price]" class="form-control price-input" value="{{ $item['price'] ?? 0 }}" step="1000" min="0" onchange="calculateSubtotal(this)" style="padding-left: 2.25rem;">
+                                    </div>
+                                    @error("items.$index.price") <span class="dms-error">{{ $message }}</span> @enderror
+                                </td>
+                                <td>
+                                    <span class="subtotal-display">Rp {{ number_format($item['subtotal'] ?? $itemSubtotal, 0, ',', '.') }}</span>
+                                    <input type="hidden" name="items[{{ $index }}][subtotal]" class="subtotal-input" value="{{ $item['subtotal'] ?? $itemSubtotal }}">
+                                </td>
+                                <td>
+                                    <input type="text" name="items[{{ $index }}][notes]" class="form-control" value="{{ $item['notes'] ?? '' }}" placeholder="Opsional">
+                                </td>
+                                <td>
+                                    <button type="button" class="dms-btn dms-btn-outline" style="padding: 0.35rem 0.65rem; color: var(--k-red);" onclick="removeProductRow(this)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        @endforeach
                     </tbody>
                     <tfoot>
                         <tr style="background: var(--k-gray-50);">
-                            <td colspan="3" style="text-align: right; font-weight: 600;">Subtotal: </td>
-                            <td colspan="2"><span id="subtotal-total">Rp 0</span><input type="hidden" name="subtotal" id="subtotal-input" value="0"></td>
-                        </tr>
-                        <tr style="background: var(--k-green-light);">
-                            <td colspan="3" style="text-align: right; font-weight: 700; font-size: 1.1rem;">Total: </td>
-                            <td colspan="2"><span id="grand-total" style="font-weight: 700; font-size: 1.2rem; color: var(--k-green);">Rp 0</span><input type="hidden" name="total" id="total-input" value="0"></td>
+                            <td colspan="3" style="text-align: right; font-weight: 700;">Total: </td>
+                            <td colspan="3">
+                                <span id="grand-total" style="font-weight: 800; color: var(--k-navy);">Rp 0</span>
+                                <input type="hidden" name="total" id="total-input" value="0">
+                            </td>
                         </tr>
                     </tfoot>
                 </table>
             </div>
-        </div>
-        
-        <!-- Notes -->
-        <div class="form-group" style="margin-bottom: 2rem;">
-            <label class="form-label">Catatan</label>
-            <textarea name="notes" class="form-control" rows="2" placeholder="Catatan untuk pemasok (akan tercetak di PO)">{{ old('notes') }}</textarea>
-        </div>
-        
-        <div class="form-group" style="margin-bottom: 2rem;">
-            <label class="form-label">Catatan Internal</label>
-            <textarea name="internal_notes" class="form-control" rows="2" placeholder="Catatan internal untuk admin (tidak akan tercetak di PO)">{{ old('internal_notes') }}</textarea>
-        </div>
-        
-        <!-- Buttons -->
+        </section>
+
+        <section style="border: 1px solid var(--k-border); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem; background: var(--k-white);">
+            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem;">
+                <div class="form-group">
+                    <label class="form-label">Catatan Pemasok</label>
+                    <textarea name="notes" class="form-control" rows="2" placeholder="Catatan yang relevan untuk pemasok">{{ old('notes') }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Catatan Internal</label>
+                    <textarea name="internal_notes" class="form-control" rows="2" placeholder="Catatan internal untuk proses approval">{{ old('internal_notes') }}</textarea>
+                </div>
+            </div>
+        </section>
+
         <div class="dms-form-actions">
             <a href="{{ route('purchase-orders.index') }}" class="dms-btn dms-btn-outline">
                 <i class="bi bi-arrow-left"></i> Batal
             </a>
             <button type="submit" class="dms-btn dms-btn-primary">
-                <i class="bi bi-save"></i> Simpan PO
+                <i class="bi bi-save"></i> Simpan Draft PO
             </button>
         </div>
     </form>
 </div>
 
 <script>
-let productIndex = 1;
+let productIndex = {{ count($formItems) }};
+
+function productOptions() {
+    return `
+        <option value="">-- Pilih Produk --</option>
+        @foreach($products as $product)
+            <option value="{{ $product->id }}" data-price="{{ $product->base_price ?: $product->price ?: 0 }}">
+                {{ $product->name }} ({{ $product->unit->name ?? '-' }}) - Rp {{ number_format($product->base_price ?: $product->price ?: 0, 0, ',', '.') }}
+            </option>
+        @endforeach
+    `;
+}
 
 function addProductRow() {
     const tbody = document.getElementById('products-tbody');
@@ -142,22 +190,17 @@ function addProductRow() {
     newRow.className = 'product-row';
     newRow.innerHTML = `
         <td>
-            <select name="items[${productIndex}][product_id]" class="form-control product-select" required onchange="updateProductPrice(this, ${productIndex})">
-                <option value="">-- Pilih Produk --</option>
-                @foreach($products as $product)
-                    <option value="{{ $product->id }}" data-price="{{ $product->price ?? 0 }}" data-name="{{ $product->name }}">
-                        {{ $product->name }} ({{ $product->unit->name ?? '-' }}) - Rp {{ number_format($product->price, 0, ',', '.') }}
-                    </option>
-                @endforeach
+            <select name="items[${productIndex}][product_id]" class="form-control product-select" required onchange="updateProductPrice(this)">
+                ${productOptions()}
             </select>
         </td>
         <td>
-            <input type="number" name="items[${productIndex}][quantity]" class="form-control quantity-input" value="1" min="1" onchange="calculateSubtotal(this, ${productIndex})">
+            <input type="number" name="items[${productIndex}][quantity]" class="form-control quantity-input" value="1" min="1" onchange="calculateSubtotal(this)">
         </td>
         <td>
             <div style="position: relative;">
-                <span style="position: absolute; left: 0.5rem; top: 50%; transform: translateY(-50%);">Rp</span>
-                <input type="number" name="items[${productIndex}][price]" class="form-control price-input" value="0" step="1000" onchange="calculateSubtotal(this, ${productIndex})" style="padding-left: 2rem;">
+                <span style="position: absolute; left: 0.65rem; top: 50%; transform: translateY(-50%); color: var(--k-gray-500);">Rp</span>
+                <input type="number" name="items[${productIndex}][price]" class="form-control price-input" value="0" step="1000" min="0" onchange="calculateSubtotal(this)" style="padding-left: 2.25rem;">
             </div>
         </td>
         <td>
@@ -165,7 +208,10 @@ function addProductRow() {
             <input type="hidden" name="items[${productIndex}][subtotal]" class="subtotal-input" value="0">
         </td>
         <td>
-            <button type="button" class="dms-btn dms-btn-outline" style="padding: 0.2rem 0.5rem; color: var(--k-red);" onclick="removeProductRow(this)">
+            <input type="text" name="items[${productIndex}][notes]" class="form-control" placeholder="Opsional">
+        </td>
+        <td>
+            <button type="button" class="dms-btn dms-btn-outline" style="padding: 0.35rem 0.65rem; color: var(--k-red);" onclick="removeProductRow(this)">
                 <i class="bi bi-trash"></i>
             </button>
         </td>
@@ -175,58 +221,52 @@ function addProductRow() {
 }
 
 function removeProductRow(button) {
-    const row = button.closest('tr');
-    row.remove();
+    const rows = document.querySelectorAll('.product-row');
+    if (rows.length <= 1) {
+        return;
+    }
+
+    button.closest('tr').remove();
     calculateGrandTotal();
 }
 
-function updateProductPrice(select, index) {
+function updateProductPrice(select) {
     const selectedOption = select.options[select.selectedIndex];
-    const price = selectedOption?.getAttribute('data-price') || 0;
+    const price = Number(selectedOption?.getAttribute('data-price')) || 0;
     const row = select.closest('tr');
     const priceInput = row.querySelector('.price-input');
-    
+
     if (priceInput && price > 0) {
         priceInput.value = price;
     }
-    
-    calculateSubtotal(row.querySelector('.quantity-input'), index);
+
+    calculateSubtotal(select);
 }
 
-function calculateSubtotal(input, index) {
+function calculateSubtotal(input) {
     const row = input.closest('tr');
-    const quantity = parseInt(row.querySelector('.quantity-input').value) || 0;
-    const price = parseInt(row.querySelector('.price-input').value) || 0;
+    const quantity = Number(row.querySelector('.quantity-input').value) || 0;
+    const price = Number(row.querySelector('.price-input').value) || 0;
     const subtotal = quantity * price;
-    
     const subtotalDisplay = row.querySelector('.subtotal-display');
     const subtotalInput = row.querySelector('.subtotal-input');
-    
-    if (subtotalDisplay) {
-        subtotalDisplay.innerText = 'Rp ' + new Intl.NumberFormat('id-ID').format(subtotal);
-        if (subtotalInput) subtotalInput.value = subtotal;
-    }
-    
+
+    subtotalDisplay.innerText = 'Rp ' + new Intl.NumberFormat('id-ID').format(subtotal);
+    subtotalInput.value = subtotal;
+
     calculateGrandTotal();
 }
 
 function calculateGrandTotal() {
-    let subtotal = 0;
-    const subtotalInputs = document.querySelectorAll('.subtotal-input');
-    subtotalInputs.forEach(input => {
-        subtotal += parseInt(input.value) || 0;
+    let total = 0;
+    document.querySelectorAll('.subtotal-input').forEach(input => {
+        total += Number(input.value) || 0;
     });
-    
-    document.getElementById('subtotal-total').innerText = 'Rp ' + new Intl.NumberFormat('id-ID').format(subtotal);
-    document.getElementById('subtotal-input').value = subtotal;
-    document.getElementById('grand-total').innerText = 'Rp ' + new Intl.NumberFormat('id-ID').format(subtotal);
-    document.getElementById('total-input').value = subtotal;
+
+    document.getElementById('grand-total').innerText = 'Rp ' + new Intl.NumberFormat('id-ID').format(total);
+    document.getElementById('total-input').value = total;
 }
 
-// Initial calculation
-document.addEventListener('DOMContentLoaded', function() {
-    calculateGrandTotal();
-});
+document.addEventListener('DOMContentLoaded', calculateGrandTotal);
 </script>
-
 @endsection
