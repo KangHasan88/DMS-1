@@ -143,6 +143,16 @@
         font-size: .86rem;
     }
 
+    .discount-rule-replace-submit {
+        width: 100%;
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: .45rem;
+        white-space: nowrap;
+    }
+
     .customer-picker-summary {
         min-height: 54px;
         display: flex;
@@ -472,6 +482,12 @@
                             @can('edit products')
                                 <div class="discount-rule-row-actions">
                                     @if($rule->is_active)
+                                        @php
+                                            $replaceStartMin = collect([
+                                                now()->toDateString(),
+                                                $rule->starts_at?->copy()->addDay()->toDateString(),
+                                            ])->filter()->max();
+                                        @endphp
                                         <details class="discount-rule-replace">
                                             <summary><i class="bi bi-arrow-repeat"></i> Ganti Aturan</summary>
                                             <form action="{{ route('product-discount-rules.replace', $rule) }}" method="POST">
@@ -481,10 +497,12 @@
                                                     <option value="nominal" {{ $rule->discount_type === 'nominal' ? 'selected' : '' }}>Nominal / unit</option>
                                                 </select>
                                                 <input type="number" name="discount_value" value="{{ $rule->discount_value }}" class="form-control" min="0.01" step="0.01" required>
-                                                <input type="date" name="starts_at" class="form-control" value="{{ now()->addDay()->toDateString() }}" required>
-                                                <input type="date" name="ends_at" class="form-control" value="{{ $rule->ends_at?->toDateString() }}">
+                                                <input type="date" name="starts_at" class="form-control" value="{{ $replaceStartMin }}" min="{{ $replaceStartMin }}" required>
+                                                <input type="date" name="ends_at" class="form-control" value="{{ $rule->ends_at?->toDateString() }}" min="{{ $replaceStartMin }}">
                                                 <input type="text" name="notes" class="form-control" value="{{ $rule->notes }}" placeholder="Catatan">
-                                                <button type="submit" class="dms-btn dms-btn-primary dms-btn-sm">Simpan Pengganti</button>
+                                                <button type="submit" class="dms-btn dms-btn-primary dms-btn-sm discount-rule-replace-submit">
+                                                    <i class="bi bi-check-circle"></i> Simpan
+                                                </button>
                                             </form>
                                         </details>
                                     @endif

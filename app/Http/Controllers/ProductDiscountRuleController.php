@@ -94,7 +94,7 @@ class ProductDiscountRuleController extends Controller
         $validated = $request->validate([
             'discount_type' => ['required', 'in:percent,nominal'],
             'discount_value' => ['required', 'numeric', 'min:0.01'],
-            'starts_at' => ['required', 'date'],
+            'starts_at' => ['required', 'date', 'after_or_equal:today'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);

@@ -91,7 +91,7 @@ class ProductBonusRuleController extends Controller
         $validated = $request->validate([
             'bonus_product_id' => ['required', 'exists:products,id'],
             'bonus_quantity' => ['required', 'integer', 'min:1'],
-            'starts_at' => ['required', 'date'],
+            'starts_at' => ['required', 'date', 'after_or_equal:today'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);

@@ -22,6 +22,7 @@
     .bonus-rule-replace summary::-webkit-details-marker { display: none; }
     .bonus-rule-replace form { display: grid; gap: .5rem; padding: 0 .65rem .65rem; }
     .bonus-rule-replace .form-control { min-height: 38px; font-size: .86rem; }
+    .bonus-rule-replace-submit { width: 100%; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: .45rem; white-space: nowrap; }
     .bonus-rule-footer { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(260px, 1fr) minmax(220px, auto); gap: .85rem; align-items: end; padding-top: .85rem; margin-top: .15rem; border-top: 1px solid #edf2f7; }
     .bonus-rule-submit-panel { display: flex; flex-direction: column; align-items: flex-end; gap: .4rem; }
     .bonus-rule-submit-panel .dms-muted { max-width: 260px; text-align: right; font-size: .78rem; }
@@ -237,6 +238,12 @@
                             @can('edit products')
                                 <div class="bonus-rule-row-actions">
                                     @if($rule->is_active)
+                                        @php
+                                            $replaceStartMin = collect([
+                                                now()->toDateString(),
+                                                $rule->starts_at?->copy()->addDay()->toDateString(),
+                                            ])->filter()->max();
+                                        @endphp
                                         <details class="bonus-rule-replace">
                                             <summary><i class="bi bi-arrow-repeat"></i> Ganti Aturan</summary>
                                             <form action="{{ route('product-bonus-rules.replace', $rule) }}" method="POST">
@@ -247,10 +254,12 @@
                                                     @endforeach
                                                 </select>
                                                 <input type="number" name="bonus_quantity" value="{{ $rule->bonus_quantity }}" class="form-control" min="1" required>
-                                                <input type="date" name="starts_at" class="form-control" value="{{ now()->addDay()->toDateString() }}" required>
-                                                <input type="date" name="ends_at" class="form-control" value="{{ $rule->ends_at?->toDateString() }}">
+                                                <input type="date" name="starts_at" class="form-control" value="{{ $replaceStartMin }}" min="{{ $replaceStartMin }}" required>
+                                                <input type="date" name="ends_at" class="form-control" value="{{ $rule->ends_at?->toDateString() }}" min="{{ $replaceStartMin }}">
                                                 <input type="text" name="notes" class="form-control" value="{{ $rule->notes }}" placeholder="Catatan">
-                                                <button type="submit" class="dms-btn dms-btn-primary dms-btn-sm">Simpan Pengganti</button>
+                                                <button type="submit" class="dms-btn dms-btn-primary dms-btn-sm bonus-rule-replace-submit">
+                                                    <i class="bi bi-check-circle"></i> Simpan
+                                                </button>
                                             </form>
                                         </details>
                                     @endif

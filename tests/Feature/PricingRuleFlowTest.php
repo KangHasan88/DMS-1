@@ -660,6 +660,83 @@ class PricingRuleFlowTest extends TestCase
         ]);
     }
 
+    public function test_discount_rule_replace_rejects_past_start_date(): void
+    {
+        $admin = $this->userWithRole('admin', 'discount-replace-past-admin@example.test');
+        $branch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $product = Product::create([
+            'name' => 'Produk Diskon Replace Past',
+            'category' => 'Demo',
+            'price' => 20000,
+            'base_price' => 12000,
+            'is_active' => true,
+        ]);
+        $oldRule = ProductDiscountRule::create([
+            'product_id' => $product->id,
+            'customer_type' => 'wholesale',
+            'company_branch_id' => $branch->id,
+            'discount_type' => ProductDiscountRule::TYPE_PERCENT,
+            'discount_value' => 10,
+            'min_quantity' => 2,
+            'starts_at' => now()->subDays(10)->toDateString(),
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('product-discount-rules.index'))
+            ->post(route('product-discount-rules.replace', $oldRule), [
+                'discount_type' => ProductDiscountRule::TYPE_PERCENT,
+                'discount_value' => 12,
+                'starts_at' => now()->subDay()->toDateString(),
+            ])
+            ->assertRedirect(route('product-discount-rules.index'))
+            ->assertSessionHasErrors('starts_at');
+
+        $this->assertSame(1, ProductDiscountRule::where('product_id', $product->id)->count());
+    }
+
+    public function test_bonus_rule_replace_rejects_past_start_date(): void
+    {
+        $admin = $this->userWithRole('admin', 'bonus-replace-past-admin@example.test');
+        $branch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $triggerProduct = Product::create([
+            'name' => 'Produk Trigger Replace Past',
+            'category' => 'Demo',
+            'price' => 25000,
+            'base_price' => 15000,
+            'is_active' => true,
+        ]);
+        $bonusProduct = Product::create([
+            'name' => 'Produk Bonus Replace Past',
+            'category' => 'Demo',
+            'price' => 5000,
+            'base_price' => 2500,
+            'is_active' => true,
+        ]);
+        $oldRule = ProductBonusRule::create([
+            'trigger_product_id' => $triggerProduct->id,
+            'bonus_product_id' => $bonusProduct->id,
+            'customer_type' => 'wholesale',
+            'company_branch_id' => $branch->id,
+            'min_quantity' => 3,
+            'bonus_quantity' => 1,
+            'starts_at' => now()->subDays(10)->toDateString(),
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('product-bonus-rules.index'))
+            ->post(route('product-bonus-rules.replace', $oldRule), [
+                'bonus_product_id' => $bonusProduct->id,
+                'bonus_quantity' => 2,
+                'starts_at' => now()->subDay()->toDateString(),
+            ])
+            ->assertRedirect(route('product-bonus-rules.index'))
+            ->assertSessionHasErrors('starts_at');
+
+        $this->assertSame(1, ProductBonusRule::where('trigger_product_id', $triggerProduct->id)->count());
+    }
+
     public function test_order_bonus_plan_can_prefill_outbound_foc_form(): void
     {
         $admin = $this->userWithRole('admin', 'bonus-foc-admin@example.test');
