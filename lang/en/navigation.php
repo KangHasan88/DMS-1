@@ -55,6 +55,7 @@ return [
     'management' => 'Administration',
     'users' => 'Users',
     'roles' => 'Roles & Permissions',
+    'approvals' => 'Approvals',
     'activity_logs' => 'Activity Logs',
     'profile' => 'My Profile',
     'open_profile' => 'Open Profile',

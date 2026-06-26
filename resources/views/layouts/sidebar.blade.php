@@ -1717,6 +1717,15 @@
                         </li>
                         @endcan
 
+                        @can('view approvals')
+                        <li class="nav-item">
+                            <a href="{{ route('approval-requests.index') }}" class="nav-link {{ request()->routeIs('approval-requests.*') ? 'active' : '' }}">
+                                <i class="bi bi-check2-square"></i>
+                                <span>{{ __('navigation.approvals') }}</span>
+                            </a>
+                        </li>
+                        @endcan
+
                         @can('view company profile')
                         <li class="nav-item">
                             <a href="{{ route('company-profile.index') }}" class="nav-link {{ request()->routeIs('company-profile.*') ? 'active' : '' }}">

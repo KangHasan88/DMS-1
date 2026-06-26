@@ -55,6 +55,7 @@ return [
     'management' => 'Administrasi',
     'users' => 'Pengguna',
     'roles' => 'Peran & Hak Akses',
+    'approvals' => 'Persetujuan',
     'activity_logs' => 'Log Aktivitas',
     'profile' => 'Profil Saya',
     'open_profile' => 'Buka Profil',

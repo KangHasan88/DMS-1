@@ -41,6 +41,7 @@ use App\Http\Controllers\DeliveryDriverController;
 use App\Http\Controllers\DeliveryRouteSessionController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\ApprovalRequestController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\StockOpnameController;
 use App\Http\Controllers\ReturnablePackageController;
@@ -99,6 +100,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('users', UserController::class)->only(['edit', 'update'])->middleware('permission:edit users');
         Route::resource('users', UserController::class)->only(['destroy'])->middleware('permission:delete users');
         Route::post('users/{user}/toggle-status', [UserController::class, 'toggleActive'])->middleware('permission:activate users')->name('users.toggle-status');
+    });
+
+    // ============= APPROVAL WORKFLOW =============
+    Route::prefix('approval-requests')->name('approval-requests.')->middleware('permission:view approvals')->group(function () {
+        Route::get('/', [ApprovalRequestController::class, 'index'])->name('index');
+        Route::get('/{approvalRequest}', [ApprovalRequestController::class, 'show'])->name('show');
+        Route::post('/{approvalRequest}/approve', [ApprovalRequestController::class, 'approve'])
+            ->middleware('permission:manage approvals')
+            ->name('approve');
+        Route::post('/{approvalRequest}/reject', [ApprovalRequestController::class, 'reject'])
+            ->middleware('permission:manage approvals')
+            ->name('reject');
     });
     
     // ============= ROLE & PERMISSION MANAGEMENT =============

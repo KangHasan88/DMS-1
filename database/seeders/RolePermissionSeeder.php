@@ -25,6 +25,10 @@ class RolePermissionSeeder extends Seeder
             'edit users',
             'delete users',
             'activate users',
+
+            // APPROVAL WORKFLOW
+            'view approvals',
+            'manage approvals',
             
             // ROLE & PERMISSION
             'view roles',
@@ -194,6 +198,7 @@ class RolePermissionSeeder extends Seeder
             'download apk', 'view sync status',
             'view company profile', 'edit company profile',
             'view settings', 'view logs',
+            'view approvals', 'manage approvals',
         ]);
         
         // ROLE: SALES
@@ -244,6 +249,7 @@ class RolePermissionSeeder extends Seeder
             'view general ledger',
             'view sales report', 'view inventory report', 'view delivery report', 'view financial report', 'export reports',
             'download apk', 'view sync status',
+            'view approvals', 'manage approvals',
         ]);
 
         // ROLE: SUPERVISOR
@@ -266,6 +272,7 @@ class RolePermissionSeeder extends Seeder
             'view sales report', 'view inventory report', 'view delivery report',
             'download apk',
             'view sync status',
+            'view approvals',
         ]);
         
         // ROLE: WAREHOUSE
@@ -325,6 +332,7 @@ class RolePermissionSeeder extends Seeder
             'view delivery report', 'view financial report', 'export reports',
             'download apk',
             'view sync status',
+            'view approvals', 'manage approvals',
         ]);
 
         // ROLE: KURIR
