@@ -1679,6 +1679,12 @@
                                 <span>{{ __('navigation.sales_report') }}</span>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{ route('reports.principal') }}" class="nav-link {{ request()->routeIs('reports.principal') ? 'active' : '' }}">
+                                <i class="bi bi-building-check"></i>
+                                <span>{{ __('navigation.principal_report') }}</span>
+                            </a>
+                        </li>
                         @endcan
                         @can('view inventory report')
                         <li class="nav-item">

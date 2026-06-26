@@ -53,6 +53,7 @@ return [
     'ar_aging' => 'AR Aging',
     'ap_aging' => 'AP Aging',
     'sales_report' => 'Sales Report',
+    'principal_report' => 'Principal Report',
     'inventory_report' => 'Inventory Report',
     'delivery_report' => 'Delivery Report',
     'financial_report' => 'Financial Report',

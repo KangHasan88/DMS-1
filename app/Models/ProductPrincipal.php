@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProductPrincipal extends Model
@@ -26,6 +27,16 @@ class ProductPrincipal extends Model
     public function products(): HasMany
     {
         return $this->hasMany(Product::class, 'principal_id');
+    }
+
+    public function suppliers(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Supplier::class,
+            'product_principal_supplier',
+            'product_principal_id',
+            'supplier_id'
+        )->withTimestamps();
     }
 
     public function scopeActive($query)

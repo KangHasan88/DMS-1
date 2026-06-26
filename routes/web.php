@@ -529,6 +529,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ============= REPORTS =============
     Route::prefix('reports')->name('reports.')->group(function () {
         Route::get('/sales', [ReportController::class, 'sales'])->middleware('permission:view sales report')->name('sales');
+        Route::get('/principal', [ReportController::class, 'principal'])->middleware('permission:view sales report')->name('principal');
         Route::get('/inventory', [ReportController::class, 'inventory'])->middleware('permission:view inventory report')->name('inventory');
         Route::get('/delivery', [ReportController::class, 'delivery'])->middleware('permission:view delivery report')->name('delivery');
         Route::get('/financial', [ReportController::class, 'financial'])->middleware('permission:view financial report')->name('financial');

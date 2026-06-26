@@ -12,6 +12,10 @@ use App\Models\JournalEntryLine;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\ProductPrincipal;
+use App\Models\ProductStock;
+use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderItem;
 use App\Models\Supplier;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
@@ -108,6 +112,104 @@ class ReportController extends Controller
         ];
 
         return view('reports.inventory', compact('products', 'summary', 'startDate', 'endDate'));
+    }
+
+    public function principal(Request $request)
+    {
+        [$startDate, $endDate] = $this->dateRange($request);
+
+        $request->validate([
+            'principal_id' => ['nullable', 'exists:product_principals,id'],
+        ]);
+
+        $selectedPrincipalId = $request->input('principal_id');
+
+        $salesByPrincipal = OrderItem::query()
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->join('products', 'order_items.product_id', '=', 'products.id')
+            ->whereNotNull('products.principal_id')
+            ->whereBetween('orders.created_at', [$startDate, $endDate])
+            ->whereIn('orders.status', [Order::STATUS_SHIPPED, Order::STATUS_DELIVERED])
+            ->selectRaw('products.principal_id, SUM(order_items.quantity) as sales_qty, SUM(order_items.subtotal) as sales_amount, COUNT(DISTINCT orders.id) as order_count')
+            ->groupBy('products.principal_id')
+            ->get()
+            ->keyBy('principal_id');
+
+        $purchaseByPrincipal = PurchaseOrderItem::query()
+            ->join('purchase_orders', 'purchase_order_items.purchase_order_id', '=', 'purchase_orders.id')
+            ->join('products', 'purchase_order_items.product_id', '=', 'products.id')
+            ->whereNotNull('products.principal_id')
+            ->whereBetween('purchase_orders.created_at', [$startDate, $endDate])
+            ->where('purchase_orders.status', PurchaseOrder::STATUS_RECEIVED)
+            ->selectRaw('products.principal_id, SUM(COALESCE(NULLIF(purchase_order_items.received_quantity, 0), purchase_order_items.quantity)) as purchase_qty, SUM(COALESCE(NULLIF(purchase_order_items.received_quantity, 0), purchase_order_items.quantity) * purchase_order_items.price) as purchase_amount, COUNT(DISTINCT purchase_orders.id) as po_count')
+            ->groupBy('products.principal_id')
+            ->get()
+            ->keyBy('principal_id');
+
+        $stockByPrincipal = ProductStock::query()
+            ->join('products', 'product_stocks.product_id', '=', 'products.id')
+            ->whereNotNull('products.principal_id')
+            ->selectRaw('products.principal_id, SUM(product_stocks.quantity) as stock_qty, SUM(product_stocks.consignment_quantity) as consignment_qty')
+            ->groupBy('products.principal_id')
+            ->get()
+            ->keyBy('principal_id');
+
+        $productCounts = Product::query()
+            ->whereNotNull('principal_id')
+            ->selectRaw('principal_id, COUNT(*) as product_count, SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_product_count')
+            ->groupBy('principal_id')
+            ->get()
+            ->keyBy('principal_id');
+
+        $principals = ProductPrincipal::query()
+            ->withCount(['products', 'suppliers'])
+            ->when($selectedPrincipalId, fn ($query) => $query->whereKey($selectedPrincipalId))
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get()
+            ->map(function (ProductPrincipal $principal) use ($salesByPrincipal, $purchaseByPrincipal, $stockByPrincipal, $productCounts) {
+                $sales = $salesByPrincipal->get($principal->id);
+                $purchase = $purchaseByPrincipal->get($principal->id);
+                $stock = $stockByPrincipal->get($principal->id);
+                $productCount = $productCounts->get($principal->id);
+                $salesAmount = (int) ($sales->sales_amount ?? 0);
+                $purchaseAmount = (int) ($purchase->purchase_amount ?? 0);
+
+                $principal->sales_qty = (int) ($sales->sales_qty ?? 0);
+                $principal->sales_amount = $salesAmount;
+                $principal->order_count = (int) ($sales->order_count ?? 0);
+                $principal->purchase_qty = (int) ($purchase->purchase_qty ?? 0);
+                $principal->purchase_amount = $purchaseAmount;
+                $principal->po_count = (int) ($purchase->po_count ?? 0);
+                $principal->stock_qty = (int) ($stock->stock_qty ?? 0);
+                $principal->consignment_qty = (int) ($stock->consignment_qty ?? 0);
+                $principal->product_count = (int) ($productCount->product_count ?? $principal->products_count);
+                $principal->active_product_count = (int) ($productCount->active_product_count ?? 0);
+                $principal->gross_margin = $salesAmount - $purchaseAmount;
+                $principal->gross_margin_percent = $salesAmount > 0 ? round(($principal->gross_margin / $salesAmount) * 100, 1) : null;
+
+                return $principal;
+            });
+
+        $summary = [
+            'principal_count' => ProductPrincipal::where('is_active', true)->count(),
+            'product_count' => Product::whereNotNull('principal_id')->count(),
+            'sales_amount' => $principals->sum('sales_amount'),
+            'purchase_amount' => $principals->sum('purchase_amount'),
+            'stock_qty' => $principals->sum('stock_qty'),
+            'margin' => $principals->sum('gross_margin'),
+        ];
+
+        $principalOptions = ProductPrincipal::active()->orderBy('sort_order')->orderBy('name')->get();
+
+        return view('reports.principal', compact(
+            'principals',
+            'principalOptions',
+            'selectedPrincipalId',
+            'summary',
+            'startDate',
+            'endDate'
+        ));
     }
 
     public function delivery(Request $request)

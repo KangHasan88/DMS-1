@@ -53,6 +53,7 @@ return [
     'ar_aging' => 'Umur Piutang',
     'ap_aging' => 'Umur Hutang',
     'sales_report' => 'Laporan Penjualan',
+    'principal_report' => 'Laporan Principal',
     'inventory_report' => 'Laporan Inventori',
     'delivery_report' => 'Laporan Pengiriman',
     'financial_report' => 'Laporan Keuangan',
