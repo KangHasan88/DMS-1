@@ -64,6 +64,63 @@ class ReportDateRangeTest extends TestCase
         $this->assertStringContainsString('2026-05-25', $content);
     }
 
+    public function test_sales_report_uses_historical_order_totals_after_master_price_changes(): void
+    {
+        $user = $this->superAdmin();
+        $product = Product::create([
+            'name' => 'Produk Harga Historis',
+            'category' => 'Demo',
+            'price' => 10000,
+            'base_price' => 7000,
+            'is_active' => true,
+        ]);
+        $order = Order::create([
+            'user_id' => $user->id,
+            'order_number' => 'KMG-HISTORICAL-PRICE',
+            'delivery_date' => '2026-06-15',
+            'address' => 'Alamat Test',
+            'delivery_fee' => 0,
+            'packing_fee' => 0,
+            'status' => Order::STATUS_DELIVERED,
+            'subtotal' => 100000,
+            'total' => 100000,
+            'grand_total' => 100000,
+        ]);
+        $order->forceFill([
+            'created_at' => '2026-06-15 10:00:00',
+            'updated_at' => '2026-06-15 10:00:00',
+        ])->save();
+        $item = OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'product_name' => $product->name,
+            'price' => 10000,
+            'purchase_price' => 7000,
+            'quantity' => 10,
+            'subtotal' => 100000,
+        ]);
+
+        $product->update([
+            'price' => 20000,
+            'base_price' => 15000,
+        ]);
+
+        $this->actingAs($user)
+            ->get('/reports/sales?start_date=2026-06-01&end_date=2026-06-30')
+            ->assertOk()
+            ->assertSee('KMG-HISTORICAL-PRICE')
+            ->assertSee('Rp 100.000')
+            ->assertDontSee('Rp 200.000');
+
+        $item->refresh();
+        $order->refresh();
+
+        $this->assertSame(10000, $item->price);
+        $this->assertSame(7000, $item->purchase_price);
+        $this->assertSame(100000, $item->subtotal);
+        $this->assertSame(100000, $order->grand_total);
+    }
+
     public function test_inventory_report_shows_week_cover_and_slow_moving_insights(): void
     {
         $user = $this->superAdmin();
