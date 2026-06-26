@@ -684,6 +684,26 @@ BLADE, ['customer' => $customer]);
         $this->assertStringNotContainsString('font-size: 0.55rem;', $layout);
     }
 
+    public function test_outbound_foc_copy_and_markup_match_bonus_flow(): void
+    {
+        $idNavigation = require lang_path('id/navigation.php');
+        $enNavigation = require lang_path('en/navigation.php');
+        $index = file_get_contents(resource_path('views/outbound-focs/index.blade.php'));
+        $create = file_get_contents(resource_path('views/outbound-focs/create.blade.php'));
+
+        $this->assertSame('Bonus / FOC', $idNavigation['foc_out']);
+        $this->assertSame('Bonus / FOC', $enNavigation['foc_out']);
+        $this->assertStringContainsString("page-title', 'Bonus / FOC'", $index);
+        $this->assertStringContainsString('Data Bonus / FOC', $index);
+        $this->assertStringContainsString('Tambah Bonus / FOC', $create);
+        $this->assertStringContainsString('Detail Bonus / FOC', $create);
+        $this->assertStringContainsString('items[{{ $index }}][price]', $create);
+        $this->assertStringContainsString('items[{{ $index }}][subtotal]', $create);
+        $this->assertStringNotContainsString('</thead>', preg_replace('/<thead>.*?<\/thead>/s', '', $create));
+        $this->assertStringNotContainsString('name="items[0][price]"', $create);
+        $this->assertStringNotContainsString('name="items[0][subtotal]"', $create);
+    }
+
     public function test_sidebar_scroll_position_is_preserved_between_pages(): void
     {
         $layout = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));

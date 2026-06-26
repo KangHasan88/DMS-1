@@ -1,20 +1,20 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Barang Bonus')
-@section('breadcrumb', 'Operasional / Barang Bonus')
+@section('page-title', 'Bonus / FOC')
+@section('breadcrumb', 'Operasional / Bonus / FOC')
 
 @section('content')
 <div class="dms-card">
     <div class="dms-section-header">
         <div>
-            <h3 class="dms-section-title">Data Barang Bonus</h3>
+            <h3 class="dms-section-title">Data Bonus / FOC</h3>
             <p class="dms-section-subtitle">
-                Catatan pengeluaran barang untuk hadiah, sampel, dukungan pelanggan, atau kompensasi.
+                Catatan pengeluaran barang untuk promo, bonus, sampel, dukungan pelanggan, atau kompensasi.
             </p>
         </div>
         @can('create outbound foc')
         <a href="{{ route('outbound-focs.create') }}" class="dms-btn dms-btn-primary">
-            <i class="bi bi-plus-circle"></i> Tambah Barang Bonus
+            <i class="bi bi-plus-circle"></i> Tambah Bonus / FOC
         </a>
         @endcan
     </div>
@@ -24,7 +24,7 @@
         <form action="{{ route('outbound-focs.index') }}" method="GET" class="dms-search-form">
                 <div class="dms-search-field">
                     <i class="bi bi-search"></i>
-                    <input type="text" name="search" placeholder="Cari nomor barang bonus, pelanggan..."
+                    <input type="text" name="search" placeholder="Cari nomor bonus/FOC, pelanggan..."
                            value="{{ request('search') }}"
                            class="form-control">
                 </div>
@@ -117,10 +117,10 @@
                 <tr>
                     <td colspan="{{ $canFilterBranches ? 8 : 7 }}" style="text-align: center; padding: 3rem;">
                         <i class="bi bi-gift" style="font-size: 3rem; color: var(--k-gray-300);"></i>
-                        <p style="margin-top: 1rem; color: var(--k-gray-500);">Belum ada data barang bonus</p>
+                        <p style="margin-top: 1rem; color: var(--k-gray-500);">Belum ada data bonus/FOC</p>
                         @can('create outbound foc')
                         <a href="{{ route('outbound-focs.create') }}" class="dms-btn dms-btn-primary" style="margin-top: 1rem;">
-                            <i class="bi bi-plus-circle"></i> Tambah Barang Bonus
+                            <i class="bi bi-plus-circle"></i> Tambah Bonus / FOC
                         </a>
                         @endcan
                     </td>

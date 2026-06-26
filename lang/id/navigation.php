@@ -9,7 +9,7 @@ return [
     'operations' => 'Operasional',
     'orders' => 'Pesanan Penjualan',
     'deliveries' => 'Pengiriman',
-    'foc_out' => 'Barang Bonus',
+    'foc_out' => 'Bonus / FOC',
     'return_out' => 'Retur Penjualan',
     'procurement' => 'Pembelian',
     'proposed_purchase_orders' => 'Usulan Pembelian',

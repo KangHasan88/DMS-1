@@ -1,14 +1,14 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Tambah Barang Bonus')
-@section('breadcrumb', 'Operasional / Barang Bonus / Tambah')
+@section('page-title', 'Tambah Bonus / FOC')
+@section('breadcrumb', 'Operasional / Bonus / FOC / Tambah')
 
 @section('content')
 <div class="dms-card">
     <div style="margin-bottom: 1.5rem;">
-        <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-green); margin-bottom: 0.25rem;">Tambah Barang Bonus</h3>
+        <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-green); margin-bottom: 0.25rem;">Tambah Bonus / FOC</h3>
         <p style="font-size: 0.85rem; color: var(--k-gray-500);">
-            Catat pengeluaran barang gratis untuk pelanggan (hadiah, sampel, dukungan, kompensasi).
+            Catat pengeluaran barang gratis untuk pelanggan (promo, bonus, sampel, dukungan, kompensasi).
             <strong>Stok akan berkurang otomatis.</strong>
         </p>
     </div>
@@ -64,7 +64,7 @@
         <div style="margin-bottom: 1.5rem;">
             <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--k-gray-200);">
                 <i class="bi bi-gift" style="margin-right: 0.4rem; color: var(--k-green);"></i>
-                Detail Barang Bonus
+                Detail Bonus / FOC
             </h4>
             
             <div class="dms-form-grid">
@@ -120,7 +120,7 @@
                             <th style="padding: 0.6rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600); width: 20%;">Harga</th>
                             <th style="padding: 0.6rem; text-align: left; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600); width: 20%;">Subtotal</th>
                             <th style="padding: 0.6rem; text-align: center; font-size: 0.7rem; font-weight: 600; color: var(--k-gray-600); width: 5%;"></th>
-                        </thead>
+                        </tr>
                     </thead>
                     <tbody id="products-tbody">
                         @php
@@ -137,33 +137,33 @@
                                         </option>
                                     @endforeach
                                 </select>
-                            </thead>
+                            </td>
                             <td style="padding: 0.5rem;">
                                 <input type="number" name="items[{{ $index }}][quantity]" class="quantity-input" value="{{ $prefillItem['quantity'] ?? 1 }}" min="1" onchange="calculateSubtotal(this, {{ $index }})" style="width: 100%; padding: 0.5rem; border: 1px solid var(--k-gray-300); border-radius: 6px; font-size: 0.75rem;">
-                            </thead>
+                            </td>
                             <td style="padding: 0.5rem;">
                                 <span class="product-price-display" style="font-size: 0.75rem;">Rp 0</span>
-                                <input type="hidden" name="items[0][price]" class="price-input" value="0">
-                            </thead>
+                                <input type="hidden" name="items[{{ $index }}][price]" class="price-input" value="0">
+                            </td>
                             <td style="padding: 0.5rem;">
                                 <span class="subtotal-display" style="font-weight: 500; color: var(--k-green); font-size: 0.75rem;">Rp 0</span>
-                                <input type="hidden" name="items[0][subtotal]" class="subtotal-input" value="0">
-                            </thead>
+                                <input type="hidden" name="items[{{ $index }}][subtotal]" class="subtotal-input" value="0">
+                            </td>
                             <td style="padding: 0.5rem; text-align: center;">
                                 <button type="button" class="remove-btn" onclick="removeProductRow(this)" style="background: none; border: none; color: var(--k-red); cursor: pointer; font-size: 1rem;">
                                     <i class="bi bi-trash"></i>
                                 </button>
-                            </thead>
+                            </td>
                         </tr>
                         @endforeach
                     </tbody>
                     <tfoot>
                         <tr style="background: var(--k-gray-50); border-top: 1px solid var(--k-gray-200);">
-                            <td colspan="3" style="padding: 0.6rem; text-align: right; font-weight: 600; font-size: 0.8rem;">Total Nilai: </thead>
+                            <td colspan="3" style="padding: 0.6rem; text-align: right; font-weight: 600; font-size: 0.8rem;">Total Nilai:</td>
                             <td colspan="2" style="padding: 0.6rem; font-weight: 700; font-size: 0.9rem; color: var(--k-green);">
                                 <span id="grand-total">Rp 0</span>
                                 <input type="hidden" name="total" id="total-input" value="0">
-                            </thead>
+                            </td>
                         </tr>
                     </tfoot>
                 </table>

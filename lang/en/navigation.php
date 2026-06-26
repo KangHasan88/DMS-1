@@ -9,7 +9,7 @@ return [
     'operations' => 'Operations',
     'orders' => 'Sales Orders',
     'deliveries' => 'Deliveries',
-    'foc_out' => 'Complimentary Items',
+    'foc_out' => 'Bonus / FOC',
     'return_out' => 'Sales Returns',
     'procurement' => 'Procurement',
     'proposed_purchase_orders' => 'Proposed Orders',
