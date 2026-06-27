@@ -18,39 +18,46 @@
         ['label' => 'Stok Berlebih', 'value' => number_format($summary['overstock']), 'icon' => 'bi-boxes', 'bg' => 'var(--k-orange-light)', 'color' => 'var(--k-orange)'],
     ]])
 
-    <div style="overflow-x: auto;">
-        <table class="dms-table">
+    <div class="dms-table-wrap" style="box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);">
+        <table class="dms-table" style="min-width: 1040px;">
             <thead>
                 <tr>
-                    <th>Product</th>
-                    <th>Principal</th>
-                    <th>Category</th>
-                    <th>Unit</th>
-                    <th>Stock</th>
-                    <th>Terjual 30 Hari</th>
-                    <th>Week Cover</th>
-                    <th>Status</th>
-                    <th>Insight</th>
+                    <th style="width: 23%;">Product</th>
+                    <th style="width: 13%;">Principal</th>
+                    <th style="width: 15%;">Category</th>
+                    <th style="width: 8%;">Unit</th>
+                    <th style="width: 8%; text-align: right;">Stock</th>
+                    <th style="width: 11%; text-align: right;">Terjual 30 Hari</th>
+                    <th style="width: 10%; text-align: right;">Week Cover</th>
+                    <th style="width: 7%; text-align: center;">Status</th>
+                    <th style="width: 12%;">Insight</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($products as $product)
                     @php($quantity = $product->stock->quantity ?? 0)
                     <tr>
-                        <td>{{ $product->name }}</td>
-                        <td>{{ $product->principal?->name ?? '-' }}</td>
-                        <td>{{ $product->category ?? '-' }}</td>
-                        <td>{{ $product->unit->symbol ?? $product->unit->name ?? '-' }}</td>
-                        <td>{{ number_format($quantity) }}</td>
-                        <td>{{ number_format($product->sold_last_30_days ?? 0) }}</td>
                         <td>
+                            <div style="font-weight: 700; color: var(--k-gray-800);">{{ $product->name }}</div>
+                            <div style="font-size: var(--k-font-xs); color: var(--k-gray-500);">SKU: {{ $product->sku ?: '-' }}</div>
+                        </td>
+                        <td style="font-weight: 600; color: var(--k-gray-700);">{{ $product->principal?->name ?? '-' }}</td>
+                        <td>{{ $product->category ?? '-' }}</td>
+                        <td style="text-transform: lowercase;">{{ $product->unit->symbol ?? $product->unit->name ?? '-' }}</td>
+                        <td style="text-align: right; font-weight: 700; color: var(--k-gray-900);">{{ number_format($quantity) }}</td>
+                        <td style="text-align: right;">{{ number_format($product->sold_last_30_days ?? 0) }}</td>
+                        <td style="text-align: right; white-space: nowrap;">
                             @if(is_null($product->week_cover))
                                 -
                             @else
                                 {{ number_format($product->week_cover, 1) }} minggu
                             @endif
                         </td>
-                        <td>{{ $product->is_active ? 'Active' : 'Inactive' }}</td>
+                        <td style="text-align: center;">
+                            <span class="dms-badge dms-badge-{{ $product->is_active ? 'success' : 'secondary' }}">
+                                {{ $product->is_active ? 'Active' : 'Inactive' }}
+                            </span>
+                        </td>
                         <td>
                             <span class="dms-badge dms-badge-{{ $product->inventory_signal['class'] ?? 'secondary' }}">
                                 {{ $product->inventory_signal['label'] ?? '-' }}
@@ -58,12 +65,24 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="9" style="text-align: center; color: var(--k-gray-500);">Belum ada produk.</td></tr>
+                    <tr>
+                        <td colspan="9">
+                            <div class="dms-empty-state" style="padding: 2.5rem 1rem;">
+                                <i class="bi bi-box-seam"></i>
+                                <p>Belum ada produk pada filter ini.</p>
+                            </div>
+                        </td>
+                    </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 
-    <div style="margin-top: 1rem;">{{ $products->links() }}</div>
+    <div class="dms-pagination">
+        <div class="dms-pagination-summary">
+            Menampilkan {{ $products->firstItem() ?? 0 }} - {{ $products->lastItem() ?? 0 }} dari {{ $products->total() }} produk
+        </div>
+        {{ $products->links() }}
+    </div>
 </div>
 @endsection
