@@ -3,24 +3,24 @@
     $searchPlaceholder = $searchPlaceholder ?? 'Cari data...';
 @endphp
 
-<form method="GET" class="dms-toolbar" style="align-items: end;">
-    <div class="dms-search-form">
+<form method="GET" class="dms-toolbar" style="align-items: stretch; overflow: visible;">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0.75rem; width: 100%; align-items: end;">
         @isset($filters)
-            <div style="min-width: 280px;">
+            <div style="min-width: 0; grid-column: span 2;">
                 <label class="form-label">{{ $searchLabel }}</label>
                 <input type="search" name="search" value="{{ $filters['search'] ?? '' }}" placeholder="{{ $searchPlaceholder }}" class="form-control">
             </div>
         @endisset
-        <div>
+        <div style="min-width: 0;">
             <label class="form-label">Start Date</label>
             <input type="date" name="start_date" value="{{ $startDate->toDateString() }}" class="form-control">
         </div>
-        <div>
+        <div style="min-width: 0;">
             <label class="form-label">End Date</label>
             <input type="date" name="end_date" value="{{ $endDate->toDateString() }}" class="form-control">
         </div>
         @isset($principalOptions)
-            <div style="min-width: 220px;">
+            <div style="min-width: 0;">
                 <label class="form-label">Principal</label>
                 <select name="principal_id" class="form-control">
                     <option value="">Semua Principal</option>
@@ -33,7 +33,7 @@
             </div>
         @endisset
         @isset($statusOptions)
-            <div style="min-width: 200px;">
+            <div style="min-width: 0;">
                 <label class="form-label">Status</label>
                 <select name="status" class="form-control">
                     <option value="">Semua Status</option>
@@ -46,7 +46,7 @@
             </div>
         @endisset
         @isset($categoryOptions)
-            <div style="min-width: 200px;">
+            <div style="min-width: 0;">
                 <label class="form-label">Kategori</label>
                 <select name="category" class="form-control">
                     <option value="">Semua Kategori</option>
@@ -59,7 +59,7 @@
             </div>
         @endisset
         @isset($insightOptions)
-            <div style="min-width: 200px;">
+            <div style="min-width: 0;">
                 <label class="form-label">Insight</label>
                 <select name="insight" class="form-control">
                     <option value="">Semua Insight</option>
@@ -72,7 +72,7 @@
             </div>
         @endisset
         @isset($filters)
-            <div style="min-width: 150px;">
+            <div style="min-width: 0;">
                 <label class="form-label">Per Halaman</label>
                 <select name="per_page" class="form-control">
                     @foreach([10, 25, 50, 100] as $pageSize)
@@ -83,11 +83,13 @@
                 </select>
             </div>
         @endisset
-        <button class="dms-btn dms-btn-primary" type="submit">Filter</button>
-        @isset($exportType)
-            <a class="dms-btn dms-btn-outline" href="{{ route('reports.export', array_merge(['type' => $exportType], request()->only(['start_date', 'end_date', 'principal_id', 'search', 'category', 'insight', 'status', 'per_page']))) }}">
-                <i class="bi bi-download"></i> Export CSV
-            </a>
-        @endisset
+        <div style="display: flex; gap: 0.65rem; flex-wrap: wrap; align-items: center; min-width: 0;">
+            <button class="dms-btn dms-btn-primary" type="submit" style="min-width: 86px; justify-content: center;">Filter</button>
+            @isset($exportType)
+                <a class="dms-btn dms-btn-outline" style="min-width: 126px; justify-content: center;" href="{{ route('reports.export', array_merge(['type' => $exportType], request()->only(['start_date', 'end_date', 'principal_id', 'search', 'category', 'insight', 'status', 'per_page']))) }}">
+                    <i class="bi bi-download"></i> Export CSV
+                </a>
+            @endisset
+        </div>
     </div>
 </form>
