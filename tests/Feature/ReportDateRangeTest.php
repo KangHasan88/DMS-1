@@ -9,6 +9,7 @@ use App\Models\JournalEntry;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\ProductPrincipal;
 use App\Models\ProductStock;
 use App\Models\PurchaseOrder;
 use App\Models\Supplier;
@@ -62,6 +63,107 @@ class ReportDateRangeTest extends TestCase
         $content = $response->streamedContent();
         $this->assertStringContainsString('2026-05-01', $content);
         $this->assertStringContainsString('2026-05-25', $content);
+    }
+
+    public function test_sales_export_respects_principal_filter_at_item_level(): void
+    {
+        $user = $this->superAdmin();
+        $principalA = ProductPrincipal::create(['code' => 'PRA', 'name' => 'Principal A', 'is_active' => true]);
+        $principalB = ProductPrincipal::create(['code' => 'PRB', 'name' => 'Principal B', 'is_active' => true]);
+        $productA = Product::create([
+            'principal_id' => $principalA->id,
+            'name' => 'Produk Principal A',
+            'category' => 'Demo',
+            'price' => 10000,
+            'base_price' => 7000,
+            'is_active' => true,
+        ]);
+        $productB = Product::create([
+            'principal_id' => $principalB->id,
+            'name' => 'Produk Principal B',
+            'category' => 'Demo',
+            'price' => 20000,
+            'base_price' => 12000,
+            'is_active' => true,
+        ]);
+        $order = Order::create([
+            'user_id' => $user->id,
+            'order_number' => 'KMG-EXPORT-PRINCIPAL',
+            'delivery_date' => '2026-06-15',
+            'address' => 'Alamat Test',
+            'delivery_fee' => 0,
+            'packing_fee' => 0,
+            'status' => Order::STATUS_DELIVERED,
+            'subtotal' => 30000,
+            'total' => 30000,
+            'grand_total' => 30000,
+        ]);
+        $order->forceFill([
+            'created_at' => '2026-06-15 10:00:00',
+            'updated_at' => '2026-06-15 10:00:00',
+        ])->save();
+
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $productA->id,
+            'product_name' => $productA->name,
+            'price' => 10000,
+            'quantity' => 1,
+            'subtotal' => 10000,
+        ]);
+        OrderItem::create([
+            'order_id' => $order->id,
+            'product_id' => $productB->id,
+            'product_name' => $productB->name,
+            'price' => 20000,
+            'quantity' => 1,
+            'subtotal' => 20000,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->get('/reports/export/sales?start_date=2026-06-01&end_date=2026-06-30&principal_id=' . $principalA->id);
+
+        $response->assertOk();
+        $content = $response->streamedContent();
+        $this->assertStringContainsString('Principal A', $content);
+        $this->assertStringContainsString('Produk Principal A', $content);
+        $this->assertStringContainsString('10000', $content);
+        $this->assertStringNotContainsString('Produk Principal B', $content);
+        $this->assertStringNotContainsString('20000', $content);
+    }
+
+    public function test_inventory_export_respects_principal_filter(): void
+    {
+        $user = $this->superAdmin();
+        $principalA = ProductPrincipal::create(['code' => 'INV-A', 'name' => 'Inventory Principal A', 'is_active' => true]);
+        $principalB = ProductPrincipal::create(['code' => 'INV-B', 'name' => 'Inventory Principal B', 'is_active' => true]);
+        $productA = Product::create([
+            'principal_id' => $principalA->id,
+            'name' => 'Stok Principal A',
+            'category' => 'Demo',
+            'price' => 10000,
+            'base_price' => 7000,
+            'is_active' => true,
+        ]);
+        $productB = Product::create([
+            'principal_id' => $principalB->id,
+            'name' => 'Stok Principal B',
+            'category' => 'Demo',
+            'price' => 20000,
+            'base_price' => 12000,
+            'is_active' => true,
+        ]);
+        ProductStock::create(['product_id' => $productA->id, 'quantity' => 15, 'min_stock' => 5, 'max_stock' => 50]);
+        ProductStock::create(['product_id' => $productB->id, 'quantity' => 25, 'min_stock' => 5, 'max_stock' => 50]);
+
+        $response = $this->actingAs($user)
+            ->get('/reports/export/inventory?principal_id=' . $principalA->id);
+
+        $response->assertOk();
+        $content = $response->streamedContent();
+        $this->assertStringContainsString('Inventory Principal A', $content);
+        $this->assertStringContainsString('Stok Principal A', $content);
+        $this->assertStringNotContainsString('Stok Principal B', $content);
     }
 
     public function test_sales_report_uses_historical_order_totals_after_master_price_changes(): void

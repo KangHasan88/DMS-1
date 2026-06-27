@@ -441,6 +441,14 @@ class ReportController extends Controller
             return $this->exportApAging($request);
         }
 
+        if ($type === 'sales') {
+            return $this->exportSales($request, $startDate, $endDate);
+        }
+
+        if ($type === 'inventory') {
+            return $this->exportInventory($request, $startDate, $endDate);
+        }
+
         return response()->streamDownload(function () use ($type, $startDate, $endDate) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, ['Report', ucfirst($type)]);
@@ -449,6 +457,117 @@ class ReportController extends Controller
             fputcsv($handle, ['End Date', $endDate->toDateString()]);
             fclose($handle);
         }, $type . '-report-' . now()->format('Ymd-His') . '.csv');
+    }
+
+    private function exportSales(Request $request, $startDate, $endDate): StreamedResponse
+    {
+        $request->validate([
+            'principal_id' => ['nullable', 'exists:product_principals,id'],
+        ]);
+
+        $selectedPrincipalId = $request->input('principal_id');
+        $principal = $selectedPrincipalId ? ProductPrincipal::find($selectedPrincipalId) : null;
+
+        $orders = Order::with(['user', 'items.product.principal'])
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->when($selectedPrincipalId, function ($query) use ($selectedPrincipalId) {
+                $query->whereHas('items.product', fn ($query) => $query->where('principal_id', $selectedPrincipalId));
+            })
+            ->latest()
+            ->get();
+
+        return response()->streamDownload(function () use ($orders, $startDate, $endDate, $principal, $selectedPrincipalId) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Report', 'Laporan Penjualan']);
+            fputcsv($handle, ['Generated At', now()->toDateTimeString()]);
+            fputcsv($handle, ['Start Date', $startDate->toDateString()]);
+            fputcsv($handle, ['End Date', $endDate->toDateString()]);
+            fputcsv($handle, ['Principal', $principal?->name ?? 'Semua Principal']);
+            fputcsv($handle, []);
+            fputcsv($handle, ['Order', 'Tanggal', 'Customer', 'Principal', 'Produk', 'Qty', 'Harga', 'Subtotal Item', 'Status']);
+
+            foreach ($orders as $order) {
+                $items = $selectedPrincipalId
+                    ? $order->items->filter(fn ($item) => (int) $item->product?->principal_id === (int) $selectedPrincipalId)
+                    : $order->items;
+
+                foreach ($items as $item) {
+                    fputcsv($handle, [
+                        $order->order_number,
+                        $order->created_at?->toDateString(),
+                        $order->user?->name ?? '-',
+                        $item->product?->principal?->name ?? '-',
+                        $item->product_name ?: $item->product?->name ?? '-',
+                        (int) $item->quantity,
+                        (int) $item->price,
+                        (int) $item->subtotal,
+                        $order->status,
+                    ]);
+                }
+            }
+
+            fclose($handle);
+        }, 'sales-report-' . now()->format('Ymd-His') . '.csv');
+    }
+
+    private function exportInventory(Request $request, $startDate, $endDate): StreamedResponse
+    {
+        $request->validate([
+            'principal_id' => ['nullable', 'exists:product_principals,id'],
+        ]);
+
+        $selectedPrincipalId = $request->input('principal_id');
+        $principal = $selectedPrincipalId ? ProductPrincipal::find($selectedPrincipalId) : null;
+        $salesWindowStart = now()->subDays(30)->startOfDay();
+
+        $products = Product::with(['principal', 'unit', 'stock'])
+            ->when($selectedPrincipalId, fn ($query) => $query->where('principal_id', $selectedPrincipalId))
+            ->orderBy('name')
+            ->get();
+
+        $productIds = $products->pluck('id');
+        $salesVelocity = OrderItem::query()
+            ->select('product_id', DB::raw('SUM(quantity) as sold_last_30_days'))
+            ->whereIn('product_id', $productIds)
+            ->whereHas('order', function ($query) use ($salesWindowStart) {
+                $query->whereIn('status', [Order::STATUS_SHIPPED, Order::STATUS_DELIVERED])
+                    ->where('created_at', '>=', $salesWindowStart);
+            })
+            ->groupBy('product_id')
+            ->pluck('sold_last_30_days', 'product_id');
+
+        return response()->streamDownload(function () use ($products, $salesVelocity, $startDate, $endDate, $principal) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Report', 'Laporan Inventori']);
+            fputcsv($handle, ['Generated At', now()->toDateTimeString()]);
+            fputcsv($handle, ['Start Date', $startDate->toDateString()]);
+            fputcsv($handle, ['End Date', $endDate->toDateString()]);
+            fputcsv($handle, ['Principal', $principal?->name ?? 'Semua Principal']);
+            fputcsv($handle, []);
+            fputcsv($handle, ['Produk', 'Principal', 'Satuan', 'Stok', 'Min Stok', 'Max Stok', 'Terjual 30 Hari', 'Week Cover', 'Sinyal']);
+
+            foreach ($products as $product) {
+                $quantity = $product->stock?->quantity ?? 0;
+                $soldLast30Days = (int) ($salesVelocity[$product->id] ?? 0);
+                $weeklySalesAverage = $soldLast30Days > 0 ? $soldLast30Days / (30 / 7) : 0;
+                $weekCover = $weeklySalesAverage > 0 ? round($quantity / $weeklySalesAverage, 1) : null;
+                $signal = $this->inventorySignal($quantity, $soldLast30Days, $weekCover);
+
+                fputcsv($handle, [
+                    $product->name,
+                    $product->principal?->name ?? '-',
+                    $product->formatted_unit,
+                    (int) $quantity,
+                    (int) ($product->stock?->min_stock ?? 0),
+                    (int) ($product->stock?->max_stock ?? 0),
+                    $soldLast30Days,
+                    $weekCover ?? '-',
+                    $signal['label'],
+                ]);
+            }
+
+            fclose($handle);
+        }, 'inventory-report-' . now()->format('Ymd-His') . '.csv');
     }
 
     private function exportArAging(Request $request): StreamedResponse
