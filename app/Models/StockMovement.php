@@ -81,6 +81,8 @@ class StockMovement extends Model
     const SOURCE_FOC_OUT = 'foc_out';
     const SOURCE_RETURN_OUT = 'return_out';
     const SOURCE_ADJUSTMENT = 'adjustment';
+    const SOURCE_BTB = 'btb';
+    const SOURCE_BKB = 'bkb';
 
     const SOURCE_TYPES = [
         // Inbound
@@ -95,6 +97,8 @@ class StockMovement extends Model
         self::SOURCE_FOC_OUT => 'FOC Out (Hadiah)',
         self::SOURCE_RETURN_OUT => 'Return Out (Retur)',
         self::SOURCE_ADJUSTMENT => 'Penyesuaian Stok',
+        self::SOURCE_BTB => 'BTB',
+        self::SOURCE_BKB => 'BKB',
     ];
 
     // ===================== RELATIONSHIPS =====================
@@ -186,6 +190,9 @@ class StockMovement extends Model
         if ($this->source_type === self::SOURCE_ADJUSTMENT) {
             return 'Penyesuaian';
         }
+        if (in_array($this->source_type, [self::SOURCE_BTB, self::SOURCE_BKB], true)) {
+            return (self::SOURCE_TYPES[$this->source_type] ?? strtoupper($this->source_type)) . ' #' . $this->source_id;
+        }
         
         return '-';
     }
@@ -216,6 +223,8 @@ class StockMovement extends Model
             self::SOURCE_FOC_OUT => 'success',
             self::SOURCE_RETURN_OUT => 'warning',
             self::SOURCE_ADJUSTMENT => 'secondary',
+            self::SOURCE_BTB => 'primary',
+            self::SOURCE_BKB => 'danger',
         ];
         
         return $badges[$this->source_type] ?? 'secondary';

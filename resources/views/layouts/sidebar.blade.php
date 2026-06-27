@@ -1417,6 +1417,16 @@
                         </li>
                         @endcan
 
+                        <!-- Inventory Documents -->
+                        @can('view warehouse')
+                        <li class="nav-item">
+                            <a href="{{ route('inventory-documents.index') }}" class="nav-link {{ request()->routeIs('inventory-documents.*') ? 'active' : '' }}">
+                                <i class="bi bi-file-earmark-text"></i>
+                                <span>{{ __('navigation.inventory_documents') }}</span>
+                            </a>
+                        </li>
+                        @endcan
+
                         <!-- Stock Opname -->
                         @can('manage warehouse')
                         <li class="nav-item">

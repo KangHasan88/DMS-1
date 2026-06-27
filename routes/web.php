@@ -46,6 +46,7 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\ApprovalRequestController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\StockOpnameController;
+use App\Http\Controllers\InventoryDocumentController;
 use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\ReturnablePackageController;
 use App\Http\Controllers\PurchaseOrderController;
@@ -279,6 +280,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('warehouses/{warehouse}/default', [WarehouseController::class, 'setDefault'])
         ->middleware('permission:manage warehouse')
         ->name('warehouses.default');
+
+    Route::get('inventory-documents', [InventoryDocumentController::class, 'index'])
+        ->middleware('permission:view warehouse')
+        ->name('inventory-documents.index');
+    Route::get('inventory-documents/create', [InventoryDocumentController::class, 'create'])
+        ->middleware('permission:manage warehouse')
+        ->name('inventory-documents.create');
+    Route::post('inventory-documents', [InventoryDocumentController::class, 'store'])
+        ->middleware('permission:manage warehouse')
+        ->name('inventory-documents.store');
+    Route::get('inventory-documents/{inventoryDocument}', [InventoryDocumentController::class, 'show'])
+        ->middleware('permission:view warehouse')
+        ->name('inventory-documents.show');
+    Route::post('inventory-documents/{inventoryDocument}/post', [InventoryDocumentController::class, 'post'])
+        ->middleware('permission:manage warehouse')
+        ->name('inventory-documents.post');
+    Route::post('inventory-documents/{inventoryDocument}/void', [InventoryDocumentController::class, 'void'])
+        ->middleware('permission:manage warehouse')
+        ->name('inventory-documents.void');
 
     Route::resource('stock-opnames', StockOpnameController::class)
         ->only(['index', 'create', 'store', 'show', 'update'])

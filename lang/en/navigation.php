@@ -19,6 +19,7 @@ return [
     'inventory' => 'Inventory',
     'stock_management' => 'Stock Management',
     'warehouses' => 'Warehouses',
+    'inventory_documents' => 'Stock Documents',
     'stock_opnames' => 'Stock Opname',
     'stock_movements' => 'Stock Movements',
     'returnable_packages' => 'Returnable Packaging',

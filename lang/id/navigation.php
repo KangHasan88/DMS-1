@@ -19,6 +19,7 @@ return [
     'inventory' => 'Inventori',
     'stock_management' => 'Manajemen Stok',
     'warehouses' => 'Gudang',
+    'inventory_documents' => 'Dokumen Stok',
     'stock_opnames' => 'Stock Opname',
     'stock_movements' => 'Mutasi Stok',
     'returnable_packages' => 'Kemasan Kembali',
