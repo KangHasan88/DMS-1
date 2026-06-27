@@ -8,7 +8,15 @@
     <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.35rem;">Sales Report</h3>
     <p style="font-size: 0.85rem; color: var(--k-gray-500); margin-bottom: 1.25rem;">Ringkasan order dan penjualan berdasarkan periode.</p>
 
-    @include('reports._filters', ['exportType' => 'sales', 'principalOptions' => $principalOptions, 'selectedPrincipalId' => $selectedPrincipalId])
+    @include('reports._filters', [
+        'exportType' => 'sales',
+        'principalOptions' => $principalOptions,
+        'selectedPrincipalId' => $selectedPrincipalId,
+        'filters' => $filters,
+        'statusOptions' => $statusOptions,
+        'searchLabel' => 'Cari Order',
+        'searchPlaceholder' => 'No order, customer, email...',
+    ])
     @include('reports._summary', ['items' => [
         ['label' => 'Total Orders', 'value' => number_format($summary['total_orders']), 'icon' => 'bi-receipt'],
         ['label' => 'Delivered', 'value' => number_format($summary['delivered_orders']), 'icon' => 'bi-check-circle'],
@@ -16,33 +24,50 @@
         ['label' => 'Pending Payment', 'value' => number_format($summary['pending_orders']), 'icon' => 'bi-clock', 'bg' => '#fef3c7', 'color' => '#f59e0b'],
     ]])
 
-    <div style="overflow-x: auto;">
-        <table class="dms-table">
+    <div class="dms-table-wrap" style="box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);">
+        <table class="dms-table" style="min-width: 860px;">
             <thead>
                 <tr>
                     <th>Order</th>
                     <th>Customer</th>
-                    <th>Status</th>
-                    <th>Total</th>
-                    <th>Date</th>
+                    <th style="text-align: center;">Status</th>
+                    <th style="text-align: right;">Total</th>
+                    <th style="text-align: right;">Date</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse($orders as $order)
                     <tr>
-                        <td>{{ $order->order_number }}</td>
+                        <td>
+                            <div class="dms-strong">{{ $order->order_number }}</div>
+                            <small style="color: var(--k-gray-500);">Order penjualan</small>
+                        </td>
                         <td>{{ $order->user->name ?? '-' }}</td>
-                        <td>{{ $order->status_label ?? ucfirst(str_replace('_', ' ', $order->status)) }}</td>
-                        <td>Rp {{ number_format($order->grand_total ?? $order->total ?? 0, 0, ',', '.') }}</td>
-                        <td>{{ $order->created_at?->format('d M Y H:i') }}</td>
+                        <td style="text-align: center;">
+                            <span class="dms-badge dms-badge-secondary">{{ $order->status_label ?? ucfirst(str_replace('_', ' ', $order->status)) }}</span>
+                        </td>
+                        <td class="dms-money" style="text-align: right;">Rp {{ number_format($order->grand_total ?? $order->total ?? 0, 0, ',', '.') }}</td>
+                        <td style="text-align: right; white-space: nowrap;">{{ $order->created_at?->format('d M Y H:i') }}</td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" style="text-align: center; color: var(--k-gray-500);">Belum ada data pada periode ini.</td></tr>
+                    <tr>
+                        <td colspan="5">
+                            <div class="dms-empty-state" style="padding: 2.5rem 1rem;">
+                                <i class="bi bi-receipt"></i>
+                                <p>Belum ada data pada filter ini.</p>
+                            </div>
+                        </td>
+                    </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
 
-    <div style="margin-top: 1rem;">{{ $orders->links() }}</div>
+    <div class="dms-pagination">
+        <div class="dms-pagination-summary">
+            Menampilkan {{ $orders->firstItem() ?? 0 }} - {{ $orders->lastItem() ?? 0 }} dari {{ $orders->total() }} order
+        </div>
+        {{ $orders->links() }}
+    </div>
 </div>
 @endsection

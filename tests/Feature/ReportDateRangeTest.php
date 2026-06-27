@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\ArInvoice;
 use App\Models\ApInvoice;
 use App\Models\ChartAccount;
+use App\Models\Delivery;
 use App\Models\JournalEntry;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -221,6 +222,97 @@ class ReportDateRangeTest extends TestCase
         $this->assertSame(7000, $item->purchase_price);
         $this->assertSame(100000, $item->subtotal);
         $this->assertSame(100000, $order->grand_total);
+    }
+
+    public function test_sales_report_filters_by_search_status_and_page_size(): void
+    {
+        $user = $this->superAdmin();
+        $targetOrder = Order::create([
+            'user_id' => $user->id,
+            'order_number' => 'KMG-SALES-FILTER-TARGET',
+            'delivery_date' => '2026-06-15',
+            'address' => 'Alamat Test',
+            'delivery_fee' => 0,
+            'packing_fee' => 0,
+            'status' => Order::STATUS_DELIVERED,
+            'subtotal' => 100000,
+            'total' => 100000,
+            'grand_total' => 100000,
+        ]);
+        $targetOrder->forceFill(['created_at' => '2026-06-15 10:00:00'])->save();
+
+        $otherOrder = Order::create([
+            'user_id' => $user->id,
+            'order_number' => 'KMG-SALES-FILTER-OTHER',
+            'delivery_date' => '2026-06-15',
+            'address' => 'Alamat Test',
+            'delivery_fee' => 0,
+            'packing_fee' => 0,
+            'status' => Order::STATUS_PENDING_PAYMENT,
+            'subtotal' => 50000,
+            'total' => 50000,
+            'grand_total' => 50000,
+        ]);
+        $otherOrder->forceFill(['created_at' => '2026-06-15 11:00:00'])->save();
+
+        $this->actingAs($user)
+            ->get('/reports/sales?start_date=2026-06-01&end_date=2026-06-30&search=TARGET&status=' . Order::STATUS_DELIVERED . '&per_page=10')
+            ->assertOk()
+            ->assertSee('KMG-SALES-FILTER-TARGET')
+            ->assertSee('10 data')
+            ->assertDontSee('KMG-SALES-FILTER-OTHER');
+    }
+
+    public function test_delivery_report_filters_by_search_status_and_page_size(): void
+    {
+        $user = $this->superAdmin();
+        $kurir = User::factory()->create(['name' => 'Kurir Target']);
+        $targetOrder = Order::create([
+            'user_id' => $user->id,
+            'order_number' => 'KMG-DELIVERY-TARGET',
+            'delivery_date' => '2026-06-15',
+            'address' => 'Alamat Test',
+            'delivery_fee' => 0,
+            'packing_fee' => 0,
+            'status' => Order::STATUS_SHIPPED,
+            'subtotal' => 100000,
+            'total' => 100000,
+            'grand_total' => 100000,
+        ]);
+        $targetOrder->forceFill(['created_at' => '2026-06-15 10:00:00'])->save();
+        $otherOrder = Order::create([
+            'user_id' => $user->id,
+            'order_number' => 'KMG-DELIVERY-OTHER',
+            'delivery_date' => '2026-06-15',
+            'address' => 'Alamat Test',
+            'delivery_fee' => 0,
+            'packing_fee' => 0,
+            'status' => Order::STATUS_SHIPPED,
+            'subtotal' => 50000,
+            'total' => 50000,
+            'grand_total' => 50000,
+        ]);
+        $otherOrder->forceFill(['created_at' => '2026-06-15 11:00:00'])->save();
+
+        Delivery::create([
+            'order_id' => $targetOrder->id,
+            'delivery_method' => Delivery::METHOD_INTERNAL,
+            'kurir_id' => $kurir->id,
+            'status' => Delivery::STATUS_COMPLETED,
+        ]);
+        Delivery::create([
+            'order_id' => $otherOrder->id,
+            'delivery_method' => Delivery::METHOD_INTERNAL,
+            'kurir_id' => $kurir->id,
+            'status' => Delivery::STATUS_ASSIGNED,
+        ]);
+
+        $this->actingAs($user)
+            ->get('/reports/delivery?start_date=2026-06-01&end_date=2026-06-30&search=TARGET&status=' . Delivery::STATUS_COMPLETED . '&per_page=10')
+            ->assertOk()
+            ->assertSee('KMG-DELIVERY-TARGET')
+            ->assertSee('10 data')
+            ->assertDontSee('KMG-DELIVERY-OTHER');
     }
 
     public function test_inventory_report_shows_week_cover_and_slow_moving_insights(): void

@@ -30,18 +30,40 @@ class ReportController extends Controller
 
         $request->validate([
             'principal_id' => ['nullable', 'exists:product_principals,id'],
+            'search' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', 'in:' . implode(',', array_keys(Order::STATUS_LIST))],
+            'per_page' => ['nullable', 'integer', 'in:10,25,50,100'],
         ]);
 
-        $selectedPrincipalId = $request->input('principal_id');
+        $filters = [
+            'principal_id' => $request->input('principal_id'),
+            'search' => trim((string) $request->input('search', '')),
+            'status' => $request->input('status'),
+            'per_page' => $this->reportPerPage($request),
+        ];
+        $selectedPrincipalId = $filters['principal_id'];
         $principalOptions = ProductPrincipal::active()->orderBy('sort_order')->orderBy('name')->get();
+        $statusOptions = Order::STATUS_LIST;
 
         $ordersQuery = Order::with('user')
             ->whereBetween('created_at', [$startDate, $endDate])
             ->when($selectedPrincipalId, function ($query) use ($selectedPrincipalId) {
                 $query->whereHas('items.product', fn ($query) => $query->where('principal_id', $selectedPrincipalId));
+            })
+            ->when($filters['search'], function ($query, string $search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('order_number', 'like', '%' . $search . '%')
+                        ->orWhereHas('user', function ($query) use ($search) {
+                            $query->where('name', 'like', '%' . $search . '%')
+                                ->orWhere('email', 'like', '%' . $search . '%');
+                        });
+                });
+            })
+            ->when($filters['status'], function ($query, string $status) {
+                $query->where('status', $status);
             });
 
-        $orders = (clone $ordersQuery)->latest()->paginate(20)->withQueryString();
+        $orders = (clone $ordersQuery)->latest()->paginate($filters['per_page'])->withQueryString();
 
         $grossSales = $selectedPrincipalId
             ? OrderItem::query()
@@ -60,7 +82,7 @@ class ReportController extends Controller
             'pending_orders' => (clone $ordersQuery)->where('status', Order::STATUS_PENDING_PAYMENT)->count(),
         ];
 
-        return view('reports.sales', compact('orders', 'summary', 'startDate', 'endDate', 'principalOptions', 'selectedPrincipalId'));
+        return view('reports.sales', compact('orders', 'summary', 'startDate', 'endDate', 'principalOptions', 'selectedPrincipalId', 'filters', 'statusOptions'));
     }
 
     public function inventory(Request $request)
@@ -157,9 +179,16 @@ class ReportController extends Controller
 
         $request->validate([
             'principal_id' => ['nullable', 'exists:product_principals,id'],
+            'search' => ['nullable', 'string', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'in:10,25,50,100'],
         ]);
 
-        $selectedPrincipalId = $request->input('principal_id');
+        $filters = [
+            'principal_id' => $request->input('principal_id'),
+            'search' => trim((string) $request->input('search', '')),
+            'per_page' => $this->reportPerPage($request),
+        ];
+        $selectedPrincipalId = $filters['principal_id'];
 
         $salesByPrincipal = OrderItem::query()
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
@@ -198,43 +227,54 @@ class ReportController extends Controller
             ->get()
             ->keyBy('principal_id');
 
-        $principals = ProductPrincipal::query()
+        $principalQuery = ProductPrincipal::query()
             ->withCount(['products', 'suppliers'])
             ->when($selectedPrincipalId, fn ($query) => $query->whereKey($selectedPrincipalId))
+            ->when($filters['search'], function ($query, string $search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('code', 'like', '%' . $search . '%')
+                        ->orWhere('contact_person', 'like', '%' . $search . '%');
+                });
+            })
             ->orderBy('sort_order')
-            ->orderBy('name')
-            ->get()
-            ->map(function (ProductPrincipal $principal) use ($salesByPrincipal, $purchaseByPrincipal, $stockByPrincipal, $productCounts) {
-                $sales = $salesByPrincipal->get($principal->id);
-                $purchase = $purchaseByPrincipal->get($principal->id);
-                $stock = $stockByPrincipal->get($principal->id);
-                $productCount = $productCounts->get($principal->id);
-                $salesAmount = (int) ($sales->sales_amount ?? 0);
-                $purchaseAmount = (int) ($purchase->purchase_amount ?? 0);
+            ->orderBy('name');
 
-                $principal->sales_qty = (int) ($sales->sales_qty ?? 0);
-                $principal->sales_amount = $salesAmount;
-                $principal->order_count = (int) ($sales->order_count ?? 0);
-                $principal->purchase_qty = (int) ($purchase->purchase_qty ?? 0);
-                $principal->purchase_amount = $purchaseAmount;
-                $principal->po_count = (int) ($purchase->po_count ?? 0);
-                $principal->stock_qty = (int) ($stock->stock_qty ?? 0);
-                $principal->consignment_qty = (int) ($stock->consignment_qty ?? 0);
-                $principal->product_count = (int) ($productCount->product_count ?? $principal->products_count);
-                $principal->active_product_count = (int) ($productCount->active_product_count ?? 0);
-                $principal->gross_margin = $salesAmount - $purchaseAmount;
-                $principal->gross_margin_percent = $salesAmount > 0 ? round(($principal->gross_margin / $salesAmount) * 100, 1) : null;
+        $hydratePrincipalMetrics = function (ProductPrincipal $principal) use ($salesByPrincipal, $purchaseByPrincipal, $stockByPrincipal, $productCounts) {
+            $sales = $salesByPrincipal->get($principal->id);
+            $purchase = $purchaseByPrincipal->get($principal->id);
+            $stock = $stockByPrincipal->get($principal->id);
+            $productCount = $productCounts->get($principal->id);
+            $salesAmount = (int) ($sales->sales_amount ?? 0);
+            $purchaseAmount = (int) ($purchase->purchase_amount ?? 0);
 
-                return $principal;
-            });
+            $principal->sales_qty = (int) ($sales->sales_qty ?? 0);
+            $principal->sales_amount = $salesAmount;
+            $principal->order_count = (int) ($sales->order_count ?? 0);
+            $principal->purchase_qty = (int) ($purchase->purchase_qty ?? 0);
+            $principal->purchase_amount = $purchaseAmount;
+            $principal->po_count = (int) ($purchase->po_count ?? 0);
+            $principal->stock_qty = (int) ($stock->stock_qty ?? 0);
+            $principal->consignment_qty = (int) ($stock->consignment_qty ?? 0);
+            $principal->product_count = (int) ($productCount->product_count ?? $principal->products_count);
+            $principal->active_product_count = (int) ($productCount->active_product_count ?? 0);
+            $principal->gross_margin = $salesAmount - $purchaseAmount;
+            $principal->gross_margin_percent = $salesAmount > 0 ? round(($principal->gross_margin / $salesAmount) * 100, 1) : null;
+
+            return $principal;
+        };
+
+        $allPrincipals = (clone $principalQuery)->get()->map($hydratePrincipalMetrics);
+        $principals = (clone $principalQuery)->paginate($filters['per_page'])->withQueryString();
+        $principals->setCollection($principals->getCollection()->map($hydratePrincipalMetrics));
 
         $summary = [
             'principal_count' => ProductPrincipal::where('is_active', true)->count(),
             'product_count' => Product::whereNotNull('principal_id')->count(),
-            'sales_amount' => $principals->sum('sales_amount'),
-            'purchase_amount' => $principals->sum('purchase_amount'),
-            'stock_qty' => $principals->sum('stock_qty'),
-            'margin' => $principals->sum('gross_margin'),
+            'sales_amount' => $allPrincipals->sum('sales_amount'),
+            'purchase_amount' => $allPrincipals->sum('purchase_amount'),
+            'stock_qty' => $allPrincipals->sum('stock_qty'),
+            'margin' => $allPrincipals->sum('gross_margin'),
         ];
 
         $principalOptions = ProductPrincipal::active()->orderBy('sort_order')->orderBy('name')->get();
@@ -245,7 +285,8 @@ class ReportController extends Controller
             'selectedPrincipalId',
             'summary',
             'startDate',
-            'endDate'
+            'endDate',
+            'filters'
         ));
     }
 
@@ -253,20 +294,49 @@ class ReportController extends Controller
     {
         [$startDate, $endDate] = $this->dateRange($request);
 
-        $deliveries = Delivery::with('order.user', 'kurir')
+        $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', 'in:' . implode(',', array_keys(Delivery::STATUS_LIST))],
+            'per_page' => ['nullable', 'integer', 'in:10,25,50,100'],
+        ]);
+
+        $filters = [
+            'search' => trim((string) $request->input('search', '')),
+            'status' => $request->input('status'),
+            'per_page' => $this->reportPerPage($request),
+        ];
+        $statusOptions = Delivery::STATUS_LIST;
+
+        $deliveryQuery = Delivery::with('order.user', 'kurir')
             ->whereBetween('created_at', [$startDate, $endDate])
+            ->when($filters['status'], fn ($query, string $status) => $query->where('status', $status))
+            ->when($filters['search'], function ($query, string $search) {
+                $query->where(function ($query) use ($search) {
+                    $query->whereHas('order', fn ($query) => $query->where('order_number', 'like', '%' . $search . '%'))
+                        ->orWhereHas('order.user', function ($query) use ($search) {
+                            $query->where('name', 'like', '%' . $search . '%')
+                                ->orWhere('email', 'like', '%' . $search . '%');
+                        })
+                        ->orWhereHas('kurir', function ($query) use ($search) {
+                            $query->where('name', 'like', '%' . $search . '%')
+                                ->orWhere('email', 'like', '%' . $search . '%');
+                        });
+                });
+            });
+
+        $deliveries = (clone $deliveryQuery)
             ->latest()
-            ->paginate(20)
+            ->paginate($filters['per_page'])
             ->withQueryString();
 
         $summary = [
-            'total_deliveries' => Delivery::whereBetween('created_at', [$startDate, $endDate])->count(),
-            'completed' => Delivery::whereBetween('created_at', [$startDate, $endDate])->where('status', Delivery::STATUS_COMPLETED)->count(),
-            'in_progress' => Delivery::whereBetween('created_at', [$startDate, $endDate])->whereIn('status', [Delivery::STATUS_ASSIGNED, Delivery::STATUS_PICKED_UP, Delivery::STATUS_IN_TRANSIT])->count(),
-            'today' => Delivery::whereDate('created_at', today())->count(),
+            'total_deliveries' => (clone $deliveryQuery)->count(),
+            'completed' => (clone $deliveryQuery)->where('status', Delivery::STATUS_COMPLETED)->count(),
+            'in_progress' => (clone $deliveryQuery)->whereIn('status', [Delivery::STATUS_ASSIGNED, Delivery::STATUS_PICKED_UP, Delivery::STATUS_IN_TRANSIT])->count(),
+            'today' => (clone $deliveryQuery)->whereDate('created_at', today())->count(),
         ];
 
-        return view('reports.delivery', compact('deliveries', 'summary', 'startDate', 'endDate'));
+        return view('reports.delivery', compact('deliveries', 'summary', 'startDate', 'endDate', 'filters', 'statusOptions'));
     }
 
     public function financial(Request $request)
@@ -451,6 +521,10 @@ class ReportController extends Controller
             return $this->exportInventory($request, $startDate, $endDate);
         }
 
+        if ($type === 'delivery') {
+            return $this->exportDelivery($request, $startDate, $endDate);
+        }
+
         return response()->streamDownload(function () use ($type, $startDate, $endDate) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, ['Report', ucfirst($type)]);
@@ -465,9 +539,16 @@ class ReportController extends Controller
     {
         $request->validate([
             'principal_id' => ['nullable', 'exists:product_principals,id'],
+            'search' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', 'in:' . implode(',', array_keys(Order::STATUS_LIST))],
         ]);
 
-        $selectedPrincipalId = $request->input('principal_id');
+        $filters = [
+            'principal_id' => $request->input('principal_id'),
+            'search' => trim((string) $request->input('search', '')),
+            'status' => $request->input('status'),
+        ];
+        $selectedPrincipalId = $filters['principal_id'];
         $principal = $selectedPrincipalId ? ProductPrincipal::find($selectedPrincipalId) : null;
 
         $orders = Order::with(['user', 'items.product.principal'])
@@ -475,16 +556,30 @@ class ReportController extends Controller
             ->when($selectedPrincipalId, function ($query) use ($selectedPrincipalId) {
                 $query->whereHas('items.product', fn ($query) => $query->where('principal_id', $selectedPrincipalId));
             })
+            ->when($filters['search'], function ($query, string $search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('order_number', 'like', '%' . $search . '%')
+                        ->orWhereHas('user', function ($query) use ($search) {
+                            $query->where('name', 'like', '%' . $search . '%')
+                                ->orWhere('email', 'like', '%' . $search . '%');
+                        });
+                });
+            })
+            ->when($filters['status'], function ($query, string $status) {
+                $query->where('status', $status);
+            })
             ->latest()
             ->get();
 
-        return response()->streamDownload(function () use ($orders, $startDate, $endDate, $principal, $selectedPrincipalId) {
+        return response()->streamDownload(function () use ($orders, $startDate, $endDate, $principal, $selectedPrincipalId, $filters) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, ['Report', 'Laporan Penjualan']);
             fputcsv($handle, ['Generated At', now()->toDateTimeString()]);
             fputcsv($handle, ['Start Date', $startDate->toDateString()]);
             fputcsv($handle, ['End Date', $endDate->toDateString()]);
             fputcsv($handle, ['Principal', $principal?->name ?? 'Semua Principal']);
+            fputcsv($handle, ['Search', $filters['search'] ?: '-']);
+            fputcsv($handle, ['Status', $filters['status'] ? (Order::STATUS_LIST[$filters['status']] ?? $filters['status']) : 'Semua Status']);
             fputcsv($handle, []);
             fputcsv($handle, ['Order', 'Tanggal', 'Customer', 'Principal', 'Produk', 'Qty', 'Harga', 'Subtotal Item', 'Status']);
 
@@ -510,6 +605,62 @@ class ReportController extends Controller
 
             fclose($handle);
         }, 'sales-report-' . now()->format('Ymd-His') . '.csv');
+    }
+
+    private function exportDelivery(Request $request, $startDate, $endDate): StreamedResponse
+    {
+        $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', 'in:' . implode(',', array_keys(Delivery::STATUS_LIST))],
+        ]);
+
+        $filters = [
+            'search' => trim((string) $request->input('search', '')),
+            'status' => $request->input('status'),
+        ];
+
+        $deliveries = Delivery::with(['order.user', 'kurir'])
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->when($filters['status'], fn ($query, string $status) => $query->where('status', $status))
+            ->when($filters['search'], function ($query, string $search) {
+                $query->where(function ($query) use ($search) {
+                    $query->whereHas('order', fn ($query) => $query->where('order_number', 'like', '%' . $search . '%'))
+                        ->orWhereHas('order.user', function ($query) use ($search) {
+                            $query->where('name', 'like', '%' . $search . '%')
+                                ->orWhere('email', 'like', '%' . $search . '%');
+                        })
+                        ->orWhereHas('kurir', function ($query) use ($search) {
+                            $query->where('name', 'like', '%' . $search . '%')
+                                ->orWhere('email', 'like', '%' . $search . '%');
+                        });
+                });
+            })
+            ->latest()
+            ->get();
+
+        return response()->streamDownload(function () use ($deliveries, $startDate, $endDate, $filters) {
+            $handle = fopen('php://output', 'w');
+            fputcsv($handle, ['Report', 'Laporan Pengiriman']);
+            fputcsv($handle, ['Generated At', now()->toDateTimeString()]);
+            fputcsv($handle, ['Start Date', $startDate->toDateString()]);
+            fputcsv($handle, ['End Date', $endDate->toDateString()]);
+            fputcsv($handle, ['Search', $filters['search'] ?: '-']);
+            fputcsv($handle, ['Status', $filters['status'] ? (Delivery::STATUS_LIST[$filters['status']] ?? $filters['status']) : 'Semua Status']);
+            fputcsv($handle, []);
+            fputcsv($handle, ['Order', 'Tanggal', 'Customer', 'Kurir', 'Status']);
+
+            foreach ($deliveries as $delivery) {
+                fputcsv($handle, [
+                    $delivery->order?->order_number ?? '-',
+                    $delivery->created_at?->toDateString(),
+                    $delivery->order?->user?->name ?? '-',
+                    $delivery->kurir?->name ?? '-',
+                    $delivery->status_label ?? (Delivery::STATUS_LIST[$delivery->status] ?? $delivery->status),
+                ]);
+            }
+
+            fclose($handle);
+        }, 'delivery-report-' . now()->format('Ymd-His') . '.csv');
     }
 
     private function inventoryProductQuery(array $filters)
@@ -804,6 +955,13 @@ class ReportController extends Controller
             : now()->endOfDay();
 
         return [$startDate, $endDate];
+    }
+
+    private function reportPerPage(Request $request, int $default = 25): int
+    {
+        $perPage = (int) $request->input('per_page', $default);
+
+        return in_array($perPage, [10, 25, 50, 100], true) ? $perPage : $default;
     }
 
     private function selectedReportBranchId(Request $request): mixed

@@ -12,32 +12,13 @@
         </div>
     </div>
 
-    <form method="GET" class="dms-toolbar" style="align-items: end;">
-        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: end; flex: 1;">
-            <div>
-                <label class="form-label">Tanggal Mulai</label>
-                <input type="date" name="start_date" value="{{ $startDate->toDateString() }}" class="form-control">
-            </div>
-            <div>
-                <label class="form-label">Tanggal Akhir</label>
-                <input type="date" name="end_date" value="{{ $endDate->toDateString() }}" class="form-control">
-            </div>
-            <div style="min-width: 220px;">
-                <label class="form-label">Principal</label>
-                <select name="principal_id" class="form-control">
-                    <option value="">Semua Principal</option>
-                    @foreach($principalOptions as $principal)
-                        <option value="{{ $principal->id }}" {{ (string) $selectedPrincipalId === (string) $principal->id ? 'selected' : '' }}>
-                            {{ $principal->name }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <button type="submit" class="dms-btn dms-btn-primary">
-                <i class="bi bi-funnel"></i> Filter
-            </button>
-        </div>
-    </form>
+    @include('reports._filters', [
+        'principalOptions' => $principalOptions,
+        'selectedPrincipalId' => $selectedPrincipalId,
+        'filters' => $filters,
+        'searchLabel' => 'Cari Principal',
+        'searchPlaceholder' => 'Nama principal, kode, kontak...',
+    ])
 
     @include('reports._summary', ['items' => [
         ['label' => 'Principal Aktif', 'value' => number_format($summary['principal_count']), 'icon' => 'bi-building'],
@@ -49,7 +30,7 @@
     ]])
 
     <div class="dms-table-wrap">
-        <table class="dms-table">
+        <table class="dms-table" style="min-width: 1120px;">
             <thead>
                 <tr>
                     <th>Principal</th>
@@ -109,6 +90,13 @@
                 @endforelse
             </tbody>
         </table>
+    </div>
+
+    <div class="dms-pagination">
+        <div class="dms-pagination-summary">
+            Menampilkan {{ $principals->firstItem() ?? 0 }} - {{ $principals->lastItem() ?? 0 }} dari {{ $principals->total() }} principal
+        </div>
+        {{ $principals->links() }}
     </div>
 </div>
 @endsection
