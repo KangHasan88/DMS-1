@@ -54,20 +54,20 @@
     </div>
 
     <div class="dms-table-wrap">
-        <table class="dms-table">
+        <table class="dms-table" style="min-width: 1120px;">
             <thead>
                 <tr>
                     <th>No. Invoice</th>
                     <th>Pelanggan</th>
                     <th>Order</th>
-                    <th>Jatuh Tempo</th>
-                    <th>Hari Terlambat</th>
-                    <th>Bucket</th>
-                    <th>Total</th>
-                    <th>Terbayar</th>
-                    <th>Credit Note</th>
-                    <th>Outstanding</th>
-                    <th style="width: 110px;">Aksi</th>
+                    <th style="text-align: right;">Jatuh Tempo</th>
+                    <th style="text-align: right;">Hari Terlambat</th>
+                    <th style="text-align: center;">Bucket</th>
+                    <th style="text-align: right;">Total</th>
+                    <th style="text-align: right;">Terbayar</th>
+                    <th style="text-align: right;">Credit Note</th>
+                    <th style="text-align: right;">Outstanding</th>
+                    <th style="width: 110px; text-align: center;">Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -76,14 +76,14 @@
                         <td><strong>{{ $invoice->invoice_number }}</strong></td>
                         <td>{{ $invoice->customer?->name ?? $invoice->customerUser?->name ?? '-' }}</td>
                         <td>{{ $invoice->order?->order_number ?? '-' }}</td>
-                        <td>{{ $invoice->due_date?->format('d M Y') ?? '-' }}</td>
-                        <td>{{ $invoice->days_overdue > 0 ? number_format($invoice->days_overdue) . ' hari' : '-' }}</td>
-                        <td><span class="dms-badge dms-badge-{{ $invoice->aging_badge }}">{{ $invoice->aging_bucket }}</span></td>
-                        <td class="dms-money">Rp {{ number_format($invoice->total_amount, 0, ',', '.') }}</td>
-                        <td class="dms-money">Rp {{ number_format($invoice->paid_amount, 0, ',', '.') }}</td>
-                        <td class="dms-money">Rp {{ number_format($invoice->credit_note_amount, 0, ',', '.') }}</td>
-                        <td class="dms-money">Rp {{ number_format($invoice->outstanding_amount, 0, ',', '.') }}</td>
-                        <td>
+                        <td style="text-align: right; white-space: nowrap;">{{ $invoice->due_date?->format('d M Y') ?? '-' }}</td>
+                        <td style="text-align: right; white-space: nowrap;">{{ $invoice->days_overdue > 0 ? number_format($invoice->days_overdue) . ' hari' : '-' }}</td>
+                        <td style="text-align: center;"><span class="dms-badge dms-badge-{{ $invoice->aging_badge }}">{{ $invoice->aging_bucket }}</span></td>
+                        <td class="dms-money" style="text-align: right;">Rp {{ number_format($invoice->total_amount, 0, ',', '.') }}</td>
+                        <td class="dms-money" style="text-align: right;">Rp {{ number_format($invoice->paid_amount, 0, ',', '.') }}</td>
+                        <td class="dms-money" style="text-align: right;">Rp {{ number_format($invoice->credit_note_amount, 0, ',', '.') }}</td>
+                        <td class="dms-money" style="text-align: right;">Rp {{ number_format($invoice->outstanding_amount, 0, ',', '.') }}</td>
+                        <td style="text-align: center;">
                             <a href="{{ route('ar-invoices.show', $invoice) }}" class="dms-btn dms-btn-outline dms-btn-sm" title="Detail">
                                 <i class="bi bi-eye"></i>
                             </a>
@@ -102,6 +102,9 @@
     </div>
 
     <div class="dms-pagination" style="margin-top: 1rem;">
+        <div class="dms-pagination-summary">
+            Menampilkan {{ $invoices->firstItem() ?? 0 }} - {{ $invoices->lastItem() ?? 0 }} dari {{ $invoices->total() }} invoice
+        </div>
         {{ $invoices->links() }}
     </div>
 </div>
