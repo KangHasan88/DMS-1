@@ -69,32 +69,45 @@ class ReportController extends Controller
 
         $request->validate([
             'principal_id' => ['nullable', 'exists:product_principals,id'],
+            'search' => ['nullable', 'string', 'max:100'],
+            'category' => ['nullable', 'string', 'max:100'],
+            'insight' => ['nullable', 'in:out,slow,reorder,overstock,healthy'],
+            'per_page' => ['nullable', 'integer', 'in:10,25,50,100'],
         ]);
 
-        $selectedPrincipalId = $request->input('principal_id');
+        $requestedPerPage = (int) $request->input('per_page', 25);
+        $filters = [
+            'principal_id' => $request->input('principal_id'),
+            'search' => trim((string) $request->input('search', '')),
+            'category' => $request->input('category'),
+            'insight' => $request->input('insight'),
+            'per_page' => in_array($requestedPerPage, [10, 25, 50, 100], true) ? $requestedPerPage : 25,
+        ];
+        $selectedPrincipalId = $filters['principal_id'];
         $principalOptions = ProductPrincipal::active()->orderBy('sort_order')->orderBy('name')->get();
+        $categoryOptions = $this->inventoryCategoryOptions($filters);
+        $insightOptions = $this->inventoryInsightOptions();
         $salesWindowStart = now()->subDays(30)->startOfDay();
 
-        $productBaseQuery = Product::query()
-            ->when($selectedPrincipalId, fn ($query) => $query->where('principal_id', $selectedPrincipalId));
+        $productBaseQuery = $this->inventoryProductQuery($filters);
+        $allSalesVelocity = $this->inventorySalesVelocity((clone $productBaseQuery)->pluck('id'), $salesWindowStart);
+
+        if ($filters['insight']) {
+            $matchingProductIds = $this->inventoryProductIdsForInsight((clone $productBaseQuery), $allSalesVelocity, $filters['insight']);
+            $productBaseQuery->whereIn('id', $matchingProductIds);
+        }
+
+        $filteredProductIds = (clone $productBaseQuery)->pluck('id');
 
         $products = (clone $productBaseQuery)
             ->with('principal', 'unit', 'stock')
             ->orderBy('name')
-            ->paginate(20)
+            ->paginate($filters['per_page'])
             ->withQueryString();
 
         $productIds = $products->getCollection()->pluck('id');
 
-        $salesVelocity = OrderItem::query()
-            ->select('product_id', DB::raw('SUM(quantity) as sold_last_30_days'))
-            ->whereIn('product_id', $productIds)
-            ->whereHas('order', function ($query) use ($salesWindowStart) {
-                $query->whereIn('status', [Order::STATUS_SHIPPED, Order::STATUS_DELIVERED])
-                    ->where('created_at', '>=', $salesWindowStart);
-            })
-            ->groupBy('product_id')
-            ->pluck('sold_last_30_days', 'product_id');
+        $salesVelocity = $this->inventorySalesVelocity($productIds, $salesWindowStart);
 
         $products->getCollection()->transform(function (Product $product) use ($salesVelocity) {
             $quantity = $product->stock?->quantity ?? 0;
@@ -109,17 +122,6 @@ class ReportController extends Controller
 
             return $product;
         });
-
-        $allProductIds = (clone $productBaseQuery)->pluck('id');
-        $allSalesVelocity = OrderItem::query()
-            ->select('product_id', DB::raw('SUM(quantity) as sold_last_30_days'))
-            ->whereIn('product_id', $allProductIds)
-            ->whereHas('order', function ($query) use ($salesWindowStart) {
-                $query->whereIn('status', [Order::STATUS_SHIPPED, Order::STATUS_DELIVERED])
-                    ->where('created_at', '>=', $salesWindowStart);
-            })
-            ->groupBy('product_id')
-            ->pluck('sold_last_30_days', 'product_id');
 
         $inventorySignals = (clone $productBaseQuery)->with('stock')->get()
             ->map(function (Product $product) use ($allSalesVelocity) {
@@ -136,17 +138,17 @@ class ReportController extends Controller
             'active_products' => (clone $productBaseQuery)->where('is_active', true)->count(),
             'stock_in' => StockMovement::whereBetween('created_at', [$startDate, $endDate])
                 ->where('type', StockMovement::TYPE_IN)
-                ->when($selectedPrincipalId, fn ($query) => $query->whereHas('product', fn ($query) => $query->where('principal_id', $selectedPrincipalId)))
+                ->whereIn('product_id', $filteredProductIds)
                 ->sum('quantity'),
             'stock_out' => StockMovement::whereBetween('created_at', [$startDate, $endDate])
                 ->where('type', StockMovement::TYPE_OUT)
-                ->when($selectedPrincipalId, fn ($query) => $query->whereHas('product', fn ($query) => $query->where('principal_id', $selectedPrincipalId)))
+                ->whereIn('product_id', $filteredProductIds)
                 ->sum('quantity'),
             'slow_moving' => $inventorySignals->filter(fn (string $type) => $type === 'slow')->count(),
             'overstock' => $inventorySignals->filter(fn (string $type) => $type === 'overstock')->count(),
         ];
 
-        return view('reports.inventory', compact('products', 'summary', 'startDate', 'endDate', 'principalOptions', 'selectedPrincipalId'));
+        return view('reports.inventory', compact('products', 'summary', 'startDate', 'endDate', 'principalOptions', 'selectedPrincipalId', 'categoryOptions', 'insightOptions', 'filters'));
     }
 
     public function principal(Request $request)
@@ -510,23 +512,52 @@ class ReportController extends Controller
         }, 'sales-report-' . now()->format('Ymd-His') . '.csv');
     }
 
-    private function exportInventory(Request $request, $startDate, $endDate): StreamedResponse
+    private function inventoryProductQuery(array $filters)
     {
-        $request->validate([
-            'principal_id' => ['nullable', 'exists:product_principals,id'],
-        ]);
+        return Product::query()
+            ->when($filters['principal_id'] ?? null, fn ($query, $principalId) => $query->where('principal_id', $principalId))
+            ->when($filters['search'] ?? null, function ($query, string $search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('category', 'like', '%' . $search . '%')
+                        ->orWhereHas('principal', function ($query) use ($search) {
+                            $query->where('name', 'like', '%' . $search . '%')
+                                ->orWhere('code', 'like', '%' . $search . '%');
+                        });
+                });
+            })
+            ->when($filters['category'] ?? null, fn ($query, $category) => $query->where('category', $category));
+    }
 
-        $selectedPrincipalId = $request->input('principal_id');
-        $principal = $selectedPrincipalId ? ProductPrincipal::find($selectedPrincipalId) : null;
-        $salesWindowStart = now()->subDays(30)->startOfDay();
+    private function inventoryCategoryOptions(array $filters)
+    {
+        return Product::query()
+            ->when($filters['principal_id'] ?? null, fn ($query, $principalId) => $query->where('principal_id', $principalId))
+            ->whereNotNull('category')
+            ->where('category', '<>', '')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category');
+    }
 
-        $products = Product::with(['principal', 'unit', 'stock'])
-            ->when($selectedPrincipalId, fn ($query) => $query->where('principal_id', $selectedPrincipalId))
-            ->orderBy('name')
-            ->get();
+    private function inventoryInsightOptions(): array
+    {
+        return [
+            'out' => 'Stok Habis',
+            'slow' => 'Belum Bergerak 30 Hari',
+            'reorder' => 'Perlu Reorder',
+            'overstock' => 'Stok Berlebih',
+            'healthy' => 'Sehat',
+        ];
+    }
 
-        $productIds = $products->pluck('id');
-        $salesVelocity = OrderItem::query()
+    private function inventorySalesVelocity($productIds, $salesWindowStart)
+    {
+        if ($productIds->isEmpty()) {
+            return collect();
+        }
+
+        return OrderItem::query()
             ->select('product_id', DB::raw('SUM(quantity) as sold_last_30_days'))
             ->whereIn('product_id', $productIds)
             ->whereHas('order', function ($query) use ($salesWindowStart) {
@@ -535,14 +566,67 @@ class ReportController extends Controller
             })
             ->groupBy('product_id')
             ->pluck('sold_last_30_days', 'product_id');
+    }
 
-        return response()->streamDownload(function () use ($products, $salesVelocity, $startDate, $endDate, $principal) {
+    private function inventoryProductIdsForInsight($productQuery, $salesVelocity, string $selectedInsight)
+    {
+        return $productQuery->with('stock')->get()
+            ->filter(function (Product $product) use ($salesVelocity, $selectedInsight) {
+                $quantity = $product->stock?->quantity ?? 0;
+                $soldLast30Days = (int) ($salesVelocity[$product->id] ?? 0);
+                $weeklySalesAverage = $soldLast30Days > 0 ? $soldLast30Days / (30 / 7) : 0;
+                $weekCover = $weeklySalesAverage > 0 ? round($quantity / $weeklySalesAverage, 1) : null;
+
+                return $this->inventorySignal($quantity, $soldLast30Days, $weekCover)['type'] === $selectedInsight;
+            })
+            ->pluck('id')
+            ->values();
+    }
+
+    private function exportInventory(Request $request, $startDate, $endDate): StreamedResponse
+    {
+        $request->validate([
+            'principal_id' => ['nullable', 'exists:product_principals,id'],
+            'search' => ['nullable', 'string', 'max:100'],
+            'category' => ['nullable', 'string', 'max:100'],
+            'insight' => ['nullable', 'in:out,slow,reorder,overstock,healthy'],
+        ]);
+
+        $filters = [
+            'principal_id' => $request->input('principal_id'),
+            'search' => trim((string) $request->input('search', '')),
+            'category' => $request->input('category'),
+            'insight' => $request->input('insight'),
+        ];
+        $principal = $filters['principal_id'] ? ProductPrincipal::find($filters['principal_id']) : null;
+        $salesWindowStart = now()->subDays(30)->startOfDay();
+
+        $productQuery = $this->inventoryProductQuery($filters);
+        $allSalesVelocity = $this->inventorySalesVelocity((clone $productQuery)->pluck('id'), $salesWindowStart);
+
+        if ($filters['insight']) {
+            $matchingProductIds = $this->inventoryProductIdsForInsight((clone $productQuery), $allSalesVelocity, $filters['insight']);
+            $productQuery->whereIn('id', $matchingProductIds);
+        }
+
+        $products = $productQuery
+            ->with(['principal', 'unit', 'stock'])
+            ->orderBy('name')
+            ->get();
+
+        $productIds = $products->pluck('id');
+        $salesVelocity = $this->inventorySalesVelocity($productIds, $salesWindowStart);
+
+        return response()->streamDownload(function () use ($products, $salesVelocity, $startDate, $endDate, $principal, $filters) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, ['Report', 'Laporan Inventori']);
             fputcsv($handle, ['Generated At', now()->toDateTimeString()]);
             fputcsv($handle, ['Start Date', $startDate->toDateString()]);
             fputcsv($handle, ['End Date', $endDate->toDateString()]);
             fputcsv($handle, ['Principal', $principal?->name ?? 'Semua Principal']);
+            fputcsv($handle, ['Search', $filters['search'] ?: '-']);
+            fputcsv($handle, ['Category', $filters['category'] ?: 'Semua Kategori']);
+            fputcsv($handle, ['Insight', $filters['insight'] ? ($this->inventoryInsightOptions()[$filters['insight']] ?? $filters['insight']) : 'Semua Insight']);
             fputcsv($handle, []);
             fputcsv($handle, ['Produk', 'Principal', 'Satuan', 'Stok', 'Min Stok', 'Max Stok', 'Terjual 30 Hari', 'Week Cover', 'Sinyal']);
 

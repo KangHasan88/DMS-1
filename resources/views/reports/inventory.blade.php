@@ -8,7 +8,14 @@
     <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.35rem;">Inventory Report</h3>
     <p style="font-size: 0.85rem; color: var(--k-gray-500); margin-bottom: 1.25rem;">Ringkasan produk, stok, pergerakan barang, dan indikator week-cover ala DMS distribusi.</p>
 
-    @include('reports._filters', ['exportType' => 'inventory', 'principalOptions' => $principalOptions, 'selectedPrincipalId' => $selectedPrincipalId])
+    @include('reports._filters', [
+        'exportType' => 'inventory',
+        'principalOptions' => $principalOptions,
+        'selectedPrincipalId' => $selectedPrincipalId,
+        'categoryOptions' => $categoryOptions,
+        'insightOptions' => $insightOptions,
+        'filters' => $filters,
+    ])
     @include('reports._summary', ['items' => [
         ['label' => 'Total Products', 'value' => number_format($summary['total_products']), 'icon' => 'bi-box-seam'],
         ['label' => 'Active Products', 'value' => number_format($summary['active_products']), 'icon' => 'bi-check2-circle'],

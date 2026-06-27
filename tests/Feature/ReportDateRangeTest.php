@@ -293,6 +293,49 @@ class ReportDateRangeTest extends TestCase
             ->assertSee('Produk Diam');
     }
 
+    public function test_inventory_report_filters_by_search_category_insight_and_page_size(): void
+    {
+        $user = $this->superAdmin();
+        $principal = ProductPrincipal::create(['code' => 'TEST-DANONE', 'name' => 'Danone Test', 'is_active' => true]);
+        $outProduct = Product::create([
+            'principal_id' => $principal->id,
+            'name' => 'AQUA Botol Filter Test',
+            'category' => 'Minuman',
+            'price' => 50000,
+            'base_price' => 42000,
+            'is_active' => true,
+        ]);
+        ProductStock::create([
+            'product_id' => $outProduct->id,
+            'quantity' => 0,
+            'min_stock' => 5,
+            'max_stock' => 50,
+        ]);
+
+        $otherProduct = Product::create([
+            'principal_id' => $principal->id,
+            'name' => 'Mizone Filter Test',
+            'category' => 'Isotonik',
+            'price' => 60000,
+            'base_price' => 45000,
+            'is_active' => true,
+        ]);
+        ProductStock::create([
+            'product_id' => $otherProduct->id,
+            'quantity' => 30,
+            'min_stock' => 5,
+            'max_stock' => 50,
+        ]);
+
+        $this->actingAs($user)
+            ->get('/reports/inventory?search=AQUA&category=Minuman&insight=out&per_page=10')
+            ->assertOk()
+            ->assertSee('AQUA Botol Filter Test')
+            ->assertSee('Stok Habis')
+            ->assertSee('10 data')
+            ->assertDontSee('Mizone Filter Test');
+    }
+
     public function test_ar_aging_report_groups_open_receivables_by_due_date(): void
     {
         $user = $this->superAdmin();
