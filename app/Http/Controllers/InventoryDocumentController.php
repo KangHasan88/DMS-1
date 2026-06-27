@@ -15,7 +15,7 @@ class InventoryDocumentController extends Controller
 {
     public function index(Request $request)
     {
-        $query = InventoryDocument::with('warehouse', 'companyBranch', 'creator')
+        $query = InventoryDocument::with('warehouse', 'transferToWarehouse', 'companyBranch', 'creator')
             ->withCount('items');
 
         if ($request->filled('search')) {
@@ -68,6 +68,12 @@ class InventoryDocumentController extends Controller
             'type' => ['required', Rule::in(array_keys(InventoryDocument::TYPES))],
             'document_date' => ['required', 'date'],
             'warehouse_id' => ['required', 'exists:warehouses,id'],
+            'transfer_to_warehouse_id' => [
+                Rule::requiredIf($request->input('type') === InventoryDocument::TYPE_TRANSFER),
+                'nullable',
+                'exists:warehouses,id',
+                'different:warehouse_id',
+            ],
             'company_branch_id' => ['nullable', 'exists:company_branches,id'],
             'reference_number' => ['nullable', 'string', 'max:120'],
             'notes' => ['nullable', 'string', 'max:1000'],
@@ -85,6 +91,7 @@ class InventoryDocumentController extends Controller
                 'status' => InventoryDocument::STATUS_DRAFT,
                 'document_date' => $validated['document_date'],
                 'warehouse_id' => $validated['warehouse_id'],
+                'transfer_to_warehouse_id' => $validated['transfer_to_warehouse_id'] ?? null,
                 'company_branch_id' => $validated['company_branch_id'] ?? null,
                 'reference_number' => $validated['reference_number'] ?? null,
                 'notes' => $validated['notes'] ?? null,
@@ -104,7 +111,7 @@ class InventoryDocumentController extends Controller
 
     public function show(InventoryDocument $inventoryDocument)
     {
-        $inventoryDocument->load('warehouse', 'companyBranch', 'items.product.unit', 'creator', 'postedBy', 'voidedBy');
+        $inventoryDocument->load('warehouse', 'transferToWarehouse', 'companyBranch', 'items.product.unit', 'creator', 'postedBy', 'voidedBy');
 
         return view('inventory-documents.show', ['document' => $inventoryDocument]);
     }

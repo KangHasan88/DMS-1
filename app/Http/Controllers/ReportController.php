@@ -12,12 +12,14 @@ use App\Models\JournalEntryLine;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\ProductWarehouseStock;
 use App\Models\ProductPrincipal;
 use App\Models\ProductStock;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\Supplier;
 use App\Models\StockMovement;
+use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -93,6 +95,7 @@ class ReportController extends Controller
             'principal_id' => ['nullable', 'exists:product_principals,id'],
             'search' => ['nullable', 'string', 'max:100'],
             'category' => ['nullable', 'string', 'max:100'],
+            'warehouse_id' => ['nullable', 'exists:warehouses,id'],
             'insight' => ['nullable', 'in:out,slow,reorder,overstock,healthy'],
             'per_page' => ['nullable', 'integer', 'in:10,25,50,100'],
         ]);
@@ -102,20 +105,25 @@ class ReportController extends Controller
             'principal_id' => $request->input('principal_id'),
             'search' => trim((string) $request->input('search', '')),
             'category' => $request->input('category'),
+            'warehouse_id' => $request->input('warehouse_id'),
             'insight' => $request->input('insight'),
             'per_page' => in_array($requestedPerPage, [10, 25, 50, 100], true) ? $requestedPerPage : 25,
         ];
         $selectedPrincipalId = $filters['principal_id'];
+        $selectedWarehouseId = $filters['warehouse_id'];
         $principalOptions = ProductPrincipal::active()->orderBy('sort_order')->orderBy('name')->get();
+        $warehouseOptions = Warehouse::active()->orderByDesc('is_default')->orderBy('sort_order')->orderBy('name')->get();
         $categoryOptions = $this->inventoryCategoryOptions($filters);
         $insightOptions = $this->inventoryInsightOptions();
         $salesWindowStart = now()->subDays(30)->startOfDay();
 
         $productBaseQuery = $this->inventoryProductQuery($filters);
-        $allSalesVelocity = $this->inventorySalesVelocity((clone $productBaseQuery)->pluck('id'), $salesWindowStart);
+        $allProductIds = (clone $productBaseQuery)->pluck('id');
+        $allSalesVelocity = $this->inventorySalesVelocity($allProductIds, $salesWindowStart);
+        $allStockQuantities = $this->inventoryStockQuantityMap($allProductIds, $selectedWarehouseId ? (int) $selectedWarehouseId : null);
 
         if ($filters['insight']) {
-            $matchingProductIds = $this->inventoryProductIdsForInsight((clone $productBaseQuery), $allSalesVelocity, $filters['insight']);
+            $matchingProductIds = $this->inventoryProductIdsForInsight((clone $productBaseQuery), $allSalesVelocity, $filters['insight'], $allStockQuantities);
             $productBaseQuery->whereIn('id', $matchingProductIds);
         }
 
@@ -130,9 +138,10 @@ class ReportController extends Controller
         $productIds = $products->getCollection()->pluck('id');
 
         $salesVelocity = $this->inventorySalesVelocity($productIds, $salesWindowStart);
+        $stockQuantities = $this->inventoryStockQuantityMap($productIds, $selectedWarehouseId ? (int) $selectedWarehouseId : null);
 
-        $products->getCollection()->transform(function (Product $product) use ($salesVelocity) {
-            $quantity = $product->stock?->quantity ?? 0;
+        $products->getCollection()->transform(function (Product $product) use ($salesVelocity, $stockQuantities) {
+            $quantity = (int) ($stockQuantities[$product->id] ?? 0);
             $soldLast30Days = (int) ($salesVelocity[$product->id] ?? 0);
             $weeklySalesAverage = $soldLast30Days > 0 ? $soldLast30Days / (30 / 7) : 0;
             $weekCover = $weeklySalesAverage > 0 ? round($quantity / $weeklySalesAverage, 1) : null;
@@ -140,14 +149,15 @@ class ReportController extends Controller
             $product->sold_last_30_days = $soldLast30Days;
             $product->weekly_sales_average = round($weeklySalesAverage, 1);
             $product->week_cover = $weekCover;
+            $product->report_stock_quantity = $quantity;
             $product->inventory_signal = $this->inventorySignal($quantity, $soldLast30Days, $weekCover);
 
             return $product;
         });
 
-        $inventorySignals = (clone $productBaseQuery)->with('stock')->get()
-            ->map(function (Product $product) use ($allSalesVelocity) {
-                $quantity = $product->stock?->quantity ?? 0;
+        $inventorySignals = (clone $productBaseQuery)->get()
+            ->map(function (Product $product) use ($allSalesVelocity, $allStockQuantities) {
+                $quantity = (int) ($allStockQuantities[$product->id] ?? 0);
                 $soldLast30Days = (int) ($allSalesVelocity[$product->id] ?? 0);
                 $weeklySalesAverage = $soldLast30Days > 0 ? $soldLast30Days / (30 / 7) : 0;
                 $weekCover = $weeklySalesAverage > 0 ? round($quantity / $weeklySalesAverage, 1) : null;
@@ -161,16 +171,18 @@ class ReportController extends Controller
             'stock_in' => StockMovement::whereBetween('created_at', [$startDate, $endDate])
                 ->where('type', StockMovement::TYPE_IN)
                 ->whereIn('product_id', $filteredProductIds)
+                ->when($selectedWarehouseId, fn ($query) => $query->where('warehouse_id', $selectedWarehouseId))
                 ->sum('quantity'),
             'stock_out' => StockMovement::whereBetween('created_at', [$startDate, $endDate])
                 ->where('type', StockMovement::TYPE_OUT)
                 ->whereIn('product_id', $filteredProductIds)
+                ->when($selectedWarehouseId, fn ($query) => $query->where('warehouse_id', $selectedWarehouseId))
                 ->sum('quantity'),
             'slow_moving' => $inventorySignals->filter(fn (string $type) => $type === 'slow')->count(),
             'overstock' => $inventorySignals->filter(fn (string $type) => $type === 'overstock')->count(),
         ];
 
-        return view('reports.inventory', compact('products', 'summary', 'startDate', 'endDate', 'principalOptions', 'selectedPrincipalId', 'categoryOptions', 'insightOptions', 'filters'));
+        return view('reports.inventory', compact('products', 'summary', 'startDate', 'endDate', 'principalOptions', 'selectedPrincipalId', 'warehouseOptions', 'selectedWarehouseId', 'categoryOptions', 'insightOptions', 'filters'));
     }
 
     public function principal(Request $request)
@@ -719,11 +731,11 @@ class ReportController extends Controller
             ->pluck('sold_last_30_days', 'product_id');
     }
 
-    private function inventoryProductIdsForInsight($productQuery, $salesVelocity, string $selectedInsight)
+    private function inventoryProductIdsForInsight($productQuery, $salesVelocity, string $selectedInsight, $stockQuantities)
     {
-        return $productQuery->with('stock')->get()
-            ->filter(function (Product $product) use ($salesVelocity, $selectedInsight) {
-                $quantity = $product->stock?->quantity ?? 0;
+        return $productQuery->get()
+            ->filter(function (Product $product) use ($salesVelocity, $selectedInsight, $stockQuantities) {
+                $quantity = (int) ($stockQuantities[$product->id] ?? 0);
                 $soldLast30Days = (int) ($salesVelocity[$product->id] ?? 0);
                 $weeklySalesAverage = $soldLast30Days > 0 ? $soldLast30Days / (30 / 7) : 0;
                 $weekCover = $weeklySalesAverage > 0 ? round($quantity / $weeklySalesAverage, 1) : null;
@@ -734,12 +746,31 @@ class ReportController extends Controller
             ->values();
     }
 
+    private function inventoryStockQuantityMap($productIds, ?int $warehouseId)
+    {
+        if ($productIds->isEmpty()) {
+            return collect();
+        }
+
+        if ($warehouseId) {
+            return ProductWarehouseStock::query()
+                ->where('warehouse_id', $warehouseId)
+                ->whereIn('product_id', $productIds)
+                ->pluck('quantity', 'product_id');
+        }
+
+        return ProductStock::query()
+            ->whereIn('product_id', $productIds)
+            ->pluck('quantity', 'product_id');
+    }
+
     private function exportInventory(Request $request, $startDate, $endDate): StreamedResponse
     {
         $request->validate([
             'principal_id' => ['nullable', 'exists:product_principals,id'],
             'search' => ['nullable', 'string', 'max:100'],
             'category' => ['nullable', 'string', 'max:100'],
+            'warehouse_id' => ['nullable', 'exists:warehouses,id'],
             'insight' => ['nullable', 'in:out,slow,reorder,overstock,healthy'],
         ]);
 
@@ -747,16 +778,20 @@ class ReportController extends Controller
             'principal_id' => $request->input('principal_id'),
             'search' => trim((string) $request->input('search', '')),
             'category' => $request->input('category'),
+            'warehouse_id' => $request->input('warehouse_id'),
             'insight' => $request->input('insight'),
         ];
         $principal = $filters['principal_id'] ? ProductPrincipal::find($filters['principal_id']) : null;
+        $warehouse = $filters['warehouse_id'] ? Warehouse::find($filters['warehouse_id']) : null;
         $salesWindowStart = now()->subDays(30)->startOfDay();
 
         $productQuery = $this->inventoryProductQuery($filters);
-        $allSalesVelocity = $this->inventorySalesVelocity((clone $productQuery)->pluck('id'), $salesWindowStart);
+        $allProductIds = (clone $productQuery)->pluck('id');
+        $allSalesVelocity = $this->inventorySalesVelocity($allProductIds, $salesWindowStart);
+        $allStockQuantities = $this->inventoryStockQuantityMap($allProductIds, $filters['warehouse_id'] ? (int) $filters['warehouse_id'] : null);
 
         if ($filters['insight']) {
-            $matchingProductIds = $this->inventoryProductIdsForInsight((clone $productQuery), $allSalesVelocity, $filters['insight']);
+            $matchingProductIds = $this->inventoryProductIdsForInsight((clone $productQuery), $allSalesVelocity, $filters['insight'], $allStockQuantities);
             $productQuery->whereIn('id', $matchingProductIds);
         }
 
@@ -767,14 +802,16 @@ class ReportController extends Controller
 
         $productIds = $products->pluck('id');
         $salesVelocity = $this->inventorySalesVelocity($productIds, $salesWindowStart);
+        $stockQuantities = $this->inventoryStockQuantityMap($productIds, $filters['warehouse_id'] ? (int) $filters['warehouse_id'] : null);
 
-        return response()->streamDownload(function () use ($products, $salesVelocity, $startDate, $endDate, $principal, $filters) {
+        return response()->streamDownload(function () use ($products, $salesVelocity, $stockQuantities, $startDate, $endDate, $principal, $warehouse, $filters) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, ['Report', 'Laporan Inventori']);
             fputcsv($handle, ['Generated At', now()->toDateTimeString()]);
             fputcsv($handle, ['Start Date', $startDate->toDateString()]);
             fputcsv($handle, ['End Date', $endDate->toDateString()]);
             fputcsv($handle, ['Principal', $principal?->name ?? 'Semua Principal']);
+            fputcsv($handle, ['Gudang', $warehouse?->name ?? 'Semua Gudang']);
             fputcsv($handle, ['Search', $filters['search'] ?: '-']);
             fputcsv($handle, ['Category', $filters['category'] ?: 'Semua Kategori']);
             fputcsv($handle, ['Insight', $filters['insight'] ? ($this->inventoryInsightOptions()[$filters['insight']] ?? $filters['insight']) : 'Semua Insight']);
@@ -782,7 +819,7 @@ class ReportController extends Controller
             fputcsv($handle, ['Produk', 'Principal', 'Satuan', 'Stok', 'Min Stok', 'Max Stok', 'Terjual 30 Hari', 'Week Cover', 'Sinyal']);
 
             foreach ($products as $product) {
-                $quantity = $product->stock?->quantity ?? 0;
+                $quantity = (int) ($stockQuantities[$product->id] ?? 0);
                 $soldLast30Days = (int) ($salesVelocity[$product->id] ?? 0);
                 $weeklySalesAverage = $soldLast30Days > 0 ? $soldLast30Days / (30 / 7) : 0;
                 $weekCover = $weeklySalesAverage > 0 ? round($quantity / $weeklySalesAverage, 1) : null;

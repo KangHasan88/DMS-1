@@ -12,6 +12,8 @@
         'exportType' => 'inventory',
         'principalOptions' => $principalOptions,
         'selectedPrincipalId' => $selectedPrincipalId,
+        'warehouseOptions' => $warehouseOptions,
+        'selectedWarehouseId' => $selectedWarehouseId,
         'categoryOptions' => $categoryOptions,
         'insightOptions' => $insightOptions,
         'filters' => $filters,
@@ -42,7 +44,7 @@
             </thead>
             <tbody>
                 @forelse($products as $product)
-                    @php($quantity = $product->stock->quantity ?? 0)
+                    @php($quantity = $product->report_stock_quantity ?? 0)
                     <tr>
                         <td>
                             <div style="font-weight: 700; color: var(--k-gray-800);">{{ $product->name }}</div>

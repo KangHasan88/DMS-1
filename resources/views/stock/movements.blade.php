@@ -40,6 +40,18 @@
                     @endforeach
                 </select>
             </div>
+
+            <div>
+                <label class="form-label">Gudang</label>
+                <select name="warehouse_id" class="form-control">
+                    <option value="">-- Semua Gudang --</option>
+                    @foreach($warehouses as $warehouse)
+                        <option value="{{ $warehouse->id }}" {{ request('warehouse_id') == $warehouse->id ? 'selected' : '' }}>
+                            {{ $warehouse->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
             
             <!-- Filter Jenis (In/Out/Adjustment) -->
             <div>
@@ -89,6 +101,7 @@
                 <tr style="background: var(--k-gray-100); border-bottom: 1px solid var(--k-gray-200);">
                     <th style="padding: 0.6rem;">Tanggal & Waktu</th>
                     <th style="padding: 0.6rem;">Produk</th>
+                    <th style="padding: 0.6rem;">Gudang</th>
                     <th style="padding: 0.6rem;">Jenis</th>
                     <th style="padding: 0.6rem;">Jumlah</th>
                     <th style="padding: 0.6rem;">Stok Sebelum</th>
@@ -111,6 +124,9 @@
                         <a href="{{ route('stock.show', $movement->product) }}" style="color: var(--k-green); text-decoration: none;">
                             {{ $movement->product->name ?? '-' }}
                         </a>
+                    </td>
+                    <td style="padding: 0.6rem;">
+                        <span class="dms-badge dms-badge-secondary">{{ $movement->warehouse?->name ?? '-' }}</span>
                     </td>
                     <td style="padding: 0.6rem;">
                         @if($movement->type == 'in')
@@ -163,6 +179,8 @@
                             <span class="dms-badge dms-badge-info">Titipan Terjual</span>
                         @elseif($movement->source_type == 'consignment_return')
                             <span class="dms-badge dms-badge-warning">Titipan Return</span>
+                        @elseif(in_array($movement->source_type, ['btb', 'bkb', 'warehouse_transfer_out', 'warehouse_transfer_in'], true))
+                            <span class="dms-badge dms-badge-{{ $movement->source_badge }}">{{ $movement->source_label }}</span>
                         @elseif($movement->source_type == 'adjustment')
                             <span style="color: var(--k-gray-500);">-</span>
                         @else
@@ -178,7 +196,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="9" style="padding: 3rem; text-align: center;">
+                    <td colspan="10" style="padding: 3rem; text-align: center;">
                         <i class="bi bi-inbox" style="font-size: 2.5rem; color: var(--k-gray-300);"></i>
                         <p style="margin-top: 0.75rem; color: var(--k-gray-500);">Belum ada data pergerakan stok</p>
                     </td>

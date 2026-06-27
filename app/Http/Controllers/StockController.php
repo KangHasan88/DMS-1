@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\ApprovalRequest;
 use App\Models\Product;
 use App\Models\ProductStock;
+use App\Models\ProductWarehouseStock;
 use App\Models\StockAdjustmentRequest;
 use App\Models\StockMovement;
+use App\Models\Warehouse;
 use App\Services\ApprovalWorkflowService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -63,12 +65,21 @@ class StockController extends Controller
     public function show(Product $product)
     {
         $stock = $product->stock;
+        $warehouseStocks = ProductWarehouseStock::with('warehouse')
+            ->where('product_id', $product->id)
+            ->whereHas('warehouse')
+            ->get()
+            ->sortBy([
+                fn (ProductWarehouseStock $stock) => $stock->warehouse?->is_default ? 0 : 1,
+                fn (ProductWarehouseStock $stock) => $stock->warehouse?->sort_order ?? 999,
+                fn (ProductWarehouseStock $stock) => $stock->warehouse?->name ?? '',
+            ]);
         $movements = StockMovement::where('product_id', $product->id)
-            ->with(['order', 'purchaseOrder', 'directPurchase', 'createdBy'])
+            ->with(['order', 'purchaseOrder', 'directPurchase', 'warehouse', 'createdBy'])
             ->orderBy('created_at', 'desc')
             ->paginate(20);
         
-        return view('stock.show', compact('product', 'stock', 'movements'));
+        return view('stock.show', compact('product', 'stock', 'warehouseStocks', 'movements'));
     }
 
     /**
@@ -249,6 +260,7 @@ class StockController extends Controller
             'directPurchase', 
             'outboundFoc', 
             'outboundReturn', 
+            'warehouse',
             'createdBy'
         ]);
         
@@ -274,6 +286,10 @@ class StockController extends Controller
         if ($request->filled('source_type')) {
             $query->where('source_type', $request->source_type);
         }
+
+        if ($request->filled('warehouse_id')) {
+            $query->where('warehouse_id', $request->warehouse_id);
+        }
         
         $perPage = $request->get('per_page', 20);
         $movements = $query->orderBy('created_at', 'desc')->paginate($perPage);
@@ -282,7 +298,8 @@ class StockController extends Controller
         $products = Product::active()->orderBy('name')->get();
         $types = StockMovement::TYPES;
         $sourceTypes = StockMovement::SOURCE_TYPES;
+        $warehouses = Warehouse::active()->orderByDesc('is_default')->orderBy('sort_order')->orderBy('name')->get();
         
-        return view('stock.movements', compact('movements', 'products', 'types', 'sourceTypes'));
+        return view('stock.movements', compact('movements', 'products', 'types', 'sourceTypes', 'warehouses'));
     }
 }

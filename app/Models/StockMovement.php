@@ -83,6 +83,8 @@ class StockMovement extends Model
     const SOURCE_ADJUSTMENT = 'adjustment';
     const SOURCE_BTB = 'btb';
     const SOURCE_BKB = 'bkb';
+    const SOURCE_TRANSFER_OUT = 'warehouse_transfer_out';
+    const SOURCE_TRANSFER_IN = 'warehouse_transfer_in';
 
     const SOURCE_TYPES = [
         // Inbound
@@ -99,6 +101,8 @@ class StockMovement extends Model
         self::SOURCE_ADJUSTMENT => 'Penyesuaian Stok',
         self::SOURCE_BTB => 'BTB',
         self::SOURCE_BKB => 'BKB',
+        self::SOURCE_TRANSFER_OUT => 'Transfer Gudang Keluar',
+        self::SOURCE_TRANSFER_IN => 'Transfer Gudang Masuk',
     ];
 
     // ===================== RELATIONSHIPS =====================
@@ -190,7 +194,7 @@ class StockMovement extends Model
         if ($this->source_type === self::SOURCE_ADJUSTMENT) {
             return 'Penyesuaian';
         }
-        if (in_array($this->source_type, [self::SOURCE_BTB, self::SOURCE_BKB], true)) {
+        if (in_array($this->source_type, [self::SOURCE_BTB, self::SOURCE_BKB, self::SOURCE_TRANSFER_OUT, self::SOURCE_TRANSFER_IN], true)) {
             return (self::SOURCE_TYPES[$this->source_type] ?? strtoupper($this->source_type)) . ' #' . $this->source_id;
         }
         
@@ -225,6 +229,8 @@ class StockMovement extends Model
             self::SOURCE_ADJUSTMENT => 'secondary',
             self::SOURCE_BTB => 'primary',
             self::SOURCE_BKB => 'danger',
+            self::SOURCE_TRANSFER_OUT => 'warning',
+            self::SOURCE_TRANSFER_IN => 'info',
         ];
         
         return $badges[$this->source_type] ?? 'secondary';

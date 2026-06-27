@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\InventoryDocument;
 use App\Models\Product;
 use App\Models\ProductStock;
+use App\Models\ProductWarehouseStock;
 use App\Models\StockMovement;
 use App\Models\User;
 use App\Models\Warehouse;
@@ -39,6 +40,7 @@ class InventoryDocumentWorkflowTest extends TestCase
             ->assertRedirect(route('inventory-documents.show', $document));
 
         $this->assertSame(12, ProductStock::where('product_id', $product->id)->value('quantity'));
+        $this->assertSame(12, ProductWarehouseStock::where('product_id', $product->id)->where('warehouse_id', $warehouse->id)->value('quantity'));
         $this->assertDatabaseHas('stock_movements', [
             'product_id' => $product->id,
             'warehouse_id' => $warehouse->id,
@@ -74,13 +76,79 @@ class InventoryDocumentWorkflowTest extends TestCase
             ->assertRedirect(route('inventory-documents.show', $document));
 
         $this->assertSame(15, ProductStock::where('product_id', $product->id)->value('quantity'));
+        $this->assertSame(15, ProductWarehouseStock::where('product_id', $product->id)->where('warehouse_id', $warehouse->id)->value('quantity'));
 
         $this->actingAs($user)->post(route('inventory-documents.void', $document), [
             'void_reason' => 'Salah input',
         ])->assertRedirect(route('inventory-documents.show', $document));
 
         $this->assertSame(20, ProductStock::where('product_id', $product->id)->value('quantity'));
+        $this->assertSame(20, ProductWarehouseStock::where('product_id', $product->id)->where('warehouse_id', $warehouse->id)->value('quantity'));
         $this->assertSame(InventoryDocument::STATUS_VOID, $document->fresh()->status);
+    }
+
+    public function test_transfer_moves_stock_between_warehouses_without_changing_global_stock(): void
+    {
+        $user = $this->actingAdmin();
+        $fromWarehouse = Warehouse::where('is_default', true)->firstOrFail();
+        $toWarehouse = Warehouse::create([
+            'code' => 'TRANSIT',
+            'name' => 'Gudang Transit',
+            'type' => Warehouse::TYPE_TRANSIT,
+            'is_active' => true,
+            'sort_order' => 2,
+        ]);
+        $product = Product::create(['name' => 'Produk Transfer', 'price' => 10000, 'base_price' => 7000, 'is_active' => true]);
+        ProductStock::create(['product_id' => $product->id, 'quantity' => 20]);
+        ProductWarehouseStock::create(['product_id' => $product->id, 'warehouse_id' => $fromWarehouse->id, 'quantity' => 20]);
+
+        $this->actingAs($user)->post(route('inventory-documents.store'), [
+            'type' => InventoryDocument::TYPE_TRANSFER,
+            'document_date' => now()->format('Y-m-d'),
+            'warehouse_id' => $fromWarehouse->id,
+            'transfer_to_warehouse_id' => $toWarehouse->id,
+            'reference_number' => 'TEST-TRANSFER',
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 6],
+            ],
+        ])->assertSessionHasNoErrors();
+
+        $document = InventoryDocument::where('reference_number', 'TEST-TRANSFER')->firstOrFail();
+
+        $this->actingAs($user)->post(route('inventory-documents.post', $document))
+            ->assertRedirect(route('inventory-documents.show', $document));
+
+        $this->assertSame(20, ProductStock::where('product_id', $product->id)->value('quantity'));
+        $this->assertSame(14, ProductWarehouseStock::where('product_id', $product->id)->where('warehouse_id', $fromWarehouse->id)->value('quantity'));
+        $this->assertSame(6, ProductWarehouseStock::where('product_id', $product->id)->where('warehouse_id', $toWarehouse->id)->value('quantity'));
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $product->id,
+            'warehouse_id' => $fromWarehouse->id,
+            'source_type' => StockMovement::SOURCE_TRANSFER_OUT,
+            'source_id' => $document->id,
+            'type' => StockMovement::TYPE_OUT,
+            'quantity' => 6,
+            'before_quantity' => 20,
+            'after_quantity' => 14,
+        ]);
+        $this->assertDatabaseHas('stock_movements', [
+            'product_id' => $product->id,
+            'warehouse_id' => $toWarehouse->id,
+            'source_type' => StockMovement::SOURCE_TRANSFER_IN,
+            'source_id' => $document->id,
+            'type' => StockMovement::TYPE_IN,
+            'quantity' => 6,
+            'before_quantity' => 0,
+            'after_quantity' => 6,
+        ]);
+
+        $this->actingAs($user)->post(route('inventory-documents.void', $document), [
+            'void_reason' => 'Batal transfer',
+        ])->assertRedirect(route('inventory-documents.show', $document));
+
+        $this->assertSame(20, ProductStock::where('product_id', $product->id)->value('quantity'));
+        $this->assertSame(20, ProductWarehouseStock::where('product_id', $product->id)->where('warehouse_id', $fromWarehouse->id)->value('quantity'));
+        $this->assertSame(0, ProductWarehouseStock::where('product_id', $product->id)->where('warehouse_id', $toWarehouse->id)->value('quantity'));
     }
 
     public function test_bkb_cannot_post_when_stock_is_not_enough(): void

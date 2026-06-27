@@ -64,6 +64,41 @@
         </div>
     </div>
 
+    @if($warehouseStocks->isNotEmpty())
+        <div style="margin-bottom: 2rem;">
+            <h4 style="font-size: 1rem; font-weight: 600; color: var(--k-gray-800); margin-bottom: 0.75rem;">
+                Saldo per Gudang
+            </h4>
+            <div class="dms-table-wrap">
+                <table class="dms-table">
+                    <thead>
+                        <tr>
+                            <th>Gudang</th>
+                            <th style="text-align: right;">Qty</th>
+                            <th style="text-align: right;">Min</th>
+                            <th style="text-align: right;">Max</th>
+                            <th>Update Terakhir</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($warehouseStocks as $warehouseStock)
+                            <tr>
+                                <td>
+                                    <div class="dms-strong">{{ $warehouseStock->warehouse?->name ?? '-' }}</div>
+                                    <small style="color: var(--k-gray-500);">{{ $warehouseStock->warehouse?->code ?? '-' }}</small>
+                                </td>
+                                <td style="text-align: right;" class="dms-strong">{{ number_format($warehouseStock->quantity) }}</td>
+                                <td style="text-align: right;">{{ number_format($warehouseStock->min_stock) }}</td>
+                                <td style="text-align: right;">{{ $warehouseStock->max_stock ? number_format($warehouseStock->max_stock) : '-' }}</td>
+                                <td>{{ $warehouseStock->last_updated_at?->format('d M Y H:i') ?? '-' }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
+
     <!-- Action Buttons -->
     <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
         @can('create stock movement')
@@ -93,6 +128,7 @@
                 <thead>
                     <tr style="background: var(--k-gray-100); border-bottom: 1px solid var(--k-gray-200);">
                         <th style="padding: 0.75rem; text-align: left;">Tanggal</th>
+                        <th style="padding: 0.75rem; text-align: left;">Gudang</th>
                         <th style="padding: 0.75rem; text-align: left;">Jenis</th>
                         <th style="padding: 0.75rem; text-align: center;">Jumlah</th>
                         <th style="padding: 0.75rem; text-align: center;">Sebelum</th>
@@ -110,6 +146,9 @@
                                 <span style="font-size: 0.8rem;">{{ $movement->created_at->format('d M Y') }}</span>
                                 <span style="font-size: 0.65rem; color: var(--k-gray-500);">{{ $movement->created_at->format('H:i') }}</span>
                             </div>
+                        </td>
+                        <td style="padding: 0.75rem;">
+                            <span class="dms-badge dms-badge-secondary">{{ $movement->warehouse?->name ?? '-' }}</span>
                         </td>
                         <td style="padding: 0.75rem;">
                             @if($movement->type == 'in')
@@ -167,7 +206,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" style="padding: 2rem; text-align: center;">
+                        <td colspan="9" style="padding: 2rem; text-align: center;">
                             <i class="bi bi-inbox" style="font-size: 2rem; color: var(--k-gray-300);"></i>
                             <p style="margin-top: 0.5rem; color: var(--k-gray-500);">Belum ada riwayat pergerakan stok</p>
                         </td>

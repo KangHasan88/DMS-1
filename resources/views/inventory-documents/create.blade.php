@@ -51,7 +51,7 @@
     <div class="dms-section-header">
         <div>
             <h3 class="dms-section-title">Buat Dokumen Stok</h3>
-            <p class="dms-section-subtitle">Gunakan BTB untuk barang masuk dan BKB untuk barang keluar dari gudang.</p>
+            <p class="dms-section-subtitle">Gunakan BTB/BKB untuk barang masuk-keluar dan Transfer Gudang untuk mutasi antar gudang.</p>
         </div>
         <a href="{{ route('inventory-documents.index') }}" class="dms-btn dms-btn-outline">
             <i class="bi bi-arrow-left"></i> Kembali
@@ -69,7 +69,7 @@
         <div class="document-header-grid">
             <div class="form-group">
                 <label class="form-label">Tipe Dokumen <span class="dms-required">*</span></label>
-                <select name="type" class="form-control" required>
+                <select name="type" id="document-type" class="form-control" required>
                     @foreach($types as $value => $label)
                         <option value="{{ $value }}" {{ old('type', $selectedType) === $value ? 'selected' : '' }}>{{ $label }}</option>
                     @endforeach
@@ -80,10 +80,19 @@
                 <input type="date" name="document_date" value="{{ old('document_date', now()->format('Y-m-d')) }}" class="form-control" required>
             </div>
             <div class="form-group">
-                <label class="form-label">Gudang <span class="dms-required">*</span></label>
-                <select name="warehouse_id" class="form-control" required>
+                <label class="form-label" id="warehouse-label">Gudang <span class="dms-required">*</span></label>
+                <select name="warehouse_id" id="warehouse-id" class="form-control" required>
                     @foreach($warehouses as $warehouse)
                         <option value="{{ $warehouse->id }}" {{ (string) old('warehouse_id', $warehouses->firstWhere('is_default', true)?->id ?? $warehouse->id) === (string) $warehouse->id ? 'selected' : '' }}>{{ $warehouse->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="form-group" id="transfer-destination-field" style="display: none;">
+                <label class="form-label">Gudang Tujuan <span class="dms-required">*</span></label>
+                <select name="transfer_to_warehouse_id" id="transfer-to-warehouse-id" class="form-control">
+                    <option value="">-- Pilih Gudang Tujuan --</option>
+                    @foreach($warehouses as $warehouse)
+                        <option value="{{ $warehouse->id }}" {{ (string) old('transfer_to_warehouse_id') === (string) $warehouse->id ? 'selected' : '' }}>{{ $warehouse->name }}</option>
                     @endforeach
                 </select>
             </div>
@@ -196,5 +205,26 @@
         }
         button.closest('.document-item-row').remove();
     }
+
+    function syncDocumentTypeFields() {
+        const type = document.getElementById('document-type').value;
+        const destinationField = document.getElementById('transfer-destination-field');
+        const destinationSelect = document.getElementById('transfer-to-warehouse-id');
+        const warehouseLabel = document.getElementById('warehouse-label');
+        const isTransfer = type === '{{ \App\Models\InventoryDocument::TYPE_TRANSFER }}';
+
+        destinationField.style.display = isTransfer ? 'block' : 'none';
+        destinationSelect.required = isTransfer;
+        warehouseLabel.innerHTML = isTransfer
+            ? 'Gudang Asal <span class="dms-required">*</span>'
+            : 'Gudang <span class="dms-required">*</span>';
+
+        if (! isTransfer) {
+            destinationSelect.value = '';
+        }
+    }
+
+    document.getElementById('document-type').addEventListener('change', syncDocumentTypeFields);
+    syncDocumentTypeFields();
 </script>
 @endsection

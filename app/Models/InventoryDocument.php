@@ -18,6 +18,7 @@ class InventoryDocument extends Model
         'status',
         'document_date',
         'warehouse_id',
+        'transfer_to_warehouse_id',
         'company_branch_id',
         'reference_number',
         'notes',
@@ -37,6 +38,7 @@ class InventoryDocument extends Model
 
     public const TYPE_BTB = 'btb';
     public const TYPE_BKB = 'bkb';
+    public const TYPE_TRANSFER = 'transfer';
 
     public const STATUS_DRAFT = 'draft';
     public const STATUS_POSTED = 'posted';
@@ -45,6 +47,7 @@ class InventoryDocument extends Model
     public const TYPES = [
         self::TYPE_BTB => 'BTB - Bukti Terima Barang',
         self::TYPE_BKB => 'BKB - Bukti Keluar Barang',
+        self::TYPE_TRANSFER => 'Transfer Gudang',
     ];
 
     public const STATUSES = [
@@ -61,6 +64,11 @@ class InventoryDocument extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    public function transferToWarehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class, 'transfer_to_warehouse_id');
     }
 
     public function companyBranch(): BelongsTo
@@ -101,7 +109,7 @@ class InventoryDocument extends Model
             throw new \RuntimeException('Dokumen hanya bisa diposting dari status Draft.');
         }
 
-        $this->loadMissing('items.product', 'warehouse');
+        $this->loadMissing('items.product', 'warehouse', 'transferToWarehouse');
 
         if ($this->items->isEmpty()) {
             throw new \RuntimeException('Dokumen belum memiliki item.');
@@ -109,6 +117,12 @@ class InventoryDocument extends Model
 
         DB::transaction(function () use ($user) {
             foreach ($this->items as $item) {
+                if ($this->type === self::TYPE_TRANSFER) {
+                    $this->applyTransferMovement($item);
+
+                    continue;
+                }
+
                 $this->applyStockMovement($item, $this->type === self::TYPE_BTB ? StockMovement::TYPE_IN : StockMovement::TYPE_OUT);
             }
 
@@ -126,12 +140,18 @@ class InventoryDocument extends Model
             throw new \RuntimeException('Hanya dokumen Posted yang bisa divoid.');
         }
 
-        $this->loadMissing('items.product');
+        $this->loadMissing('items.product', 'transferToWarehouse');
 
         DB::transaction(function () use ($reason, $user) {
             $reversalType = $this->type === self::TYPE_BTB ? StockMovement::TYPE_OUT : StockMovement::TYPE_IN;
 
             foreach ($this->items as $item) {
+                if ($this->type === self::TYPE_TRANSFER) {
+                    $this->reverseTransferMovement($item, $reason);
+
+                    continue;
+                }
+
                 $this->applyStockMovement($item, $reversalType, 'VOID '.$this->document_number.' - '.$reason);
             }
 
@@ -165,6 +185,121 @@ class InventoryDocument extends Model
 
     private function applyStockMovement(InventoryDocumentItem $item, string $movementType, ?string $reason = null): void
     {
+        $this->applyWarehouseStockMovement(
+            $item,
+            $this->warehouse_id,
+            $movementType,
+            $this->type === self::TYPE_BTB ? StockMovement::SOURCE_BTB : StockMovement::SOURCE_BKB,
+            $reason,
+            true
+        );
+    }
+
+    private function applyTransferMovement(InventoryDocumentItem $item): void
+    {
+        if (! $this->transfer_to_warehouse_id) {
+            throw new \RuntimeException('Gudang tujuan wajib diisi untuk transfer gudang.');
+        }
+
+        if ((int) $this->warehouse_id === (int) $this->transfer_to_warehouse_id) {
+            throw new \RuntimeException('Gudang asal dan gudang tujuan tidak boleh sama.');
+        }
+
+        $this->applyWarehouseStockMovement(
+            $item,
+            $this->warehouse_id,
+            StockMovement::TYPE_OUT,
+            StockMovement::SOURCE_TRANSFER_OUT,
+            $this->document_number.' - transfer keluar',
+            false
+        );
+
+        $this->applyWarehouseStockMovement(
+            $item,
+            $this->transfer_to_warehouse_id,
+            StockMovement::TYPE_IN,
+            StockMovement::SOURCE_TRANSFER_IN,
+            $this->document_number.' - transfer masuk',
+            false
+        );
+    }
+
+    private function reverseTransferMovement(InventoryDocumentItem $item, string $reason): void
+    {
+        $this->applyWarehouseStockMovement(
+            $item,
+            $this->transfer_to_warehouse_id,
+            StockMovement::TYPE_OUT,
+            StockMovement::SOURCE_TRANSFER_OUT,
+            'VOID '.$this->document_number.' - '.$reason,
+            false
+        );
+
+        $this->applyWarehouseStockMovement(
+            $item,
+            $this->warehouse_id,
+            StockMovement::TYPE_IN,
+            StockMovement::SOURCE_TRANSFER_IN,
+            'VOID '.$this->document_number.' - '.$reason,
+            false
+        );
+    }
+
+    private function applyWarehouseStockMovement(
+        InventoryDocumentItem $item,
+        int $warehouseId,
+        string $movementType,
+        string $sourceType,
+        ?string $reason = null,
+        bool $affectGlobalStock = false
+    ): void {
+        $initialQuantity = 0;
+        if ((int) $warehouseId === (int) Warehouse::defaultId()) {
+            $initialQuantity = (int) ProductStock::where('product_id', $item->product_id)->value('quantity');
+        }
+
+        $warehouseStock = ProductWarehouseStock::firstOrCreate(
+            ['product_id' => $item->product_id, 'warehouse_id' => $warehouseId],
+            ['quantity' => $initialQuantity, 'min_stock' => 0]
+        );
+
+        $warehouseStock = ProductWarehouseStock::whereKey($warehouseStock->id)->lockForUpdate()->first();
+        $before = (int) $warehouseStock->quantity;
+
+        if ($movementType === StockMovement::TYPE_OUT && $before < $item->quantity) {
+            throw new \RuntimeException("Stok gudang {$item->product?->name} tidak mencukupi. Tersedia {$before}, butuh {$item->quantity}.");
+        }
+
+        $after = $movementType === StockMovement::TYPE_IN
+            ? $before + $item->quantity
+            : $before - $item->quantity;
+
+        $warehouseStock->forceFill([
+            'quantity' => $after,
+            'last_updated_at' => now(),
+            'updated_by' => auth()->id(),
+        ])->save();
+
+        if ($affectGlobalStock) {
+            $this->updateGlobalStock($item, $movementType);
+        }
+
+        StockMovement::create([
+            'product_id' => $item->product_id,
+            'warehouse_id' => $warehouseId,
+            'source_type' => $sourceType,
+            'source_id' => $this->id,
+            'type' => $movementType,
+            'quantity' => $item->quantity,
+            'before_quantity' => $before,
+            'after_quantity' => $after,
+            'reason' => $reason ?? $this->document_number,
+            'created_by' => auth()->id(),
+        ]);
+    }
+
+    private function updateGlobalStock(InventoryDocumentItem $item, string $movementType): void
+    {
         $stock = ProductStock::firstOrCreate(
             ['product_id' => $item->product_id],
             ['quantity' => 0, 'consignment_quantity' => 0, 'min_stock' => 0]
@@ -186,18 +321,5 @@ class InventoryDocument extends Model
             'last_updated_at' => now(),
             'updated_by' => auth()->id(),
         ])->save();
-
-        StockMovement::create([
-            'product_id' => $item->product_id,
-            'warehouse_id' => $this->warehouse_id,
-            'source_type' => $this->type === self::TYPE_BTB ? StockMovement::SOURCE_BTB : StockMovement::SOURCE_BKB,
-            'source_id' => $this->id,
-            'type' => $movementType,
-            'quantity' => $item->quantity,
-            'before_quantity' => $before,
-            'after_quantity' => $after,
-            'reason' => $reason ?? $this->document_number,
-            'created_by' => auth()->id(),
-        ]);
     }
 }

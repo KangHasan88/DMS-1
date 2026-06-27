@@ -8,7 +8,7 @@
     <div class="dms-section-header">
         <div>
             <h3 class="dms-section-title">Dokumen Stok</h3>
-            <p class="dms-section-subtitle">Register BTB/BKB untuk kontrol penerimaan dan pengeluaran barang.</p>
+            <p class="dms-section-subtitle">Register BTB/BKB dan transfer antar gudang untuk kontrol mutasi stok.</p>
         </div>
         @can('manage warehouse')
             <a href="{{ route('inventory-documents.create') }}" class="dms-btn dms-btn-primary">
@@ -63,9 +63,14 @@
                 @forelse($documents as $document)
                     <tr>
                         <td class="dms-strong">{{ $document->document_number }}</td>
-                        <td>{{ strtoupper($document->type) }}</td>
+                        <td>{{ $document->type_label }}</td>
                         <td>{{ optional($document->document_date)->format('d M Y') }}</td>
-                        <td>{{ $document->warehouse?->name ?? '-' }}</td>
+                        <td>
+                            <div class="dms-strong">{{ $document->warehouse?->name ?? '-' }}</div>
+                            @if($document->type === \App\Models\InventoryDocument::TYPE_TRANSFER)
+                                <small style="color: var(--k-gray-500);">ke {{ $document->transferToWarehouse?->name ?? '-' }}</small>
+                            @endif
+                        </td>
                         <td>{{ $document->reference_number ?: '-' }}</td>
                         <td>{{ number_format($document->items_count) }} item</td>
                         <td>

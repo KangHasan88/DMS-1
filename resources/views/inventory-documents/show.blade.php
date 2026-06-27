@@ -42,9 +42,15 @@
             <div class="dms-stat-value" style="font-size: 1rem;">{{ optional($document->document_date)->format('d M Y') }}</div>
         </div>
         <div class="dms-stat-card">
-            <div class="dms-stat-label">Gudang</div>
+            <div class="dms-stat-label">{{ $document->type === \App\Models\InventoryDocument::TYPE_TRANSFER ? 'Gudang Asal' : 'Gudang' }}</div>
             <div class="dms-stat-value" style="font-size: 1rem;">{{ $document->warehouse?->name ?? '-' }}</div>
         </div>
+        @if($document->type === \App\Models\InventoryDocument::TYPE_TRANSFER)
+            <div class="dms-stat-card">
+                <div class="dms-stat-label">Gudang Tujuan</div>
+                <div class="dms-stat-value" style="font-size: 1rem;">{{ $document->transferToWarehouse?->name ?? '-' }}</div>
+            </div>
+        @endif
         <div class="dms-stat-card">
             <div class="dms-stat-label">Cabang</div>
             <div class="dms-stat-value" style="font-size: 1rem;">{{ $document->companyBranch?->name ?? 'Global' }}</div>
