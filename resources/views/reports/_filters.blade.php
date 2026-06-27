@@ -83,7 +83,7 @@
                 </select>
             </div>
         @endisset
-        <div style="display: flex; gap: 0.65rem; flex-wrap: wrap; align-items: center; justify-content: flex-end; min-width: 0; grid-column: span 4;">
+        <div style="display: flex; gap: 0.65rem; flex-wrap: wrap; align-items: center; justify-content: flex-end; min-width: 0; grid-column: 9 / -1;">
             <button class="dms-btn dms-btn-primary" type="submit" style="min-width: 86px; justify-content: center;">Filter</button>
             @isset($exportType)
                 <a class="dms-btn dms-btn-outline" style="min-width: 126px; justify-content: center;" href="{{ route('reports.export', array_merge(['type' => $exportType], request()->only(['start_date', 'end_date', 'principal_id', 'search', 'category', 'insight', 'status', 'per_page']))) }}">
