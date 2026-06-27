@@ -1407,6 +1407,16 @@
                         </li>
                         @endcan
 
+                        <!-- Warehouse Master -->
+                        @can('view warehouse')
+                        <li class="nav-item">
+                            <a href="{{ route('warehouses.index') }}" class="nav-link {{ request()->routeIs('warehouses.*') ? 'active' : '' }}">
+                                <i class="bi bi-buildings"></i>
+                                <span>{{ __('navigation.warehouses') }}</span>
+                            </a>
+                        </li>
+                        @endcan
+
                         <!-- Stock Opname -->
                         @can('manage warehouse')
                         <li class="nav-item">

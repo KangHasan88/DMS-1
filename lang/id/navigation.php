@@ -18,6 +18,7 @@ return [
     'consignment' => 'Konsinyasi',
     'inventory' => 'Inventori',
     'stock_management' => 'Manajemen Stok',
+    'warehouses' => 'Gudang',
     'stock_opnames' => 'Stock Opname',
     'stock_movements' => 'Mutasi Stok',
     'returnable_packages' => 'Kemasan Kembali',

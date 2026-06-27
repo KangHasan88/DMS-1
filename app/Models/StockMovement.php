@@ -13,6 +13,7 @@ class StockMovement extends Model
     protected $fillable = [
         'product_id',
         'order_id',
+        'warehouse_id',
         'source_type',
         'source_id',
         'type',
@@ -31,10 +32,17 @@ class StockMovement extends Model
 
     protected static function booted(): void
     {
+        static::creating(function (StockMovement $movement) {
+            if (! $movement->warehouse_id) {
+                $movement->warehouse_id = Warehouse::defaultId();
+            }
+        });
+
         static::created(function (StockMovement $movement) {
             ActivityLog::record('stock', 'movement_created', 'Stock movement dicatat', $movement, [
                 'product_id' => $movement->product_id,
                 'order_id' => $movement->order_id,
+                'warehouse_id' => $movement->warehouse_id,
                 'source_type' => $movement->source_type,
                 'source_id' => $movement->source_id,
                 'type' => $movement->type,
@@ -99,6 +107,11 @@ class StockMovement extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class);
     }
 
     public function createdBy(): BelongsTo

@@ -18,6 +18,7 @@ return [
     'consignment' => 'Consignment',
     'inventory' => 'Inventory',
     'stock_management' => 'Stock Management',
+    'warehouses' => 'Warehouses',
     'stock_opnames' => 'Stock Opname',
     'stock_movements' => 'Stock Movements',
     'returnable_packages' => 'Returnable Packaging',

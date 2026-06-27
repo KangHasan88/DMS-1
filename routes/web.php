@@ -46,6 +46,7 @@ use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\ApprovalRequestController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\StockOpnameController;
+use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\ReturnablePackageController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\DirectPurchaseController;
@@ -266,6 +267,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('consignments/{consignment}/return', [ConsignmentController::class, 'processReturn'])->middleware('permission:edit consignments')->name('consignments.return');
     
     // ============= STOCK MANAGEMENT =============
+    Route::get('warehouses', [WarehouseController::class, 'index'])
+        ->middleware('permission:view warehouse')
+        ->name('warehouses.index');
+    Route::post('warehouses', [WarehouseController::class, 'store'])
+        ->middleware('permission:manage warehouse')
+        ->name('warehouses.store');
+    Route::post('warehouses/{warehouse}/toggle-status', [WarehouseController::class, 'toggleStatus'])
+        ->middleware('permission:manage warehouse')
+        ->name('warehouses.toggle-status');
+    Route::post('warehouses/{warehouse}/default', [WarehouseController::class, 'setDefault'])
+        ->middleware('permission:manage warehouse')
+        ->name('warehouses.default');
+
     Route::resource('stock-opnames', StockOpnameController::class)
         ->only(['index', 'create', 'store', 'show', 'update'])
         ->middleware('permission:manage warehouse');
