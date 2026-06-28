@@ -18,49 +18,58 @@
     </div>
 
     <!-- Search Form -->
-    <div class="dms-toolbar">
-        <form action="{{ route('orders.index') }}" method="GET" class="dms-search-form">
+    <div class="dms-order-filter-panel">
+        <form action="{{ route('orders.index') }}" method="GET" class="dms-order-filter-grid">
+            <div class="dms-filter-control dms-filter-control-wide">
+                <label class="form-label">Cari Order</label>
                 <div class="dms-search-field">
                     <i class="bi bi-search"></i>
-                    <input type="text" name="search" placeholder="Cari nomor order..." 
+                    <input type="text" name="search" placeholder="No order, pelanggan, telepon..."
                            value="{{ request('search') }}"
                            class="form-control">
                 </div>
-                <button type="submit" class="dms-btn dms-btn-primary">Cari</button>
-        </form>
-        
-        <div class="dms-toolbar-actions">
-            <!-- Advanced Search Toggle -->
-            <button type="button" onclick="toggleAdvancedSearch()" class="dms-btn dms-btn-outline">
-                <i class="bi bi-sliders2"></i> Advanced Search
-            </button>
+            </div>
 
             @if($canFilterBranches)
-            <select name="company_branch_id" onchange="window.location.href = this.value" class="form-control">
-                <option value="{{ route('orders.index', array_merge(request()->except('company_branch_id', 'page'), ['company_branch_id' => null])) }}" {{ !request('company_branch_id') ? 'selected' : '' }}>Semua Cabang</option>
-                @foreach($companyBranches as $branch)
-                <option value="{{ route('orders.index', array_merge(request()->except('company_branch_id', 'page'), ['company_branch_id' => $branch->id])) }}" {{ request('company_branch_id') == $branch->id ? 'selected' : '' }}>
-                    {{ $branch->name }}{{ $branch->code ? ' - '.$branch->code : '' }}
-                </option>
-                @endforeach
-            </select>
+            <div class="dms-filter-control">
+                <label class="form-label">Cabang</label>
+                <select onchange="window.location.href = this.value" class="form-control">
+                    <option value="{{ route('orders.index', array_merge(request()->except('company_branch_id', 'page'), ['company_branch_id' => null])) }}" {{ !request('company_branch_id') ? 'selected' : '' }}>Semua Cabang</option>
+                    @foreach($companyBranches as $branch)
+                    <option value="{{ route('orders.index', array_merge(request()->except('company_branch_id', 'page'), ['company_branch_id' => $branch->id])) }}" {{ request('company_branch_id') == $branch->id ? 'selected' : '' }}>
+                        {{ $branch->name }}{{ $branch->code ? ' - '.$branch->code : '' }}
+                    </option>
+                    @endforeach
+                </select>
+            </div>
             @endif
 
-            <!-- Payment Timing Filter -->
-            <select name="payment_timing" onchange="window.location.href = this.value" class="form-control">
-                <option value="{{ route('orders.index', array_merge(request()->except('payment_timing', 'page'), ['payment_timing' => null])) }}" {{ !request('payment_timing') ? 'selected' : '' }}>Semua Skema</option>
-                <option value="{{ route('orders.index', array_merge(request()->except('payment_timing', 'page'), ['payment_timing' => 'pre_paid'])) }}" {{ request('payment_timing') == 'pre_paid' ? 'selected' : '' }}>Pre-paid</option>
-                <option value="{{ route('orders.index', array_merge(request()->except('payment_timing', 'page'), ['payment_timing' => 'post_paid'])) }}" {{ request('payment_timing') == 'post_paid' ? 'selected' : '' }}>Post-paid</option>
-            </select>
-            
-            <!-- Per Page -->
-            <select name="per_page" onchange="window.location.href = this.value" class="form-control">
-                <option value="{{ route('orders.index', array_merge(request()->except('per_page'), ['per_page' => 5])) }}" {{ request('per_page', 10) == 5 ? 'selected' : '' }}>5 per halaman</option>
-                <option value="{{ route('orders.index', array_merge(request()->except('per_page'), ['per_page' => 10])) }}" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10 per halaman</option>
-                <option value="{{ route('orders.index', array_merge(request()->except('per_page'), ['per_page' => 20])) }}" {{ request('per_page', 10) == 20 ? 'selected' : '' }}>20 per halaman</option>
-                <option value="{{ route('orders.index', array_merge(request()->except('per_page'), ['per_page' => 50])) }}" {{ request('per_page', 10) == 50 ? 'selected' : '' }}>50 per halaman</option>
-            </select>
-        </div>
+            <div class="dms-filter-control">
+                <label class="form-label">Skema Bayar</label>
+                <select onchange="window.location.href = this.value" class="form-control">
+                    <option value="{{ route('orders.index', array_merge(request()->except('payment_timing', 'page'), ['payment_timing' => null])) }}" {{ !request('payment_timing') ? 'selected' : '' }}>Semua Skema</option>
+                    <option value="{{ route('orders.index', array_merge(request()->except('payment_timing', 'page'), ['payment_timing' => 'pre_paid'])) }}" {{ request('payment_timing') == 'pre_paid' ? 'selected' : '' }}>Pre-paid</option>
+                    <option value="{{ route('orders.index', array_merge(request()->except('payment_timing', 'page'), ['payment_timing' => 'post_paid'])) }}" {{ request('payment_timing') == 'post_paid' ? 'selected' : '' }}>Post-paid</option>
+                </select>
+            </div>
+
+            <div class="dms-filter-control dms-filter-control-small">
+                <label class="form-label">Per Halaman</label>
+                <select onchange="window.location.href = this.value" class="form-control">
+                    <option value="{{ route('orders.index', array_merge(request()->except('per_page'), ['per_page' => 5])) }}" {{ request('per_page', 10) == 5 ? 'selected' : '' }}>5 data</option>
+                    <option value="{{ route('orders.index', array_merge(request()->except('per_page'), ['per_page' => 10])) }}" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10 data</option>
+                    <option value="{{ route('orders.index', array_merge(request()->except('per_page'), ['per_page' => 20])) }}" {{ request('per_page', 10) == 20 ? 'selected' : '' }}>20 data</option>
+                    <option value="{{ route('orders.index', array_merge(request()->except('per_page'), ['per_page' => 50])) }}" {{ request('per_page', 10) == 50 ? 'selected' : '' }}>50 data</option>
+                </select>
+            </div>
+
+            <div class="dms-order-filter-actions">
+                <button type="button" onclick="toggleAdvancedSearch()" class="dms-btn dms-btn-outline">
+                    <i class="bi bi-sliders2"></i> Advanced
+                </button>
+                <button type="submit" class="dms-btn dms-btn-primary">Cari</button>
+            </div>
+        </form>
     </div>
 
     <!-- Advanced Search Form -->
@@ -275,6 +284,48 @@ function deleteOrder(orderId, orderNumber) {
 </script>
 
 <style>
+.dms-order-filter-panel {
+    margin-bottom: 1.25rem;
+    padding: 1rem;
+    border: 1px solid var(--k-gray-200);
+    border-radius: 8px;
+    background: var(--k-gray-50);
+}
+
+.dms-order-filter-grid {
+    display: grid;
+    grid-template-columns: minmax(260px, 1.8fr) minmax(170px, 0.85fr) minmax(160px, 0.75fr) minmax(130px, 0.55fr) auto;
+    gap: 0.8rem;
+    align-items: end;
+}
+
+.dms-filter-control {
+    min-width: 0;
+}
+
+.dms-order-filter-panel .form-label {
+    margin-bottom: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--k-gray-700);
+}
+
+.dms-order-filter-panel .form-control {
+    width: 100%;
+    min-height: 46px;
+}
+
+.dms-order-filter-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.55rem;
+    white-space: nowrap;
+}
+
+.dms-order-filter-actions .dms-btn {
+    min-height: 46px;
+}
+
 .orders-table-wrap {
     border-radius: 8px;
 }
@@ -430,8 +481,36 @@ function deleteOrder(orderId, orderNumber) {
 }
 
 @media (max-width: 1180px) {
-    .orders-table {
-        min-width: 1120px;
+    .dms-order-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dms-filter-control-wide,
+    .dms-order-filter-actions {
+        grid-column: 1 / -1;
+    }
+
+    .dms-order-filter-actions {
+        justify-content: flex-end;
+    }
+
+    .orders-table .col-sales-owner,
+    .orders-table .col-attribute:nth-of-type(5) {
+        display: none;
+    }
+}
+
+@media (max-width: 720px) {
+    .dms-order-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dms-order-filter-actions {
+        flex-direction: column-reverse;
+    }
+
+    .dms-order-filter-actions .dms-btn {
+        width: 100%;
     }
 }
 </style>

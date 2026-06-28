@@ -175,12 +175,12 @@
         
         <!-- Products Section -->
         <div class="dms-order-section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                <h4 class="dms-order-section-title" style="margin-bottom: 0;">
+            <div class="dms-order-section-head">
+                <h4 class="dms-order-section-title">
                     <i class="bi bi-box-seam"></i>
                     Daftar Produk
                 </h4>
-                <button type="button" class="dms-btn dms-btn-outline" onclick="addProductRow()" style="padding: 0.3rem 0.8rem; font-size: 0.7rem;">
+                <button type="button" class="dms-btn dms-btn-outline" onclick="addProductRow()">
                     <i class="bi bi-plus-circle"></i> Tambah Produk
                 </button>
             </div>
@@ -326,7 +326,7 @@
         </div>
         
         <!-- Calculation Summary -->
-        <div style="background: var(--k-gray-50); border-radius: 8px; padding: 0.75rem;">
+        <div class="dms-order-total-panel">
             <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span style="font-size: 0.75rem; color: var(--k-gray-600);">Subtotal Produk:</span>
@@ -427,17 +427,17 @@
         </div>
         
         <!-- Notes -->
-        <div style="margin-bottom: 1.5rem;">
+        <div class="dms-order-notes">
             <label class="form-label">Catatan Order</label>
             <textarea name="notes" class="form-control" rows="2" placeholder="Catatan untuk tim operasional (opsional)" style="padding: 0.6rem; font-size: 0.8rem;">{{ old('notes') }}</textarea>
         </div>
         
         <!-- Buttons - Paling Bawah -->
-        <div style="display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--k-gray-200);">
-            <a href="{{ route('orders.index') }}" class="dms-btn dms-btn-outline" style="padding: 0.5rem 1rem; font-size: 0.75rem;">
+        <div class="dms-order-form-actions">
+            <a href="{{ route('orders.index') }}" class="dms-btn dms-btn-outline">
                 <i class="bi bi-arrow-left"></i> Batal
             </a>
-            <button type="submit" id="save-order-button" class="dms-btn dms-btn-primary" style="padding: 0.5rem 1rem; font-size: 0.75rem;">
+            <button type="submit" id="save-order-button" class="dms-btn dms-btn-primary">
                 <i class="bi bi-save"></i> Simpan Order
             </button>
         </div>
@@ -1234,11 +1234,26 @@ textarea.form-control {
     resize: vertical;
 }
 .dms-order-section {
-    margin-bottom: 1.2rem;
-    padding: 1rem;
+    margin-bottom: 1.25rem;
+    padding: 1.25rem;
     border: 1px solid #dbe6f3;
     border-radius: 8px;
     background: #ffffff;
+}
+.dms-order-section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.85rem;
+}
+.dms-order-section-head .dms-order-section-title {
+    margin-bottom: 0;
+}
+.dms-order-section-head .dms-btn {
+    min-height: 38px;
+    padding: 0.45rem 0.85rem;
+    white-space: nowrap;
 }
 .dms-order-section-title {
     display: flex;
@@ -1291,8 +1306,60 @@ textarea.form-control {
     margin: 0 0 0.65rem;
 }
 .dms-products-table-wrap {
-    overflow: visible;
+    overflow-x: auto;
+    overflow-y: visible;
     position: relative;
+    border: 1px solid var(--k-gray-200);
+    border-radius: 8px;
+    background: #ffffff;
+}
+.dms-products-table-wrap table {
+    min-width: 980px;
+    border-collapse: separate !important;
+    border-spacing: 0;
+}
+.dms-products-table-wrap thead tr {
+    background: var(--k-gray-50) !important;
+}
+.dms-products-table-wrap th {
+    padding: 0.7rem 0.75rem !important;
+    color: var(--k-gray-600) !important;
+    font-size: 0.68rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+}
+.dms-products-table-wrap td {
+    padding: 0.65rem 0.75rem !important;
+    vertical-align: top;
+}
+.dms-products-table-wrap .form-control,
+.dms-products-table-wrap .dms-combobox-trigger {
+    min-height: 42px;
+}
+.dms-order-total-panel {
+    max-width: 520px;
+    margin-left: auto;
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--k-gray-200);
+    border-radius: 8px;
+    background: var(--k-gray-50);
+}
+.dms-order-notes {
+    margin-bottom: 1.5rem;
+}
+.dms-order-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--k-gray-200);
+}
+.dms-order-form-actions .dms-btn {
+    min-height: 42px;
+    padding: 0.55rem 1rem;
+    font-size: 0.75rem;
 }
 .dms-ppn-row {
     margin: 0 0 1rem;
@@ -1420,6 +1487,24 @@ textarea.form-control {
 @media (max-width: 900px) {
     .dms-fee-grid {
         grid-template-columns: 1fr;
+    }
+
+    .dms-order-section-head {
+        flex-direction: column;
+    }
+
+    .dms-order-section-head .dms-btn,
+    .dms-order-form-actions .dms-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .dms-order-total-panel {
+        max-width: none;
+    }
+
+    .dms-order-form-actions {
+        flex-direction: column-reverse;
     }
 }
 </style>
