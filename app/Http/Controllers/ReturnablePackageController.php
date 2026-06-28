@@ -15,6 +15,27 @@ class ReturnablePackageController extends Controller
 {
     public function index(Request $request)
     {
+        $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'returnable_package_id' => ['nullable', 'exists:returnable_packages,id'],
+            'customer_id' => ['nullable', 'exists:customers,id'],
+            'company_branch_id' => ['nullable', 'exists:company_branches,id'],
+            'movement_type' => ['nullable', 'in:' . implode(',', array_keys(ReturnablePackageMovement::TYPE_LIST))],
+            'per_page' => ['nullable', 'integer', 'in:10,15,25,50'],
+        ]);
+
+        $branchScopeId = $this->currentBranchScopeId();
+        $filters = [
+            'search' => trim((string) $request->input('search', '')),
+            'returnable_package_id' => $request->input('returnable_package_id'),
+            'customer_id' => $request->input('customer_id'),
+            'company_branch_id' => $branchScopeId ?: $request->input('company_branch_id'),
+            'movement_type' => $request->input('movement_type'),
+            'per_page' => in_array((int) $request->input('per_page', 15), [10, 15, 25, 50], true)
+                ? (int) $request->input('per_page', 15)
+                : 15,
+        ];
+
         $packages = ReturnablePackage::query()
             ->withCount('movements')
             ->orderBy('name')
@@ -23,23 +44,52 @@ class ReturnablePackageController extends Controller
         $balances = ReturnablePackageBalance::query()
             ->with(['package', 'customer', 'companyBranch'])
             ->where('outstanding_quantity', '>', 0)
-            ->when($branchScopeId = $this->currentBranchScopeId(), fn ($query) => $query->where('company_branch_id', $branchScopeId))
+            ->when($filters['returnable_package_id'], fn ($query, $packageId) => $query->where('returnable_package_id', $packageId))
+            ->when($filters['customer_id'], fn ($query, $customerId) => $query->where('customer_id', $customerId))
+            ->when($filters['company_branch_id'], fn ($query, $branchId) => $query->where('company_branch_id', $branchId))
+            ->when($filters['search'], function ($query, string $search) {
+                $query->where(function ($query) use ($search) {
+                    $query->whereHas('package', function ($query) use ($search) {
+                        $query->where('name', 'like', '%' . $search . '%')
+                            ->orWhere('code', 'like', '%' . $search . '%');
+                    })->orWhereHas('customer', function ($query) use ($search) {
+                        $query->where('name', 'like', '%' . $search . '%')
+                            ->orWhere('phone', 'like', '%' . $search . '%');
+                    });
+                });
+            })
             ->latest('last_movement_at')
             ->limit(20)
             ->get();
 
         $movements = ReturnablePackageMovement::query()
             ->with(['package', 'customer', 'companyBranch', 'creator'])
-            ->when($branchScopeId = $this->currentBranchScopeId(), fn ($query) => $query->where('company_branch_id', $branchScopeId))
+            ->when($filters['returnable_package_id'], fn ($query, $packageId) => $query->where('returnable_package_id', $packageId))
+            ->when($filters['customer_id'], fn ($query, $customerId) => $query->where('customer_id', $customerId))
+            ->when($filters['company_branch_id'], fn ($query, $branchId) => $query->where('company_branch_id', $branchId))
+            ->when($filters['movement_type'], fn ($query, $type) => $query->where('movement_type', $type))
+            ->when($filters['search'], function ($query, string $search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('movement_number', 'like', '%' . $search . '%')
+                        ->orWhere('reference_number', 'like', '%' . $search . '%')
+                        ->orWhereHas('package', function ($query) use ($search) {
+                            $query->where('name', 'like', '%' . $search . '%')
+                                ->orWhere('code', 'like', '%' . $search . '%');
+                        })->orWhereHas('customer', function ($query) use ($search) {
+                            $query->where('name', 'like', '%' . $search . '%')
+                                ->orWhere('phone', 'like', '%' . $search . '%');
+                        });
+                });
+            })
             ->latest('movement_date')
             ->latest('id')
-            ->paginate($request->get('per_page', 15))
+            ->paginate($filters['per_page'])
             ->withQueryString();
 
         $activePackages = ReturnablePackage::active()->orderBy('name')->get();
         $customers = Customer::query()
             ->where('is_active', true)
-            ->when($branchScopeId = $this->currentBranchScopeId(), fn ($query) => $query->where('company_branch_id', $branchScopeId))
+            ->when($branchScopeId, fn ($query) => $query->where('company_branch_id', $branchScopeId))
             ->orderBy('name')
             ->get();
         $companyBranches = CompanyBranch::where('is_active', true)->orderBy('name')->get();
@@ -58,7 +108,8 @@ class ReturnablePackageController extends Controller
             'canFilterBranches',
             'categories',
             'activeCategories',
-            'movementTypes'
+            'movementTypes',
+            'filters'
         ));
     }
 

@@ -101,6 +101,13 @@
         gap: 1rem;
     }
 
+    .returnable-filter-grid {
+        display: grid;
+        grid-template-columns: minmax(220px, 1.3fr) repeat(4, minmax(150px, 1fr)) minmax(110px, .6fr);
+        gap: .75rem;
+        align-items: end;
+    }
+
     .returnable-panel {
         border: 1px solid var(--k-gray-200, #dbe4f0);
         border-radius: 10px;
@@ -259,6 +266,10 @@
     }
 
     @media (max-width: 1100px) {
+        .returnable-filter-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
         .returnable-workspace {
             grid-template-columns: 1fr;
         }
@@ -267,6 +278,7 @@
     @media (max-width: 760px) {
         .returnable-summary,
         .returnable-form-grid,
+        .returnable-filter-grid,
         .returnable-mini-form {
             grid-template-columns: 1fr;
         }
@@ -325,6 +337,79 @@
                     <span>Mutasi Tercatat</span>
                 </div>
             </div>
+        </div>
+
+        <div class="returnable-data-card" style="margin-bottom: 1rem;">
+            <div class="returnable-data-header">
+                <div>
+                    <h2 class="returnable-data-title">Filter Kemasan Kembali</h2>
+                    <p class="returnable-data-subtitle">Cari saldo dan mutasi berdasarkan customer, kemasan, cabang, atau nomor referensi.</p>
+                </div>
+            </div>
+            <form method="GET" class="returnable-filter-grid" style="padding: 1rem;">
+                <div>
+                    <label class="form-label">Cari</label>
+                    <input type="search" name="search" value="{{ $filters['search'] ?? '' }}" class="form-control" placeholder="Customer, kemasan, no mutasi/ref...">
+                </div>
+                <div>
+                    <label class="form-label">Kemasan</label>
+                    <select name="returnable_package_id" class="form-control">
+                        <option value="">Semua kemasan</option>
+                        @foreach($activePackages as $package)
+                            <option value="{{ $package->id }}" @selected((string) ($filters['returnable_package_id'] ?? '') === (string) $package->id)>
+                                {{ $package->code }} - {{ $package->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Customer</label>
+                    <select name="customer_id" class="form-control">
+                        <option value="">Semua customer</option>
+                        @foreach($customers as $customer)
+                            <option value="{{ $customer->id }}" @selected((string) ($filters['customer_id'] ?? '') === (string) $customer->id)>
+                                {{ $customer->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                @if($canFilterBranches)
+                    <div>
+                        <label class="form-label">Cabang</label>
+                        <select name="company_branch_id" class="form-control">
+                            <option value="">Semua cabang</option>
+                            @foreach($companyBranches as $branch)
+                                <option value="{{ $branch->id }}" @selected((string) ($filters['company_branch_id'] ?? '') === (string) $branch->id)>
+                                    {{ $branch->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                @endif
+                <div>
+                    <label class="form-label">Tipe Mutasi</label>
+                    <select name="movement_type" class="form-control">
+                        <option value="">Semua tipe</option>
+                        @foreach($movementTypes as $value => $label)
+                            <option value="{{ $value }}" @selected(($filters['movement_type'] ?? '') === $value)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Per Halaman</label>
+                    <select name="per_page" class="form-control">
+                        @foreach([10, 15, 25, 50] as $pageSize)
+                            <option value="{{ $pageSize }}" @selected((int) ($filters['per_page'] ?? 15) === $pageSize)>{{ $pageSize }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div style="display: flex; gap: .55rem; justify-content: flex-end; grid-column: 1 / -1;">
+                    <a href="{{ route('returnable-packages.index') }}" class="dms-btn dms-btn-outline">Reset</a>
+                    <button type="submit" class="dms-btn dms-btn-primary">
+                        <i class="bi bi-search"></i> Filter
+                    </button>
+                </div>
+            </form>
         </div>
 
         <div class="returnable-workspace">

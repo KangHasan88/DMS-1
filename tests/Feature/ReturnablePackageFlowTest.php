@@ -71,6 +71,17 @@ class ReturnablePackageFlowTest extends TestCase
             ->assertSee('Kemasan Kembali')
             ->assertSee('Galon 19L')
             ->assertSee('Toko Aqua Sejahtera');
+
+        $this->actingAs($user)
+            ->get(route('returnable-packages.index', [
+                'search' => 'RET-001',
+                'returnable_package_id' => $package->id,
+                'customer_id' => $customer->id,
+                'movement_type' => ReturnablePackageMovement::TYPE_RETURNED,
+            ]))
+            ->assertOk()
+            ->assertSee('RET-001')
+            ->assertDontSee('DO-001');
     }
 
     public function test_admin_can_create_returnable_package_category(): void
