@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\ProductStock;
+use App\Models\ProductWarehouseStock;
 use App\Models\StockMovement;
 use App\Models\StockOpname;
 use App\Models\StockOpnameItem;
+use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +17,7 @@ class StockOpnameController extends Controller
 {
     public function index()
     {
-        $stockOpnames = StockOpname::with('createdBy', 'completedBy')
+        $stockOpnames = StockOpname::with('warehouse', 'createdBy', 'completedBy')
             ->withCount('items')
             ->latest()
             ->paginate(10);
@@ -26,14 +28,16 @@ class StockOpnameController extends Controller
     public function create()
     {
         $activeProductsCount = Product::active()->count();
+        $warehouses = Warehouse::active()->orderByDesc('is_default')->orderBy('sort_order')->orderBy('name')->get();
 
-        return view('stock-opnames.create', compact('activeProductsCount'));
+        return view('stock-opnames.create', compact('activeProductsCount', 'warehouses'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'opname_date' => ['required', 'date'],
+            'warehouse_id' => ['required', 'exists:warehouses,id'],
             'notes' => ['nullable', 'string'],
         ]);
 
@@ -41,19 +45,24 @@ class StockOpnameController extends Controller
             $stockOpname = StockOpname::create([
                 'opname_number' => StockOpname::generateNumber(),
                 'opname_date' => $validated['opname_date'],
+                'warehouse_id' => $validated['warehouse_id'],
                 'notes' => $validated['notes'] ?? null,
                 'created_by' => Auth::id(),
             ]);
 
-            Product::with('stock')
+            Product::query()
                 ->active()
                 ->orderBy('name')
                 ->get()
-                ->each(function (Product $product) use ($stockOpname) {
+                ->each(function (Product $product) use ($stockOpname, $validated) {
+                    $warehouseQuantity = ProductWarehouseStock::where('product_id', $product->id)
+                        ->where('warehouse_id', $validated['warehouse_id'])
+                        ->value('quantity');
+
                     StockOpnameItem::create([
                         'stock_opname_id' => $stockOpname->id,
                         'product_id' => $product->id,
-                        'system_quantity' => $product->stock?->quantity ?? 0,
+                        'system_quantity' => (int) ($warehouseQuantity ?? 0),
                     ]);
                 });
         });
@@ -64,7 +73,7 @@ class StockOpnameController extends Controller
 
     public function show(StockOpname $stockOpname)
     {
-        $stockOpname->load('createdBy', 'completedBy', 'items.product.unit');
+        $stockOpname->load('warehouse', 'createdBy', 'completedBy', 'items.product.unit');
 
         return view('stock-opnames.show', compact('stockOpname'));
     }
@@ -102,7 +111,7 @@ class StockOpnameController extends Controller
             return back()->with('error', 'Stock opname sudah selesai.');
         }
 
-        $stockOpname->load('items.product.stock');
+        $stockOpname->load('warehouse', 'items.product.stock');
 
         if ($stockOpname->items->contains(fn (StockOpnameItem $item) => is_null($item->counted_quantity))) {
             return back()->with('error', 'Lengkapi stok fisik semua produk sebelum menyelesaikan opname.');
@@ -110,12 +119,15 @@ class StockOpnameController extends Controller
 
         DB::transaction(function () use ($stockOpname) {
             foreach ($stockOpname->items as $item) {
-                $stock = $item->product->stock ?: ProductStock::create([
+                $warehouseStock = ProductWarehouseStock::firstOrCreate([
                     'product_id' => $item->product_id,
+                    'warehouse_id' => $stockOpname->warehouse_id,
+                ], [
                     'quantity' => 0,
+                    'min_stock' => 0,
                 ]);
 
-                $before = $stock->quantity;
+                $before = $warehouseStock->quantity;
                 $after = $item->counted_quantity;
                 $difference = $after - $before;
 
@@ -127,14 +139,25 @@ class StockOpnameController extends Controller
                     continue;
                 }
 
-                $stock->update([
+                $warehouseStock->update([
                     'quantity' => $after,
                     'last_updated_at' => now(),
                     'updated_by' => Auth::id(),
                 ]);
 
+                $globalQuantity = ProductWarehouseStock::where('product_id', $item->product_id)->sum('quantity');
+                ProductStock::updateOrCreate(
+                    ['product_id' => $item->product_id],
+                    [
+                        'quantity' => $globalQuantity,
+                        'last_updated_at' => now(),
+                        'updated_by' => Auth::id(),
+                    ]
+                );
+
                 StockMovement::create([
                     'product_id' => $item->product_id,
+                    'warehouse_id' => $stockOpname->warehouse_id,
                     'source_type' => StockMovement::SOURCE_ADJUSTMENT,
                     'source_id' => $stockOpname->id,
                     'type' => StockMovement::TYPE_ADJUSTMENT,

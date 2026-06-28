@@ -10,6 +10,7 @@
             <h3 class="dms-section-title">{{ $stockOpname->opname_number }}</h3>
             <p class="dms-section-subtitle">
                 Tanggal {{ $stockOpname->opname_date->format('d M Y') }} ·
+                Gudang {{ $stockOpname->warehouse?->name ?? '-' }} ·
                 <span class="dms-badge dms-badge-{{ $stockOpname->status_color }}">{{ $stockOpname->status_label }}</span>
             </p>
         </div>

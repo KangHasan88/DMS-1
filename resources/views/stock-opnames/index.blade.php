@@ -22,6 +22,7 @@
                 <tr>
                     <th>No. Opname</th>
                     <th>Tanggal</th>
+                    <th>Gudang</th>
                     <th>Item</th>
                     <th>Status</th>
                     <th>Dibuat Oleh</th>
@@ -34,6 +35,7 @@
                     <tr>
                         <td><strong>{{ $opname->opname_number }}</strong></td>
                         <td>{{ $opname->opname_date->format('d M Y') }}</td>
+                        <td>{{ $opname->warehouse?->name ?? '-' }}</td>
                         <td>{{ number_format($opname->items_count) }}</td>
                         <td><span class="dms-badge dms-badge-{{ $opname->status_color }}">{{ $opname->status_label }}</span></td>
                         <td>{{ $opname->createdBy->name ?? '-' }}</td>
@@ -47,7 +49,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7">
+                        <td colspan="8">
                             <div class="dms-empty-state">
                                 <i class="bi bi-clipboard-check"></i>
                                 <p>Belum ada dokumen stock opname.</p>

@@ -16,6 +16,7 @@ use App\Models\OutboundFoc;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use App\Models\ProductStock;
+use App\Models\ProductWarehouseStock;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\Consignment;
@@ -29,6 +30,7 @@ use App\Models\SupplierCategory;
 use App\Models\Unit;
 use App\Models\UnitCategory;
 use App\Models\User;
+use App\Models\Warehouse;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Route;
@@ -1428,6 +1430,7 @@ class InventoryQaRegressionTest extends TestCase
     public function test_stock_opname_completes_and_adjusts_product_stock(): void
     {
         $user = $this->superAdmin();
+        $warehouse = Warehouse::where('is_default', true)->firstOrFail();
         $product = Product::create([
             'name' => 'Produk Opname',
             'category' => 'Sayur',
@@ -1440,10 +1443,17 @@ class InventoryQaRegressionTest extends TestCase
             'quantity' => 10,
             'min_stock' => 2,
         ]);
+        ProductWarehouseStock::create([
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'quantity' => 10,
+            'min_stock' => 2,
+        ]);
 
         $this->actingAs($user)
             ->post('/stock-opnames', [
                 'opname_date' => now()->toDateString(),
+                'warehouse_id' => $warehouse->id,
                 'notes' => 'Opname test',
             ])
             ->assertRedirect('/stock-opnames');
@@ -1469,6 +1479,7 @@ class InventoryQaRegressionTest extends TestCase
 
         $this->assertSame(StockOpname::STATUS_COMPLETED, $stockOpname->fresh()->status);
         $this->assertSame(7, $product->stock()->first()->quantity);
+        $this->assertSame(7, ProductWarehouseStock::where('product_id', $product->id)->where('warehouse_id', $warehouse->id)->value('quantity'));
         $this->assertDatabaseHas('stock_opname_items', [
             'stock_opname_id' => $stockOpname->id,
             'product_id' => $product->id,
@@ -1478,6 +1489,7 @@ class InventoryQaRegressionTest extends TestCase
         ]);
         $this->assertDatabaseHas('stock_movements', [
             'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
             'source_type' => StockMovement::SOURCE_ADJUSTMENT,
             'source_id' => $stockOpname->id,
             'type' => StockMovement::TYPE_ADJUSTMENT,
@@ -1490,6 +1502,7 @@ class InventoryQaRegressionTest extends TestCase
     public function test_stock_opname_requires_all_items_counted_before_complete(): void
     {
         $user = $this->superAdmin();
+        $warehouse = Warehouse::where('is_default', true)->firstOrFail();
         $product = Product::create([
             'name' => 'Produk Opname Belum Hitung',
             'category' => 'Sayur',
@@ -1504,6 +1517,7 @@ class InventoryQaRegressionTest extends TestCase
 
         $this->actingAs($user)->post('/stock-opnames', [
             'opname_date' => now()->toDateString(),
+            'warehouse_id' => $warehouse->id,
         ]);
 
         $stockOpname = StockOpname::firstOrFail();

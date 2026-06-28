@@ -11,6 +11,7 @@ class StockOpname extends Model
     protected $fillable = [
         'opname_number',
         'opname_date',
+        'warehouse_id',
         'status',
         'notes',
         'created_by',
@@ -48,6 +49,11 @@ class StockOpname extends Model
     public function items(): HasMany
     {
         return $this->hasMany(StockOpnameItem::class);
+    }
+
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class);
     }
 
     public function createdBy(): BelongsTo
