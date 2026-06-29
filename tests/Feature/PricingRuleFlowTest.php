@@ -953,6 +953,114 @@ class PricingRuleFlowTest extends TestCase
         $this->assertSame(1, ProductPriceRule::where('product_id', $product->id)->count());
     }
 
+    public function test_price_rule_rejects_customer_from_different_selected_branch(): void
+    {
+        $admin = $this->userWithRole('admin', 'price-branch-admin@example.test');
+        $mainBranch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $otherBranch = CompanyBranch::create([
+            'company_profile_id' => $mainBranch->company_profile_id,
+            'name' => 'Cabang Harga Beda',
+            'code' => 'CHB',
+            'is_active' => true,
+        ]);
+        $customerUser = $this->userWithRole('customer', 'price-branch-customer@example.test');
+        $otherBranchCustomer = Customer::create([
+            'user_id' => $customerUser->id,
+            'company_branch_id' => $otherBranch->id,
+            'name' => 'Customer Harga Cabang Beda',
+            'phone' => '081234567899',
+            'email' => 'price-branch-customer@example.test',
+            'customer_type' => 'regular',
+            'payment_term' => Customer::PAYMENT_CASH,
+            'credit_status' => Customer::CREDIT_NORMAL,
+            'is_active' => true,
+        ]);
+        $product = Product::create([
+            'name' => 'Produk Harga Cabang',
+            'category' => 'Demo',
+            'price' => 18000,
+            'base_price' => 11000,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('product-price-rules.index'))
+            ->post(route('product-price-rules.store'), [
+                'product_id' => $product->id,
+                'customer_ids' => [$otherBranchCustomer->id],
+                'company_branch_id' => $mainBranch->id,
+                'price' => 15000,
+                'starts_at' => now()->toDateString(),
+            ])
+            ->assertRedirect(route('product-price-rules.index'))
+            ->assertSessionHasErrors('customer_ids');
+
+        $this->assertSame(0, ProductPriceRule::where('product_id', $product->id)->count());
+    }
+
+    public function test_price_rule_rejects_past_start_date(): void
+    {
+        $admin = $this->userWithRole('admin', 'price-past-admin@example.test');
+        $branch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $product = Product::create([
+            'name' => 'Produk Harga Past',
+            'category' => 'Demo',
+            'price' => 20000,
+            'base_price' => 12000,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->from(route('product-price-rules.index'))
+            ->post(route('product-price-rules.store'), [
+                'product_id' => $product->id,
+                'company_branch_id' => $branch->id,
+                'customer_type' => 'wholesale',
+                'price' => 17500,
+                'starts_at' => now()->subDay()->toDateString(),
+            ])
+            ->assertRedirect(route('product-price-rules.index'))
+            ->assertSessionHasErrors('starts_at');
+
+        $this->assertSame(0, ProductPriceRule::where('product_id', $product->id)->count());
+    }
+
+    public function test_expired_price_rule_cannot_be_reactivated(): void
+    {
+        $admin = $this->userWithRole('admin', 'price-expired-admin@example.test');
+        $branch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $product = Product::create([
+            'name' => 'Produk Harga Expired',
+            'category' => 'Demo',
+            'price' => 20000,
+            'base_price' => 12000,
+            'is_active' => true,
+        ]);
+        $rule = ProductPriceRule::create([
+            'product_id' => $product->id,
+            'customer_type' => 'wholesale',
+            'company_branch_id' => $branch->id,
+            'price' => 16000,
+            'starts_at' => now()->subDays(10)->toDateString(),
+            'ends_at' => now()->subDay()->toDateString(),
+            'is_active' => false,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('product-price-rules.index'))
+            ->assertOk()
+            ->assertSee('Expired')
+            ->assertSee('disabled title="Periode sudah lewat"', false);
+
+        $this->actingAs($admin)
+            ->from(route('product-price-rules.index'))
+            ->post(route('product-price-rules.toggle-status', $rule))
+            ->assertRedirect(route('product-price-rules.index'))
+            ->assertSessionHas('error');
+
+        $this->assertFalse($rule->fresh()->is_active);
+    }
+
     public function test_discount_rule_page_can_create_segment_rule(): void
     {
         $admin = $this->userWithRole('admin', 'discount-page-admin@example.test');

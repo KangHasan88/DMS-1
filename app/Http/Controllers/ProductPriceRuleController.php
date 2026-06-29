@@ -29,7 +29,7 @@ class ProductPriceRuleController extends Controller
             ->withQueryString();
 
         $products = Product::with('principal')->active()->orderBy('name')->get();
-        $customers = Customer::where('is_active', true)->orderBy('name')->get();
+        $customers = Customer::with('companyBranch')->where('is_active', true)->orderBy('name')->get();
         $customerTypes = CustomerType::where('is_active', true)->orderBy('name')->get();
         $companyBranches = CompanyBranch::where('is_active', true)->orderBy('name')->get();
 
@@ -45,7 +45,7 @@ class ProductPriceRuleController extends Controller
             'customer_type' => ['nullable', 'exists:customer_types,code'],
             'company_branch_id' => ['nullable', 'exists:company_branches,id'],
             'price' => ['required', 'integer', 'min:0'],
-            'starts_at' => ['required', 'date'],
+            'starts_at' => ['required', 'date', 'after_or_equal:today'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
@@ -56,6 +56,7 @@ class ProductPriceRuleController extends Controller
 
         if ($customerIds->isNotEmpty()) {
             $validated['customer_type'] = null;
+            $this->ensureCustomersBelongToSelectedBranch($customerIds->all(), $validated['company_branch_id'] ?? null);
             $this->ensureNoOverlappingPriceRules($validated, $customerIds->all());
 
             $customerIds->each(function ($customerId) use ($validated) {
@@ -74,17 +75,44 @@ class ProductPriceRuleController extends Controller
 
     public function toggleStatus(ProductPriceRule $productPriceRule)
     {
+        if (!$productPriceRule->is_active) {
+            if ($productPriceRule->ends_at && $productPriceRule->ends_at->isPast()) {
+                return back()->with('error', 'Aturan harga yang periodenya sudah berakhir tidak dapat diaktifkan kembali.');
+            }
+
+            $this->ensureNoOverlappingPriceRules($productPriceRule->toArray(), [$productPriceRule->customer_id], $productPriceRule->id);
+        }
+
         $productPriceRule->update(['is_active' => !$productPriceRule->is_active]);
 
         return back()->with('success', 'Status aturan harga berhasil diperbarui.');
     }
 
-    private function ensureNoOverlappingPriceRules(array $data, array $customerIds): void
+    private function ensureCustomersBelongToSelectedBranch(array $customerIds, ?int $branchId): void
+    {
+        if (!$branchId) {
+            return;
+        }
+
+        $invalidCustomers = Customer::query()
+            ->whereIn('id', $customerIds)
+            ->where('company_branch_id', '!=', $branchId)
+            ->exists();
+
+        if ($invalidCustomers) {
+            throw ValidationException::withMessages([
+                'customer_ids' => 'Customer khusus harus berasal dari cabang yang dipilih.',
+            ]);
+        }
+    }
+
+    private function ensureNoOverlappingPriceRules(array $data, array $customerIds, ?int $ignoreId = null): void
     {
         foreach ($customerIds as $customerId) {
             $exists = ProductPriceRule::query()
                 ->where('is_active', true)
                 ->where('product_id', $data['product_id'])
+                ->when($ignoreId, fn ($query) => $query->whereKeyNot($ignoreId))
                 ->when($customerId, fn ($query) => $query->where('customer_id', $customerId), fn ($query) => $query->whereNull('customer_id'))
                 ->when(
                     $customerId,
