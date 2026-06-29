@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\SaasModuleTenant;
 use App\Services\Saas\RemoteModuleLaunchVerifier;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class SaasRemoteModuleTest extends TestCase
@@ -28,6 +29,27 @@ class SaasRemoteModuleTest extends TestCase
         $signedHealth = $response->json('signed_health');
         $this->assertIsString($signedHealth['signature'] ?? null);
         $this->assertSame(64, strlen($signedHealth['signature']));
+    }
+
+    public function test_remote_health_endpoint_can_send_signed_health_callback_to_central(): void
+    {
+        config()->set('modules.remote_provision_secret', 'testing-provision-secret');
+        config()->set('modules.central_health_callback_url', 'https://saas.kurmigo.id/module-health/callback');
+        Http::fake([
+            'https://saas.kurmigo.id/module-health/callback' => Http::response(['accepted' => true]),
+        ]);
+
+        $this->getJson('/health')
+            ->assertOk()
+            ->assertJsonPath('callback_dispatched', true);
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://saas.kurmigo.id/module-health/callback'
+                && $request['module_key'] === 'dms'
+                && $request['status'] === 'healthy'
+                && is_string($request['signature'] ?? null)
+                && strlen($request['signature']) === 64;
+        });
     }
 
     public function test_signed_remote_launch_stores_saas_context_and_redirects_to_login(): void
