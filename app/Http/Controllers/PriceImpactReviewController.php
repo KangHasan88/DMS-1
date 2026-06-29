@@ -123,6 +123,7 @@ class PriceImpactReviewController extends Controller
         $stats = [
             'products_with_purchase' => $purchasedRows->count(),
             'needs_review' => $allRows->filter(fn (array $row) => $row['needs_review'])->count(),
+            'pending_approval' => $pendingApprovals->count(),
             'average_projected_margin' => $purchasedRows->pluck('projected_margin_percent')->filter(fn ($value) => $value !== null)->avg(),
         ];
 

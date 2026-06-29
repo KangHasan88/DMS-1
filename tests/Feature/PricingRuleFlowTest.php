@@ -1428,8 +1428,9 @@ class PricingRuleFlowTest extends TestCase
             ->get(route('price-impact-review.index', ['mode' => 'all']))
             ->assertOk()
             ->assertSee('Menunggu Approval')
+            ->assertSee('Sudah Diajukan')
             ->assertSee('Lihat Approval')
-            ->assertDontSee('Ajukan');
+            ->assertDontSee('Ajukan Approval');
     }
 
     public function test_price_change_approval_updates_master_prices_and_records_history(): void

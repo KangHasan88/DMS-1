@@ -10,7 +10,7 @@
     .impact-title { display: flex; align-items: flex-start; gap: .75rem; }
     .impact-icon { width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 40px; border-radius: 10px; color: var(--k-navy); background: #fff4e8; }
     .impact-filter { display: grid; grid-template-columns: minmax(260px, 1fr) 150px 170px 170px auto; gap: .75rem; align-items: end; padding: .9rem; border: 1px solid var(--k-border); border-radius: 10px; background: var(--k-gray-50); }
-    .impact-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .85rem; }
+    .impact-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .85rem; }
     .impact-stat { border: 1px solid var(--k-border); border-radius: 8px; padding: .9rem 1rem; background: var(--k-white); }
     .impact-stat span { display: block; color: var(--k-gray-600); font-size: .82rem; font-weight: 700; }
     .impact-stat strong { display: block; margin-top: .25rem; color: var(--k-navy); font-size: 1.35rem; }
@@ -20,8 +20,10 @@
     .impact-money { color: var(--k-navy); font-weight: 800; white-space: nowrap; }
     .impact-danger { color: #b42318; font-weight: 800; }
     .impact-success { color: #027a48; font-weight: 800; }
-    .impact-actions { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; }
+    .impact-actions { display: grid; gap: .45rem; align-items: stretch; min-width: 160px; }
     .impact-apply { display: inline; }
+    .impact-actions .dms-btn { justify-content: center; width: 100%; padding: .48rem .7rem; }
+    .impact-status-stack { display: grid; gap: .35rem; justify-items: start; }
     @media (max-width: 1180px) {
         .impact-filter { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .impact-stats { grid-template-columns: 1fr; }
@@ -87,6 +89,10 @@
         <div class="impact-stat">
             <span>Perlu Review</span>
             <strong>{{ number_format($stats['needs_review'], 0, ',', '.') }}</strong>
+        </div>
+        <div class="impact-stat">
+            <span>Menunggu Approval</span>
+            <strong>{{ number_format($stats['pending_approval'], 0, ',', '.') }}</strong>
         </div>
         <div class="impact-stat">
             <span>Rata-rata Margin Proyeksi</span>
@@ -169,16 +175,22 @@
                         </td>
                         <td>
                             <div class="impact-actions">
-                                @if($row['needs_review'])
-                                    <span class="badge bg-warning text-dark">Perlu Review</span>
-                                @else
-                                    <span class="badge bg-success">OK</span>
-                                @endif
+                                <div class="impact-status-stack">
+                                    @if($pendingApproval)
+                                        <span class="dms-badge dms-badge-info">Menunggu Approval</span>
+                                    @elseif($row['needs_review'])
+                                        <span class="dms-badge dms-badge-warning">Perlu Review</span>
+                                    @else
+                                        <span class="dms-badge dms-badge-success">OK</span>
+                                    @endif
+                                </div>
                                 @can('edit products')
                                     @if($pendingApproval)
-                                        <span class="badge bg-info text-dark">Menunggu Approval</span>
-                                        <a href="{{ route('approval-requests.show', $pendingApproval) }}" class="dms-btn dms-btn-outline" style="padding: .42rem .7rem;">
-                                            Lihat Approval
+                                        <button type="button" class="dms-btn dms-btn-outline" disabled>
+                                            <i class="bi bi-clock-history"></i> Sudah Diajukan
+                                        </button>
+                                        <a href="{{ route('approval-requests.show', $pendingApproval) }}" class="dms-btn dms-btn-outline">
+                                            <i class="bi bi-eye"></i> Lihat Approval
                                         </a>
                                     @elseif($row['latest_purchase_price'] > 0)
                                         <form action="{{ route('price-impact-review.apply', $product) }}" method="POST" class="impact-apply">
@@ -186,13 +198,15 @@
                                             <input type="hidden" name="new_base_price" value="{{ $row['latest_purchase_price'] }}">
                                             <input type="hidden" name="new_price" value="{{ $row['recommended_price'] }}">
                                             <input type="hidden" name="reason" value="Update harga dari kenaikan harga beli {{ $purchaseOrder?->po_number ?? '' }}">
-                                            <button type="submit" class="dms-btn dms-btn-primary" style="padding: .42rem .7rem;">
-                                                Ajukan
+                                            <button type="submit" class="dms-btn dms-btn-primary">
+                                                <i class="bi bi-send-check"></i> Ajukan Approval
                                             </button>
                                         </form>
                                     @endif
                                 @endcan
-                                <a href="{{ route('products.edit', $product) }}" class="dms-btn dms-btn-outline" style="padding: .42rem .7rem;">Edit</a>
+                                <a href="{{ route('products.edit', $product) }}" class="dms-btn dms-btn-outline">
+                                    <i class="bi bi-pencil"></i> Edit Produk
+                                </a>
                             </div>
                         </td>
                     </tr>
