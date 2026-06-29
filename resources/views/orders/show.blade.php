@@ -472,10 +472,19 @@
     @endif
 </div>
 
-<!-- Action Buttons - DIPINDAHKAN KE PALING BAWAH -->
 @if($order->canUpdateStatus())
-<div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: flex-end; flex-wrap: wrap;">
-    
+<div class="dms-next-action-panel">
+    <div class="dms-next-action-copy">
+        <div class="dms-next-action-icon">
+            <i class="bi bi-play-circle"></i>
+        </div>
+        <div>
+            <h4>Aksi Berikutnya</h4>
+            <p>Tombol yang tampil mengikuti status order, role user, dan mode pemenuhan.</p>
+        </div>
+    </div>
+    <div class="dms-next-action-buttons">
+
     {{-- Konfirmasi Pembayaran --}}
     @if(auth()->user()?->canProcessFinance() && (($order->payment_timing == 'pre_paid' && $order->status == 'pending_payment') || ($order->payment_timing == 'post_paid' && $order->status == 'shipped')))
     <form action="{{ route('orders.confirm-payment', $order) }}" method="POST">
@@ -567,6 +576,7 @@
     </form>
     @endif
     @endcan
+    </div>
 </div>
 @endif
 
@@ -676,6 +686,67 @@ if (shippingModal) {
 </script>
 
 <style>
+.dms-next-action-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1.25rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--k-gray-200);
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.dms-next-action-copy {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 260px;
+}
+
+.dms-next-action-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #eaf2ff;
+    color: var(--k-blue);
+    font-size: 1.05rem;
+}
+
+.dms-next-action-copy h4 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--k-gray-900);
+}
+
+.dms-next-action-copy p {
+    margin: 0.2rem 0 0;
+    color: var(--k-gray-500);
+    font-size: 0.76rem;
+}
+
+.dms-next-action-buttons {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.dms-next-action-buttons form {
+    margin: 0;
+}
+
+.dms-next-action-buttons .dms-btn {
+    min-height: 40px;
+    white-space: nowrap;
+}
+
 .form-group {
     margin-bottom: 0.75rem;
 }
@@ -701,6 +772,26 @@ if (shippingModal) {
 }
 .dms-table th, .dms-table td {
     vertical-align: middle;
+}
+
+@media (max-width: 860px) {
+    .dms-next-action-panel {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .dms-next-action-buttons {
+        justify-content: flex-start;
+    }
+
+    .dms-next-action-buttons .dms-btn,
+    .dms-next-action-buttons form {
+        width: 100%;
+    }
+
+    .dms-next-action-buttons .dms-btn {
+        justify-content: center;
+    }
 }
 </style>
 @endsection
