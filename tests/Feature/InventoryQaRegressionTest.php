@@ -1366,6 +1366,7 @@ class InventoryQaRegressionTest extends TestCase
             ->assertOk()
             ->assertSee('Usulan Pembelian')
             ->assertSee('Produk Proposed')
+            ->assertSee('Pilih')
             ->assertSee('Buat PO dari Usulan');
 
         $this->actingAs($user)

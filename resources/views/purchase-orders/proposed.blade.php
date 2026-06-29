@@ -51,7 +51,7 @@
             </p>
         </div>
     @else
-        <form action="{{ route('purchase-orders.store') }}" method="POST">
+        <form action="{{ route('purchase-orders.store') }}" method="POST" id="proposal-po-form">
             @csrf
             <input type="hidden" name="order_date" value="{{ now()->toDateString() }}">
             <input type="hidden" name="internal_notes" value="Dibuat dari Usulan Pembelian. Target week-cover: {{ $targetWeeks }} minggu.">
@@ -80,6 +80,7 @@
                 <table class="dms-table">
                     <thead>
                         <tr>
+                            <th style="width: 64px;">Pilih</th>
                             <th>Produk</th>
                             <th>Stok</th>
                             <th>Terjual 30 Hari</th>
@@ -93,6 +94,12 @@
                     <tbody>
                         @foreach($recommendations as $index => $item)
                             <tr>
+                                <td>
+                                    <label class="dms-proposal-check" title="Ikutkan produk ini ke PO">
+                                        <input type="checkbox" class="proposal-enabled" checked onchange="toggleProposalRow(this)">
+                                        <span></span>
+                                    </label>
+                                </td>
                                 <td>
                                     <input type="hidden" name="items[{{ $index }}][product_id]" value="{{ $item['product']->id }}">
                                     <div class="dms-identity">
@@ -195,7 +202,56 @@
     @endif
 </div>
 
+<script>
+function toggleProposalRow(checkbox) {
+    const row = checkbox.closest('tr');
+    const enabled = checkbox.checked;
+
+    row.classList.toggle('is-disabled', !enabled);
+    row.querySelectorAll('input[name^="items"]').forEach(input => {
+        input.disabled = !enabled;
+    });
+}
+
+const proposalForm = document.getElementById('proposal-po-form');
+if (proposalForm) {
+    proposalForm.addEventListener('submit', event => {
+        const selected = proposalForm.querySelectorAll('.proposal-enabled:checked').length;
+        if (selected === 0) {
+            event.preventDefault();
+            alert('Pilih minimal satu item usulan untuk dibuat PO.');
+        }
+    });
+}
+</script>
+
 <style>
+.dms-proposal-check {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--k-gray-300);
+    border-radius: 8px;
+    background: #ffffff;
+    cursor: pointer;
+}
+
+.dms-proposal-check input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--k-navy);
+}
+
+tr.is-disabled {
+    opacity: 0.48;
+}
+
+tr.is-disabled input.form-control {
+    background: var(--k-gray-100);
+}
+
 .dms-proposed-filter {
     margin-bottom: 1.25rem;
     padding: 1rem;
