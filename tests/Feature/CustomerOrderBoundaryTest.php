@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\ProductPriceRule;
 use App\Models\User;
 use App\Models\Customer;
 use App\Models\CompanyBranch;
@@ -343,6 +344,57 @@ class CustomerOrderBoundaryTest extends TestCase
         $this->assertFalse($order->requires_packing);
         $this->assertSame(0, (int) $order->packing_fee);
         $this->assertSame(10000, (int) $order->grand_total);
+    }
+
+    public function test_edit_order_keeps_existing_item_price_snapshot_after_master_price_change(): void
+    {
+        $admin = $this->superAdmin('order-price-snapshot-admin@example.test');
+        $customer = $this->customer('order-price-snapshot-customer@example.test');
+        $this->customerProfile($customer);
+        $product = $this->product('Snapshot Product');
+
+        $this->actingAs($admin)
+            ->withSession(['_token' => 'test-token'])
+            ->post('/orders', $this->orderPayload($customer, $product, 'price-snapshot-token'))
+            ->assertRedirect();
+
+        $order = Order::with('items')->where('request_token', 'price-snapshot-token')->firstOrFail();
+        $item = $order->items->firstOrFail();
+
+        $this->assertSame(10000, $item->price);
+        $this->assertSame('Snapshot Product', $item->product_name);
+
+        $product->update([
+            'name' => 'Snapshot Product Baru',
+            'price' => 15000,
+        ]);
+
+        ProductPriceRule::create([
+            'product_id' => $product->id,
+            'price' => 18000,
+            'starts_at' => now()->toDateString(),
+            'is_active' => true,
+        ]);
+
+        $payload = $this->orderPayload($customer, $product, 'unused-update-token');
+        $payload['items'][0]['id'] = $item->id;
+        $payload['items'][0]['quantity'] = 2;
+        $payload['packing_fee'] = 0;
+
+        $this->actingAs($admin)
+            ->withSession(['_token' => 'test-token'])
+            ->put(route('orders.update', $order), $payload)
+            ->assertRedirect(route('orders.show', $order));
+
+        $item->refresh();
+        $order->refresh();
+
+        $this->assertSame(10000, $item->price);
+        $this->assertSame('Snapshot Product', $item->product_name);
+        $this->assertSame(2, $item->quantity);
+        $this->assertSame(20000, $item->subtotal);
+        $this->assertSame(20000, $order->subtotal);
+        $this->assertSame(20000, $order->grand_total);
     }
 
     public function test_branch_admin_only_sees_customers_from_assigned_branch_on_order_create(): void

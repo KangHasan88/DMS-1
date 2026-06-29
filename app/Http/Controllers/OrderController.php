@@ -518,6 +518,7 @@ class OrderController extends Controller
         
         try {
             $existingItemIds = $order->items->pluck('id')->toArray();
+            $existingItemsById = $order->items->keyBy('id');
             $newItemIds = [];
             $subtotal = 0;
             $order->loadMissing('user.customer');
@@ -529,11 +530,18 @@ class OrderController extends Controller
             foreach ($request->items as $item) {
                 $product = Product::findOrFail($item['product_id']);
                 $quantity = $item['quantity'];
-                $price = $pricing->resolvePrice($product, $order->user?->customer, $companyBranchId);
+                $existingItem = isset($item['id']) ? $existingItemsById->get((int) $item['id']) : null;
+                $keepsExistingProduct = $existingItem && (int) $existingItem->product_id === (int) $product->id;
+                $price = $keepsExistingProduct
+                    ? (int) $existingItem->price
+                    : $pricing->resolvePrice($product, $order->user?->customer, $companyBranchId);
                 
                 $itemDiscount = 0;
                 if (isset($item['discount_percent']) && $item['discount_percent'] > 0) {
                     $itemDiscount = ($price * $item['discount_percent'] / 100) * $quantity;
+                } elseif ($keepsExistingProduct) {
+                    $existingQty = max(1, (int) $existingItem->quantity);
+                    $itemDiscount = (int) round(((int) $existingItem->discount / $existingQty) * $quantity);
                 } else {
                     $itemDiscount = $discounts->resolveItemDiscount($product, $price, $quantity, $order->user?->customer, $companyBranchId)['amount'];
                 }
@@ -543,7 +551,7 @@ class OrderController extends Controller
                 
                 $itemData = [
                     'product_id' => $product->id,
-                    'product_name' => $product->name,
+                    'product_name' => $keepsExistingProduct ? $existingItem->product_name : $product->name,
                     'price' => $price,
                     'discount' => $itemDiscount,
                     'quantity' => $quantity,
