@@ -194,7 +194,7 @@ class ApInvoice extends Model
         return $prefix . '-' . str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
     }
 
-    public static function issueFromPurchaseOrder(PurchaseOrder $purchaseOrder, ?User $issuer = null): self
+    public static function issueFromPurchaseOrder(PurchaseOrder $purchaseOrder, ?User $issuer = null, array $options = []): self
     {
         if ($purchaseOrder->apInvoice) {
             return $purchaseOrder->apInvoice;
@@ -207,25 +207,34 @@ class ApInvoice extends Model
         $purchaseOrder->loadMissing('items.product', 'supplier', 'companyBranch');
         $invoiceDate = now()->toDateString();
         $dueDate = now()->addDays(14)->toDateString();
+        $itemPrices = collect($options['item_prices'] ?? []);
         $invoiceLines = $purchaseOrder->items
-            ->map(function ($item) {
+            ->map(function ($item) use ($itemPrices) {
                 $quantity = (int) $item->received_quantity;
+                $unitPrice = (int) ($itemPrices->get($item->id) ?? $item->price);
 
                 return [
                     'item' => $item,
                     'quantity' => $quantity,
-                    'line_total' => $quantity * (int) $item->price,
+                    'unit_price' => $unitPrice,
+                    'line_total' => $quantity * $unitPrice,
                 ];
             })
             ->filter(fn (array $line) => $line['quantity'] > 0)
             ->values();
         $invoiceSubtotal = (int) $invoiceLines->sum('line_total');
+        $taxRate = (float) ($options['tax_rate'] ?? 0);
+        $taxAmount = $taxRate > 0 ? (int) round($invoiceSubtotal * ($taxRate / 100)) : 0;
+        $invoiceTotal = $invoiceSubtotal + $taxAmount;
+        $taxStatus = filled($options['supplier_tax_invoice_number'] ?? null)
+            ? self::TAX_CLAIMABLE
+            : self::TAX_NOT_RECEIVED;
 
         if ($invoiceSubtotal <= 0) {
             throw new \InvalidArgumentException('Tidak ada quantity diterima yang bisa dibuat AP Invoice.');
         }
 
-        return DB::transaction(function () use ($purchaseOrder, $issuer, $invoiceDate, $dueDate, $invoiceLines, $invoiceSubtotal) {
+        return DB::transaction(function () use ($purchaseOrder, $issuer, $invoiceDate, $dueDate, $invoiceLines, $invoiceSubtotal, $taxRate, $taxAmount, $invoiceTotal, $taxStatus, $options) {
             $invoice = self::create([
                 'invoice_number' => self::nextInvoiceNumber($purchaseOrder->companyBranch),
                 'purchase_order_id' => $purchaseOrder->id,
@@ -235,15 +244,17 @@ class ApInvoice extends Model
                 'due_date' => $dueDate,
                 'status' => self::STATUS_ISSUED,
                 'subtotal' => $invoiceSubtotal,
-                'ppn_amount' => 0,
+                'ppn_amount' => $taxAmount,
                 'tax_base_amount' => $invoiceSubtotal,
-                'tax_rate' => 0,
-                'tax_status' => self::TAX_NOT_RECEIVED,
-                'total_amount' => $invoiceSubtotal,
+                'tax_rate' => $taxRate,
+                'tax_status' => $taxStatus,
+                'supplier_tax_invoice_number' => $options['supplier_tax_invoice_number'] ?? null,
+                'supplier_tax_invoice_date' => $options['supplier_tax_invoice_date'] ?? null,
+                'total_amount' => $invoiceTotal,
                 'paid_amount' => 0,
                 'debit_note_amount' => 0,
-                'outstanding_amount' => $invoiceSubtotal,
-                'notes' => 'Dibuat dari PO ' . $purchaseOrder->po_number,
+                'outstanding_amount' => $invoiceTotal,
+                'notes' => $options['notes'] ?? 'Dibuat dari PO ' . $purchaseOrder->po_number,
                 'issued_by' => $issuer?->id,
                 'issued_at' => now(),
             ]);
@@ -256,7 +267,7 @@ class ApInvoice extends Model
                     'product_id' => $item->product_id,
                     'description' => $item->product?->name ?? 'Item PO',
                     'quantity' => $line['quantity'],
-                    'unit_price' => $item->price,
+                    'unit_price' => $line['unit_price'],
                     'line_total' => $line['line_total'],
                 ]);
             }
@@ -265,6 +276,8 @@ class ApInvoice extends Model
                 'invoice_number' => $invoice->invoice_number,
                 'po_number' => $purchaseOrder->po_number,
                 'total_amount' => $invoice->total_amount,
+                'tax_amount' => $invoice->ppn_amount,
+                'variance_note' => $options['variance_note'] ?? null,
             ]);
 
             app(AccountingPostingService::class)->postApInvoice($invoice, $issuer);

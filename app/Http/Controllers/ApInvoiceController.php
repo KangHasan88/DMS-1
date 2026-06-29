@@ -55,17 +55,50 @@ class ApInvoiceController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'purchase_order_id' => 'required|exists:purchase_orders,id',
+            'purchase_order_id' => ['required', 'exists:purchase_orders,id'],
+            'item_prices' => ['nullable', 'array'],
+            'item_prices.*' => ['nullable', 'integer', 'min:0'],
+            'tax_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'supplier_tax_invoice_number' => ['nullable', 'string', 'max:100'],
+            'supplier_tax_invoice_date' => ['nullable', 'date'],
+            'variance_note' => ['nullable', 'string', 'max:500'],
         ]);
 
         $purchaseOrder = PurchaseOrder::with(['apInvoice', 'items.product', 'supplier'])
             ->forUserBranch()
             ->findOrFail($validated['purchase_order_id']);
 
+        $itemPrices = collect($validated['item_prices'] ?? [])
+            ->mapWithKeys(fn ($price, $itemId) => [(int) $itemId => (int) $price])
+            ->filter(fn ($price, $itemId) => $purchaseOrder->items->contains('id', $itemId));
+
+        $hasPriceVariance = $purchaseOrder->items->contains(function ($item) use ($itemPrices) {
+            return $itemPrices->has($item->id)
+                && (int) $itemPrices->get($item->id) !== (int) $item->price;
+        });
+
+        if ($hasPriceVariance && blank($validated['variance_note'] ?? null)) {
+            return back()
+                ->withInput()
+                ->withErrors(['variance_note' => 'Catatan selisih wajib diisi jika harga invoice supplier berbeda dari PO.']);
+        }
+
+        $notes = 'Dibuat dari PO ' . $purchaseOrder->po_number;
+        if (filled($validated['variance_note'] ?? null)) {
+            $notes .= ' | Catatan matching: ' . $validated['variance_note'];
+        }
+
         try {
-            $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, Auth::user());
+            $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, Auth::user(), [
+                'item_prices' => $itemPrices->all(),
+                'tax_rate' => (float) ($validated['tax_rate'] ?? 0),
+                'supplier_tax_invoice_number' => $validated['supplier_tax_invoice_number'] ?? null,
+                'supplier_tax_invoice_date' => $validated['supplier_tax_invoice_date'] ?? null,
+                'variance_note' => $validated['variance_note'] ?? null,
+                'notes' => $notes,
+            ]);
         } catch (\InvalidArgumentException $exception) {
-            return back()->with('error', $exception->getMessage());
+            return back()->withInput()->with('error', $exception->getMessage());
         }
 
         return redirect()->route('ap-invoices.show', $invoice)
@@ -108,6 +141,7 @@ class ApInvoiceController extends Controller
 
         $apInvoice->load([
             'items.product',
+            'items.purchaseOrderItem',
             'purchaseOrder.items',
             'supplier',
             'issuedBy',

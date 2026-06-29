@@ -79,6 +79,78 @@ class ApInvoiceFlowTest extends TestCase
             ->assertSee('Terbitkan AP Invoice');
     }
 
+    public function test_finance_can_issue_ap_invoice_with_supplier_price_and_input_tax_variance(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ap-tax-variance@example.test');
+        [$purchaseOrder] = $this->receivedPurchaseOrder();
+        $item = $purchaseOrder->items()->firstOrFail();
+
+        $this->actingAs($finance)
+            ->post(route('ap-invoices.store'), [
+                'purchase_order_id' => $purchaseOrder->id,
+                'item_prices' => [
+                    $item->id => 22000,
+                ],
+                'tax_rate' => 11,
+                'supplier_tax_invoice_number' => '010.001-26.12345678',
+                'supplier_tax_invoice_date' => now()->toDateString(),
+                'variance_note' => 'Supplier menaikkan harga sesuai invoice final.',
+            ])
+            ->assertRedirect();
+
+        $invoice = ApInvoice::with('items.purchaseOrderItem')->firstOrFail();
+
+        $this->assertSame(66000, $invoice->subtotal);
+        $this->assertSame(66000, $invoice->tax_base_amount);
+        $this->assertSame(7260, $invoice->ppn_amount);
+        $this->assertSame(73260, $invoice->total_amount);
+        $this->assertSame(73260, $invoice->outstanding_amount);
+        $this->assertSame('11.00', (string) $invoice->tax_rate);
+        $this->assertSame(ApInvoice::TAX_CLAIMABLE, $invoice->tax_status);
+        $this->assertSame('010.001-26.12345678', $invoice->supplier_tax_invoice_number);
+        $this->assertSame(22000, $invoice->items->first()->unit_price);
+        $this->assertSame(20000, $invoice->items->first()->purchaseOrderItem->price);
+
+        $journal = JournalEntry::with('lines.account')
+            ->where('source_type', ApInvoice::class)
+            ->where('source_id', $invoice->id)
+            ->firstOrFail();
+
+        $this->assertSame(73260, $journal->debit_total);
+        $this->assertSame(73260, $journal->credit_total);
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1301' && $line->debit_amount === 66000));
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1103' && $line->debit_amount === 7260));
+        $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '2101' && $line->credit_amount === 73260));
+
+        $this->actingAs($finance)
+            ->get(route('ap-invoices.show', $invoice))
+            ->assertOk()
+            ->assertSee('Harga PO')
+            ->assertSee('Harga Invoice')
+            ->assertSee('010.001-26.12345678')
+            ->assertSee('Rp 7.260');
+    }
+
+    public function test_ap_invoice_price_variance_requires_matching_note(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ap-variance-note@example.test');
+        [$purchaseOrder] = $this->receivedPurchaseOrder();
+        $item = $purchaseOrder->items()->firstOrFail();
+
+        $this->actingAs($finance)
+            ->from(route('ap-invoices.review', $purchaseOrder))
+            ->post(route('ap-invoices.store'), [
+                'purchase_order_id' => $purchaseOrder->id,
+                'item_prices' => [
+                    $item->id => 22000,
+                ],
+            ])
+            ->assertRedirect(route('ap-invoices.review', $purchaseOrder))
+            ->assertSessionHasErrors('variance_note');
+
+        $this->assertDatabaseCount('ap_invoices', 0);
+    }
+
     public function test_ap_invoice_total_uses_received_quantity_as_matching_basis(): void
     {
         $finance = $this->userWithRole('finance', 'finance-ap-received-total@example.test');

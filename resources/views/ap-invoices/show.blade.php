@@ -77,6 +77,14 @@
             <span style="display: block; color: var(--k-gray-500); font-size: 0.75rem; margin-bottom: 0.35rem;">Jatuh Tempo</span>
             <strong>{{ $apInvoice->due_date?->format('d M Y') ?? '-' }}</strong>
         </div>
+        <div style="border: 1px solid var(--k-border); border-radius: 8px; padding: 0.875rem;">
+            <span style="display: block; color: var(--k-gray-500); font-size: 0.75rem; margin-bottom: 0.35rem;">Status Pajak</span>
+            <strong>{{ $apInvoice->tax_status_label }}</strong>
+        </div>
+        <div style="border: 1px solid var(--k-border); border-radius: 8px; padding: 0.875rem;">
+            <span style="display: block; color: var(--k-gray-500); font-size: 0.75rem; margin-bottom: 0.35rem;">No. Faktur Pajak Supplier</span>
+            <strong>{{ $apInvoice->supplier_tax_invoice_number ?: '-' }}</strong>
+        </div>
     </div>
 
     <div class="dms-table-wrap">
@@ -85,16 +93,33 @@
                 <tr>
                     <th>Item</th>
                     <th>Qty</th>
-                    <th>Harga</th>
+                    <th>Harga PO</th>
+                    <th>Harga Invoice</th>
+                    <th>Selisih</th>
                     <th>Total</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach($apInvoice->items as $item)
+                    @php
+                        $poPrice = (int) ($item->purchaseOrderItem?->price ?? $item->unit_price);
+                        $invoicePrice = (int) $item->unit_price;
+                        $variance = $invoicePrice - $poPrice;
+                    @endphp
                     <tr>
                         <td>{{ $item->description }}</td>
                         <td>{{ number_format($item->quantity) }}</td>
-                        <td class="dms-money">Rp {{ number_format($item->unit_price, 0, ',', '.') }}</td>
+                        <td class="dms-money">Rp {{ number_format($poPrice, 0, ',', '.') }}</td>
+                        <td class="dms-money">Rp {{ number_format($invoicePrice, 0, ',', '.') }}</td>
+                        <td>
+                            @if($variance === 0)
+                                <span class="dms-badge dms-badge-success">Match</span>
+                            @else
+                                <span class="dms-badge dms-badge-warning">
+                                    {{ $variance > 0 ? '+' : '-' }}Rp {{ number_format(abs($variance), 0, ',', '.') }}
+                                </span>
+                            @endif
+                        </td>
                         <td class="dms-money">Rp {{ number_format($item->line_total, 0, ',', '.') }}</td>
                     </tr>
                 @endforeach
@@ -104,6 +129,14 @@
 
     <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
         <div style="min-width: 320px;">
+            <div style="display: flex; justify-content: space-between; gap: 1rem; padding: 0.35rem 0;">
+                <span>DPP</span>
+                <strong>Rp {{ number_format($apInvoice->tax_base_amount ?: $apInvoice->subtotal, 0, ',', '.') }}</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; gap: 1rem; padding: 0.35rem 0;">
+                <span>PPN Masukan {{ (float) $apInvoice->tax_rate > 0 ? '(' . rtrim(rtrim(number_format((float) $apInvoice->tax_rate, 2, ',', '.'), '0'), ',') . '%)' : '' }}</span>
+                <strong>Rp {{ number_format($apInvoice->ppn_amount, 0, ',', '.') }}</strong>
+            </div>
             <div style="display: flex; justify-content: space-between; gap: 1rem; padding: 0.35rem 0;">
                 <span>Total Invoice</span>
                 <strong>Rp {{ number_format($apInvoice->total_amount, 0, ',', '.') }}</strong>
