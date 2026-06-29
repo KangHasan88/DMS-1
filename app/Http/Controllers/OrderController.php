@@ -794,7 +794,7 @@ class OrderController extends Controller
             $allProcured = true;
             
             foreach ($validated['items'] as $itemData) {
-                $orderItem = OrderItem::find($itemData['id']);
+                $orderItem = $order->items()->whereKey($itemData['id'])->firstOrFail();
                 
                 if ($orderItem->fulfillment_status === OrderItem::FULFILLMENT_PENDING) {
                     $orderItem->markAsProcured(

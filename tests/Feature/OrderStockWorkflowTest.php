@@ -389,6 +389,46 @@ class OrderStockWorkflowTest extends TestCase
         $this->assertTrue($response->viewData('activeProducts')->contains('id', $activeProduct->id));
     }
 
+    public function test_procurement_cannot_update_item_from_another_order(): void
+    {
+        $this->seed(RolePermissionSeeder::class);
+
+        $admin = User::factory()->create(['is_active' => true]);
+        $admin->assignRole('admin');
+
+        [$order] = $this->createStockOrder(
+            fulfillmentType: Order::FULFILLMENT_JIT,
+            status: Order::STATUS_PROCURING
+        );
+        [$otherOrder] = $this->createStockOrder(
+            fulfillmentType: Order::FULFILLMENT_JIT,
+            status: Order::STATUS_PROCURING
+        );
+
+        $otherItem = $otherOrder->items()->firstOrFail();
+
+        $this->actingAs($admin)
+            ->from(route('orders.show', $order))
+            ->post(route('orders.process-procurement', $order), [
+                'items' => [
+                    [
+                        'id' => $otherItem->id,
+                        'purchase_price' => 12345,
+                        'supplier_name' => 'Wrong Supplier',
+                        'market_location' => 'Wrong Market',
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('orders.show', $order))
+            ->assertSessionHas('error');
+
+        $otherItem->refresh();
+
+        $this->assertNull($otherItem->purchase_price);
+        $this->assertNull($otherItem->supplier_name);
+        $this->assertSame(OrderItem::FULFILLMENT_PENDING, $otherItem->fulfillment_status);
+    }
+
     /**
      * @return array{0: Order, 1: Product}
      */
