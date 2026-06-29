@@ -25,45 +25,53 @@
     </div>
 
     <!-- Search & Filter -->
-    <div class="dms-toolbar">
-        <form action="{{ route('purchase-orders.index') }}" method="GET" class="dms-search-form">
+    <div class="dms-po-filter-panel">
+        <form action="{{ route('purchase-orders.index') }}" method="GET" class="dms-po-filter-grid">
+            <div class="dms-po-filter-control dms-po-filter-wide">
+                <label class="form-label">Cari PO</label>
                 <div class="dms-search-field">
                     <i class="bi bi-search"></i>
                     <input type="text" name="search" placeholder="Cari nomor PO, pemasok..."
                            value="{{ request('search') }}"
                            class="form-control">
                 </div>
+            </div>
+            <div class="dms-po-filter-control">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-control">
+                    <option value="">Semua Status</option>
+                    @foreach($statuses as $key => $label)
+                        <option value="{{ $key }}" {{ request('status') == $key ? 'selected' : '' }}>
+                            {{ $label }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="dms-po-filter-control">
+                <label class="form-label">Pemasok</label>
+                <select name="supplier_id" class="form-control">
+                    <option value="">Semua Pemasok</option>
+                    @foreach($suppliers as $supplier)
+                        <option value="{{ $supplier->id }}" {{ request('supplier_id') == $supplier->id ? 'selected' : '' }}>
+                            {{ $supplier->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="dms-po-filter-control dms-po-filter-small">
+                <label class="form-label">Per Halaman</label>
+                <select name="per_page" class="form-control">
+                    <option value="5" {{ request('per_page', 10) == 5 ? 'selected' : '' }}>5 data</option>
+                    <option value="10" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10 data</option>
+                    <option value="20" {{ request('per_page', 10) == 20 ? 'selected' : '' }}>20 data</option>
+                    <option value="50" {{ request('per_page', 10) == 50 ? 'selected' : '' }}>50 data</option>
+                </select>
+            </div>
+            <div class="dms-po-filter-actions">
+                <a href="{{ route('purchase-orders.index') }}" class="dms-btn dms-btn-outline">Reset</a>
                 <button type="submit" class="dms-btn dms-btn-primary">Cari</button>
-            </form>
-        <div class="dms-toolbar-actions">
-            <!-- Filter Status -->
-            <select name="status" onchange="window.location.href = this.value" class="form-control">
-                <option value="{{ route('purchase-orders.index', array_merge(request()->except('status'), ['status' => null])) }}">Semua Status</option>
-                @foreach($statuses as $key => $label)
-                    <option value="{{ route('purchase-orders.index', array_merge(request()->except('status'), ['status' => $key])) }}" {{ request('status') == $key ? 'selected' : '' }}>
-                        {{ $label }}
-                    </option>
-                @endforeach
-            </select>
-            
-            <!-- Filter Pemasok -->
-            <select name="supplier_id" onchange="window.location.href = this.value" class="form-control">
-                <option value="{{ route('purchase-orders.index', array_merge(request()->except('supplier_id'), ['supplier_id' => null])) }}">Semua Pemasok</option>
-                @foreach($suppliers as $supplier)
-                    <option value="{{ route('purchase-orders.index', array_merge(request()->except('supplier_id'), ['supplier_id' => $supplier->id])) }}" {{ request('supplier_id') == $supplier->id ? 'selected' : '' }}>
-                        {{ $supplier->name }}
-                    </option>
-                @endforeach
-            </select>
-            
-            <!-- Per Page -->
-            <select name="per_page" onchange="window.location.href = this.value" class="form-control">
-                <option value="{{ route('purchase-orders.index', array_merge(request()->except('per_page'), ['per_page' => 5])) }}" {{ request('per_page', 10) == 5 ? 'selected' : '' }}>5 per halaman</option>
-                <option value="{{ route('purchase-orders.index', array_merge(request()->except('per_page'), ['per_page' => 10])) }}" {{ request('per_page', 10) == 10 ? 'selected' : '' }}>10 per halaman</option>
-                <option value="{{ route('purchase-orders.index', array_merge(request()->except('per_page'), ['per_page' => 20])) }}" {{ request('per_page', 10) == 20 ? 'selected' : '' }}>20 per halaman</option>
-                <option value="{{ route('purchase-orders.index', array_merge(request()->except('per_page'), ['per_page' => 50])) }}" {{ request('per_page', 10) == 50 ? 'selected' : '' }}>50 per halaman</option>
-            </select>
-        </div>
+            </div>
+        </form>
     </div>
 
     <!-- Purchase Orders Table -->
@@ -183,5 +191,75 @@ function deletePO(poId, poNumber) {
     form.submit();
 }
 </script>
+
+<style>
+.dms-po-filter-panel {
+    margin-bottom: 1.25rem;
+    padding: 1rem;
+    border: 1px solid var(--k-gray-200);
+    border-radius: 8px;
+    background: var(--k-gray-50);
+}
+
+.dms-po-filter-grid {
+    display: grid;
+    grid-template-columns: minmax(260px, 1.8fr) minmax(160px, 0.7fr) minmax(190px, 0.9fr) minmax(130px, 0.55fr) auto;
+    gap: 0.8rem;
+    align-items: end;
+}
+
+.dms-po-filter-control {
+    min-width: 0;
+}
+
+.dms-po-filter-panel .form-label {
+    margin-bottom: 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--k-gray-700);
+}
+
+.dms-po-filter-panel .form-control {
+    width: 100%;
+    min-height: 46px;
+}
+
+.dms-po-filter-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.55rem;
+    white-space: nowrap;
+}
+
+.dms-po-filter-actions .dms-btn {
+    min-height: 46px;
+}
+
+@media (max-width: 1180px) {
+    .dms-po-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dms-po-filter-wide,
+    .dms-po-filter-actions {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 720px) {
+    .dms-po-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dms-po-filter-actions {
+        flex-direction: column-reverse;
+    }
+
+    .dms-po-filter-actions .dms-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
 
 @endsection
