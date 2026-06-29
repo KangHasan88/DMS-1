@@ -84,6 +84,7 @@ class PurchaseOrderController extends Controller
     public function proposed(Request $request)
     {
         $targetWeeks = max(1, min(12, (int) $request->get('target_weeks', 4)));
+        $showAnalysis = $request->boolean('show_analysis');
         $salesWindowStart = now()->subDays(30)->startOfDay();
 
         $products = Product::with('principal', 'unit', 'stock')
@@ -101,7 +102,7 @@ class PurchaseOrderController extends Controller
             ->groupBy('product_id')
             ->pluck('sold_last_30_days', 'product_id');
 
-        $recommendations = $products->map(function (Product $product) use ($salesVelocity, $targetWeeks) {
+        $analysisRows = $products->map(function (Product $product) use ($salesVelocity, $targetWeeks) {
                 $stock = $product->stock;
                 $currentStock = $stock?->quantity ?? 0;
                 $minStock = $stock?->min_stock ?? 0;
@@ -110,9 +111,14 @@ class PurchaseOrderController extends Controller
                 $targetQuantity = max((int) ceil($weeklySalesAverage * $targetWeeks), $minStock);
                 $recommendedQuantity = max(0, $targetQuantity - $currentStock);
                 $weekCover = $weeklySalesAverage > 0 ? round($currentStock / $weeklySalesAverage, 1) : null;
+                $reason = 'Stok cukup untuk target week-cover dan min stock.';
 
-                if ($recommendedQuantity <= 0) {
-                    return null;
+                if ($soldLast30Days <= 0 && $currentStock >= $minStock) {
+                    $reason = 'Belum ada histori penjualan 30 hari dan stok masih memenuhi min stock.';
+                } elseif ($currentStock < $minStock) {
+                    $reason = 'Stok di bawah min stock.';
+                } elseif ($recommendedQuantity > 0) {
+                    $reason = 'Stok belum mencapai target week-cover.';
                 }
 
                 return [
@@ -125,9 +131,13 @@ class PurchaseOrderController extends Controller
                     'target_quantity' => $targetQuantity,
                     'recommended_quantity' => $recommendedQuantity,
                     'estimated_price' => $product->base_price ?: $product->price,
+                    'needs_reorder' => $recommendedQuantity > 0,
+                    'reason' => $reason,
                 ];
             })
-            ->filter()
+            ->values();
+        $recommendations = $analysisRows
+            ->filter(fn (array $row) => $row['needs_reorder'])
             ->values();
 
         $proposalSummary = [
@@ -143,7 +153,7 @@ class PurchaseOrderController extends Controller
 
         $suppliers = Supplier::active()->orderBy('name')->get();
 
-        return view('purchase-orders.proposed', compact('recommendations', 'proposalSummary', 'suppliers', 'targetWeeks'));
+        return view('purchase-orders.proposed', compact('recommendations', 'analysisRows', 'proposalSummary', 'suppliers', 'targetWeeks', 'showAnalysis'));
     }
 
     /**

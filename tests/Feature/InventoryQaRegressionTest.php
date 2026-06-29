@@ -1425,6 +1425,14 @@ class InventoryQaRegressionTest extends TestCase
             ->assertSee('Usulan Reorder')
             ->assertSee('Tidak ada produk yang perlu reorder untuk target 12 minggu.')
             ->assertSee('Stok saat ini masih memenuhi min stock dan target week-cover');
+
+        $this->actingAs($user)
+            ->get('/purchase-orders/proposed?target_weeks=12&show_analysis=1')
+            ->assertOk()
+            ->assertSee('Analisis Semua Produk')
+            ->assertSee('Produk Aman')
+            ->assertSee('Belum ada histori penjualan 30 hari dan stok masih memenuhi min stock.')
+            ->assertSee('Aman');
     }
 
     public function test_stock_opname_completes_and_adjusts_product_stock(): void

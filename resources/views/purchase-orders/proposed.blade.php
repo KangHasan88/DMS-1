@@ -16,16 +16,22 @@
         </a>
     </div>
 
-    <div class="dms-toolbar">
-        <form action="{{ route('purchase-orders.proposed') }}" method="GET" class="dms-search-form">
-            <div class="form-group" style="margin: 0; min-width: 220px;">
+    <div class="dms-proposed-filter">
+        <form action="{{ route('purchase-orders.proposed') }}" method="GET" class="dms-proposed-filter-grid">
+            <div class="form-group">
                 <label class="form-label">Target Week Cover</label>
                 <input type="number" name="target_weeks" class="form-control" value="{{ $targetWeeks }}" min="1" max="12">
             </div>
-            <button type="submit" class="dms-btn dms-btn-primary" style="align-self: flex-end;">
-                <i class="bi bi-arrow-clockwise"></i>
-                Hitung Ulang
-            </button>
+            <label class="dms-check dms-proposed-check">
+                <input type="checkbox" name="show_analysis" value="1" {{ $showAnalysis ? 'checked' : '' }}>
+                <span>Tampilkan analisis semua produk</span>
+            </label>
+            <div class="dms-proposed-filter-actions">
+                <button type="submit" class="dms-btn dms-btn-primary">
+                    <i class="bi bi-arrow-clockwise"></i>
+                    Hitung Ulang
+                </button>
+            </div>
         </form>
     </div>
 
@@ -134,5 +140,145 @@
             </div>
         </form>
     @endif
+
+    @if($showAnalysis)
+        <div class="dms-analysis-panel">
+            <div class="dms-analysis-header">
+                <div>
+                    <h3>Analisis Semua Produk</h3>
+                    <p>Audit alasan kenapa produk masuk atau tidak masuk usulan pembelian.</p>
+                </div>
+                <span class="dms-badge dms-badge-info">{{ number_format($analysisRows->count()) }} produk</span>
+            </div>
+            <div class="dms-table-wrap">
+                <table class="dms-table dms-analysis-table">
+                    <thead>
+                        <tr>
+                            <th>Produk</th>
+                            <th>Stok</th>
+                            <th>Min</th>
+                            <th>Terjual 30 Hari</th>
+                            <th>Week Cover</th>
+                            <th>Target</th>
+                            <th>Usulan</th>
+                            <th>Status</th>
+                            <th>Alasan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($analysisRows as $row)
+                            <tr>
+                                <td>
+                                    <div class="dms-strong">{{ $row['product']->name }}</div>
+                                    <div class="dms-muted">{{ $row['product']->principal?->name ?? 'Tanpa principal' }} / {{ $row['product']->unit->symbol ?? $row['product']->unit->name ?? '-' }}</div>
+                                </td>
+                                <td>{{ number_format($row['current_stock']) }}</td>
+                                <td>{{ number_format($row['min_stock']) }}</td>
+                                <td>{{ number_format($row['sold_last_30_days']) }}</td>
+                                <td>{{ is_null($row['week_cover']) ? '-' : number_format($row['week_cover'], 1).' minggu' }}</td>
+                                <td>{{ number_format($row['target_quantity']) }}</td>
+                                <td>{{ number_format($row['recommended_quantity']) }}</td>
+                                <td>
+                                    @if($row['needs_reorder'])
+                                        <span class="dms-badge dms-badge-warning">Perlu Reorder</span>
+                                    @else
+                                        <span class="dms-badge dms-badge-success">Aman</span>
+                                    @endif
+                                </td>
+                                <td>{{ $row['reason'] }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
 </div>
+
+<style>
+.dms-proposed-filter {
+    margin-bottom: 1.25rem;
+    padding: 1rem;
+    border: 1px solid var(--k-gray-200);
+    border-radius: 8px;
+    background: var(--k-gray-50);
+}
+
+.dms-proposed-filter-grid {
+    display: grid;
+    grid-template-columns: minmax(160px, 220px) minmax(220px, 1fr) auto;
+    gap: 0.9rem;
+    align-items: end;
+}
+
+.dms-proposed-filter .form-group {
+    margin: 0;
+}
+
+.dms-proposed-filter .form-control {
+    min-height: 46px;
+}
+
+.dms-proposed-check {
+    align-self: center;
+    margin-bottom: 0.2rem;
+}
+
+.dms-proposed-filter-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.dms-proposed-filter-actions .dms-btn {
+    min-height: 46px;
+    white-space: nowrap;
+}
+
+.dms-analysis-panel {
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--k-gray-200);
+}
+
+.dms-analysis-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.85rem;
+}
+
+.dms-analysis-header h3 {
+    margin: 0;
+    color: var(--k-gray-900);
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.dms-analysis-header p {
+    margin: 0.25rem 0 0;
+    color: var(--k-gray-500);
+    font-size: 0.82rem;
+}
+
+.dms-analysis-table {
+    min-width: 1120px;
+}
+
+.dms-analysis-table th,
+.dms-analysis-table td {
+    vertical-align: middle;
+}
+
+@media (max-width: 760px) {
+    .dms-proposed-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dms-proposed-filter-actions .dms-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
 @endsection
