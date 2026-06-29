@@ -40,6 +40,36 @@ class CustomerOrderBoundaryTest extends TestCase
             ->assertDontSee($otherOrder->order_number);
     }
 
+    public function test_admin_order_quick_search_matches_order_customer_email_and_phone(): void
+    {
+        $admin = $this->superAdmin('order-search-admin@example.test');
+        $customer = $this->customer('siti-search@example.test');
+        $customer->update([
+            'name' => 'Siti Search Customer',
+            'phone' => '081234567890',
+        ]);
+        $matchedOrder = $this->createOrderFor($customer, 'KMGSEARCH001');
+
+        $otherCustomer = $this->customer('other-search@example.test');
+        $otherCustomer->update([
+            'name' => 'Budi Other Customer',
+            'phone' => '089999999999',
+        ]);
+        $otherOrder = $this->createOrderFor($otherCustomer, 'KMGSEARCH002');
+
+        $this->actingAs($admin)
+            ->get(route('orders.index', ['search' => '081234567890']))
+            ->assertOk()
+            ->assertSee($matchedOrder->order_number)
+            ->assertDontSee($otherOrder->order_number);
+
+        $this->actingAs($admin)
+            ->get(route('orders.index', ['search' => 'siti-search@example.test']))
+            ->assertOk()
+            ->assertSee($matchedOrder->order_number)
+            ->assertDontSee($otherOrder->order_number);
+    }
+
     public function test_customer_maps_reverse_geocode_returns_address_from_coordinates(): void
     {
         config(['services.google_maps.key' => 'google-test-key']);

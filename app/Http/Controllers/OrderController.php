@@ -39,7 +39,15 @@ class OrderController extends Controller
         }
         
         if ($request->filled('search')) {
-            $query->where('order_number', 'like', "%{$request->search}%");
+            $search = trim((string) $request->search);
+            $query->where(function ($q) use ($search) {
+                $q->where('order_number', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($userQuery) use ($search) {
+                        $userQuery->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%");
+                    });
+            });
         }
         
         if ($request->filled('customer_name')) {
@@ -81,7 +89,10 @@ class OrderController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
         
-        $perPage = $request->get('per_page', 10);
+        $perPage = (int) $request->get('per_page', 10);
+        if (!in_array($perPage, [5, 10, 20, 50], true)) {
+            $perPage = 10;
+        }
         $orders = $query->orderBy('created_at', 'desc')->paginate($perPage);
         
         $statuses = Order::STATUS_LIST;
