@@ -40,7 +40,7 @@ class ApInvoiceController extends Controller
         $suppliers = Supplier::active()->orderBy('name')->get();
 
         $invoiceablePurchaseOrders = PurchaseOrder::query()
-            ->with(['supplier'])
+            ->with(['supplier', 'items'])
             ->forUserBranch()
             ->whereDoesntHave('apInvoice')
             ->where('status', PurchaseOrder::STATUS_RECEIVED)
@@ -70,6 +70,36 @@ class ApInvoiceController extends Controller
 
         return redirect()->route('ap-invoices.show', $invoice)
             ->with('success', 'AP Invoice berhasil diterbitkan.');
+    }
+
+    public function review(PurchaseOrder $purchaseOrder)
+    {
+        $purchaseOrder = PurchaseOrder::with(['apInvoice', 'items.product.unit', 'supplier', 'companyBranch'])
+            ->forUserBranch()
+            ->findOrFail($purchaseOrder->id);
+
+        try {
+            if (!$purchaseOrder->isInvoiceableForAp()) {
+                throw new \InvalidArgumentException('PO belum memenuhi syarat untuk dibuat AP Invoice.');
+            }
+        } catch (\InvalidArgumentException $exception) {
+            return redirect()->route('ap-invoices.index')->with('error', $exception->getMessage());
+        }
+
+        $receivedSubtotal = $purchaseOrder->items->sum(
+            fn ($item) => (int) $item->received_quantity * (int) $item->price
+        );
+        $orderedSubtotal = (int) $purchaseOrder->total;
+        $isMatched = $purchaseOrder->items->every(
+            fn ($item) => (int) $item->received_quantity === (int) $item->quantity
+        );
+
+        return view('ap-invoices.review', compact(
+            'purchaseOrder',
+            'receivedSubtotal',
+            'orderedSubtotal',
+            'isMatched'
+        ));
     }
 
     public function show(ApInvoice $apInvoice)

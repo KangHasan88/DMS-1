@@ -207,8 +207,25 @@ class ApInvoice extends Model
         $purchaseOrder->loadMissing('items.product', 'supplier', 'companyBranch');
         $invoiceDate = now()->toDateString();
         $dueDate = now()->addDays(14)->toDateString();
+        $invoiceLines = $purchaseOrder->items
+            ->map(function ($item) {
+                $quantity = (int) $item->received_quantity;
 
-        return DB::transaction(function () use ($purchaseOrder, $issuer, $invoiceDate, $dueDate) {
+                return [
+                    'item' => $item,
+                    'quantity' => $quantity,
+                    'line_total' => $quantity * (int) $item->price,
+                ];
+            })
+            ->filter(fn (array $line) => $line['quantity'] > 0)
+            ->values();
+        $invoiceSubtotal = (int) $invoiceLines->sum('line_total');
+
+        if ($invoiceSubtotal <= 0) {
+            throw new \InvalidArgumentException('Tidak ada quantity diterima yang bisa dibuat AP Invoice.');
+        }
+
+        return DB::transaction(function () use ($purchaseOrder, $issuer, $invoiceDate, $dueDate, $invoiceLines, $invoiceSubtotal) {
             $invoice = self::create([
                 'invoice_number' => self::nextInvoiceNumber($purchaseOrder->companyBranch),
                 'purchase_order_id' => $purchaseOrder->id,
@@ -217,28 +234,30 @@ class ApInvoice extends Model
                 'invoice_date' => $invoiceDate,
                 'due_date' => $dueDate,
                 'status' => self::STATUS_ISSUED,
-                'subtotal' => $purchaseOrder->subtotal,
+                'subtotal' => $invoiceSubtotal,
                 'ppn_amount' => 0,
-                'tax_base_amount' => $purchaseOrder->total,
+                'tax_base_amount' => $invoiceSubtotal,
                 'tax_rate' => 0,
                 'tax_status' => self::TAX_NOT_RECEIVED,
-                'total_amount' => $purchaseOrder->total,
+                'total_amount' => $invoiceSubtotal,
                 'paid_amount' => 0,
                 'debit_note_amount' => 0,
-                'outstanding_amount' => $purchaseOrder->total,
+                'outstanding_amount' => $invoiceSubtotal,
                 'notes' => 'Dibuat dari PO ' . $purchaseOrder->po_number,
                 'issued_by' => $issuer?->id,
                 'issued_at' => now(),
             ]);
 
-            foreach ($purchaseOrder->items as $item) {
+            foreach ($invoiceLines as $line) {
+                $item = $line['item'];
+
                 $invoice->items()->create([
                     'purchase_order_item_id' => $item->id,
                     'product_id' => $item->product_id,
                     'description' => $item->product?->name ?? 'Item PO',
-                    'quantity' => $item->received_quantity ?: $item->quantity,
+                    'quantity' => $line['quantity'],
                     'unit_price' => $item->price,
-                    'line_total' => ($item->received_quantity ?: $item->quantity) * $item->price,
+                    'line_total' => $line['line_total'],
                 ]);
             }
 

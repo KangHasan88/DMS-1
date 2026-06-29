@@ -1,31 +1,54 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Receive Barang')
-@section('breadcrumb', 'Purchase Orders / Receive')
+@section('page-title', 'Terima Barang')
+@section('breadcrumb', 'Purchase Orders / Terima Barang')
 
 @section('content')
 <div class="dms-card">
-    <div style="margin-bottom: 2rem;">
-        <h3 style="font-size: 1.2rem; font-weight: 600; color: var(--k-gray-800);">Receive Barang</h3>
-        <p style="font-size: 0.85rem; color: var(--k-gray-500);">
-            PO #{{ $purchaseOrder->po_number }} - Pemasok: {{ $purchaseOrder->supplier->name }}
-        </p>
-        <div style="margin-top: 0.5rem; padding: 0.5rem; background: var(--k-green-light); border-radius: 6px;">
-            <i class="bi bi-info-circle"></i> 
-            Masukkan jumlah barang yang diterima. Stock akan otomatis bertambah sesuai penerimaan.
+    <div class="dms-section-header" style="align-items: flex-start; gap: 1rem;">
+        <div>
+            <h3 class="dms-section-title">Terima Barang</h3>
+            <p class="dms-section-subtitle">
+                Catat BTB dari PO {{ $purchaseOrder->po_number }} dan update stok sesuai quantity yang benar-benar diterima.
+            </p>
+        </div>
+        <span class="dms-badge dms-badge-info">{{ $purchaseOrder->status_label }}</span>
+    </div>
+
+    <div class="dms-stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom: 1rem;">
+        <div class="dms-stat-card">
+            <span class="dms-stat-label">Pemasok</span>
+            <strong class="dms-stat-value" style="font-size: 1.05rem;">{{ $purchaseOrder->supplier->name }}</strong>
+            <span class="dms-stat-subtitle">{{ $purchaseOrder->po_number }}</span>
+        </div>
+        <div class="dms-stat-card">
+            <span class="dms-stat-label">Tanggal PO</span>
+            <strong class="dms-stat-value" style="font-size: 1.05rem;">{{ $purchaseOrder->order_date?->format('d M Y') ?? '-' }}</strong>
+            <span class="dms-stat-subtitle">Estimasi: {{ $purchaseOrder->expected_delivery_date?->format('d M Y') ?? '-' }}</span>
+        </div>
+        <div class="dms-stat-card">
+            <span class="dms-stat-label">Total Item</span>
+            <strong class="dms-stat-value" style="font-size: 1.05rem;">{{ number_format($purchaseOrder->items->sum('quantity'), 0, ',', '.') }}</strong>
+            <span class="dms-stat-subtitle">Sisa: {{ number_format($purchaseOrder->items->sum('remaining_quantity'), 0, ',', '.') }}</span>
         </div>
     </div>
 
     <form action="{{ route('purchase-orders.receive', $purchaseOrder) }}" method="POST">
         @csrf
-        
-        <div class="form-group">
-            <label class="form-label">Tanggal Penerimaan <span style="color: var(--k-red);">*</span></label>
-            <input type="date" name="received_date" class="form-control" value="{{ date('Y-m-d') }}" required>
-            @error('received_date') <span style="color: var(--k-red); font-size: 0.75rem;">{{ $message }}</span> @enderror
+
+        <div class="dms-filter-panel" style="margin-bottom: 1rem;">
+            <div class="form-group" style="max-width: 260px; margin: 0;">
+                <label class="form-label">Tanggal Penerimaan <span class="dms-required">*</span></label>
+                <input type="date" name="received_date" class="form-control" value="{{ old('received_date', date('Y-m-d')) }}" required>
+                @error('received_date') <span class="dms-field-error">{{ $message }}</span> @enderror
+            </div>
+            <div style="align-self: end; color: var(--k-gray-600); font-size: 0.9rem;">
+                <i class="bi bi-info-circle"></i>
+                Stok bertambah hanya untuk qty yang diisi lebih dari 0.
+            </div>
         </div>
-        
-        <div style="overflow-x: auto; margin-top: 1.5rem;">
+
+        <div class="dms-table-wrap">
             <table class="dms-table">
                 <thead>
                     <tr>
@@ -34,42 +57,46 @@
                         <th>Qty PO</th>
                         <th>Sudah Diterima</th>
                         <th>Sisa</th>
-                        <th>Jumlah Diterima</th>
+                        <th>Qty Diterima</th>
                         <th>Catatan</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($purchaseOrder->items as $index => $item)
-                    <tr>
-                        <td>
-                            <div style="font-weight: 600;">{{ $item->product->name }}</div>
-                        </td>
-                        <td>{{ $item->product->unit->name ?? '-' }}</td>
-                        <td>{{ number_format($item->quantity) }}</td>
-                        <td>{{ number_format($item->received_quantity) }}</td>
-                        <td class="remaining-qty" data-max="{{ $item->remaining_quantity }}">
-                            <span class="dms-badge dms-badge-warning">{{ number_format($item->remaining_quantity) }}</span>
-                        </td>
-                        <td>
-                            <input type="hidden" name="items[{{ $index }}][id]" value="{{ $item->id }}">
-                            <input type="number" name="items[{{ $index }}][received_quantity]" 
-                                   class="form-control receive-qty" 
-                                   value="{{ $item->remaining_quantity }}" 
-                                   min="0" 
-                                   max="{{ $item->remaining_quantity }}"
-                                   style="width: 120px;">
-                        </td>
-                        <td>
-                            <input type="text" name="items[{{ $index }}][notes]" class="form-control" placeholder="Catatan (opsional)" style="width: 200px;">
-                        </td>
-                    </tr>
+                        <tr>
+                            <td>
+                                <strong>{{ $item->product->name }}</strong>
+                            </td>
+                            <td>{{ $item->product->unit->name ?? '-' }}</td>
+                            <td>{{ number_format($item->quantity, 0, ',', '.') }}</td>
+                            <td>{{ number_format($item->received_quantity, 0, ',', '.') }}</td>
+                            <td class="remaining-qty" data-max="{{ $item->remaining_quantity }}">
+                                <span class="dms-badge dms-badge-warning">{{ number_format($item->remaining_quantity, 0, ',', '.') }}</span>
+                            </td>
+                            <td style="width: 150px;">
+                                <input type="hidden" name="items[{{ $index }}][id]" value="{{ $item->id }}">
+                                <input type="number"
+                                       name="items[{{ $index }}][received_quantity]"
+                                       class="form-control receive-qty"
+                                       value="{{ old("items.$index.received_quantity", $item->remaining_quantity) }}"
+                                       min="0"
+                                       max="{{ $item->remaining_quantity }}">
+                                @error("items.$index.received_quantity") <span class="dms-field-error">{{ $message }}</span> @enderror
+                            </td>
+                            <td style="min-width: 240px;">
+                                <input type="text"
+                                       name="items[{{ $index }}][notes]"
+                                       class="form-control"
+                                       value="{{ old("items.$index.notes") }}"
+                                       placeholder="Opsional">
+                            </td>
+                        </tr>
                     @endforeach
                 </tbody>
             </table>
         </div>
-        
-        <!-- Buttons -->
-        <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--k-gray-200);">
+
+        <div class="dms-form-actions" style="justify-content: space-between; margin-top: 1rem;">
             <a href="{{ route('purchase-orders.show', $purchaseOrder) }}" class="dms-btn dms-btn-outline">
                 <i class="bi bi-arrow-left"></i> Batal
             </a>
@@ -84,52 +111,39 @@
 document.querySelectorAll('.receive-qty').forEach(input => {
     input.addEventListener('change', function() {
         const row = this.closest('tr');
-        const remainingElem = row.querySelector('.remaining-qty span');
-        const maxQty = parseInt(row.querySelector('.remaining-qty').getAttribute('data-max'));
-        let qty = parseInt(this.value) || 0;
-        
+        const remainingCell = row.querySelector('.remaining-qty');
+        const maxQty = parseInt(remainingCell.getAttribute('data-max'), 10);
+        let qty = parseInt(this.value, 10) || 0;
+
         if (qty > maxQty) {
             qty = maxQty;
             this.value = qty;
         }
-        
-        const newRemaining = maxQty - qty;
-        remainingElem.innerText = newRemaining.toLocaleString('id-ID');
-        
-        if (newRemaining === 0) {
-            remainingElem.parentElement.innerHTML = '<span class="dms-badge dms-badge-success">Selesai</span>';
-        } else {
-            remainingElem.parentElement.innerHTML = '<span class="dms-badge dms-badge-warning">' + newRemaining.toLocaleString('id-ID') + '</span>';
+
+        if (qty < 0) {
+            qty = 0;
+            this.value = qty;
         }
+
+        const newRemaining = maxQty - qty;
+        const badgeClass = newRemaining === 0 ? 'dms-badge-success' : 'dms-badge-warning';
+        const label = newRemaining === 0 ? 'Selesai' : newRemaining.toLocaleString('id-ID');
+        remainingCell.innerHTML = '<span class="dms-badge ' + badgeClass + '">' + label + '</span>';
     });
 });
 </script>
 
 <style>
-.form-group {
-    margin-bottom: 1rem;
+.dms-required,
+.dms-field-error {
+    color: var(--k-danger);
 }
-.form-label {
+
+.dms-field-error {
     display: block;
-    margin-bottom: 0.5rem;
-    color: var(--k-gray-700);
-    font-size: 0.85rem;
-}
-.form-control {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--k-gray-300);
-    border-radius: 8px;
-    font-size: 0.9rem;
-    transition: all 0.2s;
-}
-.form-control:focus {
-    outline: none;
-    border-color: var(--k-green);
-    box-shadow: 0 0 0 3px var(--k-green-light);
-}
-.dms-table td {
-    vertical-align: middle;
+    font-size: 0.78rem;
+    font-weight: 500;
+    margin-top: 0.35rem;
 }
 </style>
 @endsection

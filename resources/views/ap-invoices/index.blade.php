@@ -53,25 +53,23 @@
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 0.75rem;">
                     @foreach($invoiceablePurchaseOrders as $purchaseOrder)
-                        <form action="{{ route('ap-invoices.store') }}" method="POST" style="margin: 0;">
-                            @csrf
-                            <input type="hidden" name="purchase_order_id" value="{{ $purchaseOrder->id }}">
-                            <button type="submit" class="dms-btn dms-btn-outline" style="width: 100%; min-height: 56px; justify-content: space-between; text-align: left; gap: 0.75rem;">
-                                <span style="display: flex; align-items: center; min-width: 0; gap: 0.75rem;">
-                                    <i class="bi bi-journal-text"></i>
-                                    <span style="display: grid; min-width: 0;">
-                                        <strong style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $purchaseOrder->po_number }}</strong>
-                                        <small style="color: var(--k-gray-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                            {{ $purchaseOrder->supplier?->name ?? 'Pemasok' }}
-                                        </small>
-                                    </span>
+                        <a href="{{ route('ap-invoices.review', $purchaseOrder) }}" class="dms-btn dms-btn-outline" style="width: 100%; min-height: 62px; justify-content: space-between; text-align: left; gap: 0.75rem;">
+                            <span style="display: flex; align-items: center; min-width: 0; gap: 0.75rem;">
+                                <span class="dms-icon-box dms-icon-blue" style="width: 36px; height: 36px;">
+                                    <i class="bi bi-journal-check"></i>
                                 </span>
-                                <span style="display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0;">
-                                    <strong class="dms-money">Rp {{ number_format($purchaseOrder->total, 0, ',', '.') }}</strong>
-                                    <span class="dms-badge dms-badge-info">Buat Invoice</span>
+                                <span style="display: grid; min-width: 0;">
+                                    <strong style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $purchaseOrder->po_number }}</strong>
+                                    <small style="color: var(--k-gray-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                        {{ $purchaseOrder->supplier?->name ?? 'Pemasok' }}
+                                    </small>
                                 </span>
-                            </button>
-                        </form>
+                            </span>
+                            <span style="display: flex; align-items: center; gap: 0.75rem; flex-shrink: 0;">
+                                <strong class="dms-money">Rp {{ number_format($purchaseOrder->items->sum(fn ($item) => (int) $item->received_quantity * (int) $item->price), 0, ',', '.') }}</strong>
+                                <span class="dms-badge dms-badge-info">Review</span>
+                            </span>
+                        </a>
                     @endforeach
                 </div>
             </div>

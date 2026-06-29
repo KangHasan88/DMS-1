@@ -66,6 +66,32 @@ class ApInvoiceFlowTest extends TestCase
             ->assertSee('Produk AP');
     }
 
+    public function test_finance_can_review_purchase_order_before_issuing_ap_invoice(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ap-review@example.test');
+        [$purchaseOrder] = $this->receivedPurchaseOrder();
+
+        $this->actingAs($finance)
+            ->get(route('ap-invoices.review', $purchaseOrder))
+            ->assertOk()
+            ->assertSee('Review AP Invoice')
+            ->assertSee($purchaseOrder->po_number)
+            ->assertSee('Terbitkan AP Invoice');
+    }
+
+    public function test_ap_invoice_total_uses_received_quantity_as_matching_basis(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ap-received-total@example.test');
+        [$purchaseOrder] = $this->receivedPurchaseOrder(receivedQuantity: 2);
+
+        $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, $finance);
+
+        $this->assertSame(40000, $invoice->subtotal);
+        $this->assertSame(40000, $invoice->total_amount);
+        $this->assertSame(40000, $invoice->outstanding_amount);
+        $this->assertSame(2, $invoice->items()->firstOrFail()->quantity);
+    }
+
     public function test_ap_invoice_cannot_be_issued_before_purchase_order_is_received(): void
     {
         $finance = $this->userWithRole('finance', 'finance-ap-not-ready@example.test');

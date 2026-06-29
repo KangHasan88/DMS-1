@@ -377,6 +377,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('ar-credit-notes.void');
 
     // ============= AP INVOICE MANAGEMENT =============
+    Route::get('ap-invoices/purchase-orders/{purchaseOrder}/review', [ApInvoiceController::class, 'review'])
+        ->middleware('permission:create invoice')
+        ->name('ap-invoices.review');
     Route::resource('ap-invoices', ApInvoiceController::class)
         ->only(['index', 'show'])
         ->middleware('permission:view invoice');
