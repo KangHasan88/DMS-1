@@ -7,6 +7,7 @@ use App\Models\DeliveryVendor;
 use App\Models\DeliveryVehicle;
 use App\Models\DriverVehicleAssignment;
 use App\Models\ActivityLog;
+use App\Models\ChartAccount;
 use App\Models\CompanyBranch;
 use App\Models\CompanyProfile;
 use App\Models\Order;
@@ -285,8 +286,25 @@ class DeliveryController extends Controller
 
         $delivery->load('order.user', 'order.companyBranch', 'kurir', 'vendor', 'vehicle', 'order.items.product.returnablePackage');
         $returnablePackagePlan = app(OrderReturnablePackagingService::class)->packagePlan($delivery->order);
+        $accountBranchId = $this->currentBranchScopeId() ?: $delivery->order?->company_branch_id;
+        $accountScope = function ($query) use ($accountBranchId) {
+            $query->whereNull('company_branch_id')
+                ->when($accountBranchId, fn ($branchQuery) => $branchQuery->orWhere('company_branch_id', $accountBranchId));
+        };
+        $cashAccounts = ChartAccount::query()
+            ->where('is_active', true)
+            ->where('is_cash_account', true)
+            ->where($accountScope)
+            ->orderBy('code')
+            ->get();
+        $expenseAccounts = ChartAccount::query()
+            ->where('is_active', true)
+            ->where('account_type', ChartAccount::TYPE_EXPENSE)
+            ->where($accountScope)
+            ->orderBy('code')
+            ->get();
         
-        return view('deliveries.show', compact('delivery', 'returnablePackagePlan'));
+        return view('deliveries.show', compact('delivery', 'returnablePackagePlan', 'cashAccounts', 'expenseAccounts'));
     }
 
     /**
@@ -441,6 +459,8 @@ class DeliveryController extends Controller
         $validated = $request->validate([
             'status' => 'required|in:' . implode(',', array_keys(Delivery::STATUS_LIST)),
             'proof_image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'pod_receiver_name' => 'nullable|string|max:120',
+            'failure_reason' => 'nullable|string|max:500',
             'latitude' => 'nullable|string',
             'longitude' => 'nullable|string',
             'notes' => 'nullable|string',
@@ -453,13 +473,22 @@ class DeliveryController extends Controller
 
             $allowedTransitions = [
                 Delivery::STATUS_ASSIGNED => [Delivery::STATUS_PICKED_UP],
-                Delivery::STATUS_PICKED_UP => [Delivery::STATUS_IN_TRANSIT],
-                Delivery::STATUS_IN_TRANSIT => [Delivery::STATUS_COMPLETED],
+                Delivery::STATUS_PICKED_UP => [Delivery::STATUS_IN_TRANSIT, Delivery::STATUS_FAILED],
+                Delivery::STATUS_IN_TRANSIT => [Delivery::STATUS_COMPLETED, Delivery::STATUS_FAILED],
                 Delivery::STATUS_COMPLETED => [],
+                Delivery::STATUS_FAILED => [],
             ];
 
             if (!in_array($validated['status'], $allowedTransitions[$oldStatus] ?? [], true)) {
                 throw new \Exception('Perubahan status pengiriman tidak valid');
+            }
+
+            if ($validated['status'] === Delivery::STATUS_COMPLETED && trim((string) ($validated['pod_receiver_name'] ?? '')) === '') {
+                throw new \Exception('Nama penerima wajib diisi sebagai POD minimal sebelum pengiriman diselesaikan.');
+            }
+
+            if ($validated['status'] === Delivery::STATUS_FAILED && trim((string) ($validated['failure_reason'] ?? '')) === '') {
+                throw new \Exception('Alasan gagal kirim wajib diisi.');
             }
 
             $delivery->status = $validated['status'];
@@ -478,6 +507,8 @@ class DeliveryController extends Controller
                     break;
                 case Delivery::STATUS_COMPLETED:
                     $delivery->completed_at = now();
+                    $delivery->pod_received_at = now();
+                    $delivery->pod_receiver_name = trim((string) $validated['pod_receiver_name']);
                     app(OrderReturnablePackagingService::class)->postDeliveredOrder($delivery->order, auth()->id());
 
                     if ($delivery->order->isPostPaid()) {
@@ -487,6 +518,13 @@ class DeliveryController extends Controller
                     } else {
                         $delivery->order->updateStatus(Order::STATUS_DELIVERED, 'Barang diterima customer');
                     }
+                    break;
+                case Delivery::STATUS_FAILED:
+                    $delivery->failed_at = now();
+                    $delivery->failure_reason = trim((string) $validated['failure_reason']);
+                    $delivery->order->admin_notes = ($delivery->order->admin_notes ? $delivery->order->admin_notes . "\n" : '') .
+                        now()->format('d/m/Y H:i') . ' - Pengiriman gagal: ' . $delivery->failure_reason;
+                    $delivery->order->save();
                     break;
             }
             

@@ -29,6 +29,10 @@ class Delivery extends Model
         'latitude',
         'longitude',
         'proof_image',
+        'pod_receiver_name',
+        'pod_received_at',
+        'failed_at',
+        'failure_reason',
         'notes',
     ];
 
@@ -37,6 +41,8 @@ class Delivery extends Model
         'picked_up_at' => 'datetime',
         'in_transit_at' => 'datetime',
         'completed_at' => 'datetime',
+        'pod_received_at' => 'datetime',
+        'failed_at' => 'datetime',
         'actual_shipping_cost' => 'integer',
     ];
 
@@ -64,6 +70,7 @@ class Delivery extends Model
     const STATUS_PICKED_UP = 'picked_up';
     const STATUS_IN_TRANSIT = 'in_transit';
     const STATUS_COMPLETED = 'completed';
+    const STATUS_FAILED = 'failed';
     const STATUS_CANCELLED = 'cancelled';
 
     const STATUS_LIST = [
@@ -71,6 +78,7 @@ class Delivery extends Model
         self::STATUS_PICKED_UP => 'Barang Diambil',
         self::STATUS_IN_TRANSIT => 'Dalam Pengiriman',
         self::STATUS_COMPLETED => 'Selesai',
+        self::STATUS_FAILED => 'Gagal Kirim',
         self::STATUS_CANCELLED => 'Dibatalkan',
     ];
 
@@ -79,6 +87,7 @@ class Delivery extends Model
         self::STATUS_PICKED_UP => 'warning',
         self::STATUS_IN_TRANSIT => 'primary',
         self::STATUS_COMPLETED => 'success',
+        self::STATUS_FAILED => 'danger',
         self::STATUS_CANCELLED => 'danger',
     ];
 

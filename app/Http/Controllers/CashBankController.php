@@ -121,6 +121,7 @@ class CashBankController extends Controller
             'amount' => ['required', 'integer', 'min:1'],
             'reference_number' => ['nullable', 'string', 'max:100'],
             'description' => ['required', 'string', 'max:500'],
+            'return_delivery_id' => ['nullable', 'exists:deliveries,id'],
         ]);
 
         $branchId = $this->resolvedBranchId($validated['company_branch_id'] ?? null);
@@ -182,6 +183,11 @@ class CashBankController extends Controller
             return $journal;
         });
 
+        if (!empty($validated['return_delivery_id'])) {
+            return redirect()->route('deliveries.show', $validated['return_delivery_id'])
+                ->with('success', 'Biaya pengiriman berhasil dicatat sebagai jurnal ' . $journal->journal_number . '.');
+        }
+
         return redirect()->route('cash-bank.index', [
             'chart_account_id' => $cashAccount->id,
             'date_from' => $validated['transaction_date'],
@@ -200,6 +206,7 @@ class CashBankController extends Controller
             'amount' => ['required', 'integer', 'min:1'],
             'reference_number' => ['nullable', 'string', 'max:100'],
             'description' => ['required', 'string', 'max:500'],
+            'return_delivery_id' => ['nullable', 'exists:deliveries,id'],
         ]);
 
         $branchId = $this->resolvedBranchId($validated['company_branch_id'] ?? null);
