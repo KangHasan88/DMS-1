@@ -77,7 +77,75 @@
             <span style="display: block; color: var(--k-gray-500); font-size: 0.75rem; margin-bottom: 0.35rem;">Jatuh Tempo</span>
             <strong>{{ $arInvoice->due_date?->format('d M Y') ?? '-' }}</strong>
         </div>
+        <div style="border: 1px solid var(--k-border); border-radius: 8px; padding: 0.875rem;">
+            <span style="display: block; color: var(--k-gray-500); font-size: 0.75rem; margin-bottom: 0.35rem;">Tukar Faktur</span>
+            <span class="dms-badge dms-badge-{{ $arInvoice->exchange_status_badge }}">{{ $arInvoice->exchange_status_label }}</span>
+        </div>
     </div>
+
+    @can('create invoice')
+    @if($arInvoice->status !== \App\Models\ArInvoice::STATUS_VOID)
+    <div style="border:1px solid var(--k-border); border-radius:10px; padding:1rem; background:#f8fbff; margin-bottom:1rem;">
+        <div class="dms-section-header" style="margin-bottom:0.75rem;">
+            <div>
+                <h3 class="dms-section-title" style="font-size:1rem;">Tukar Faktur & Follow Up</h3>
+                <p class="dms-section-subtitle">Kelola status dokumen invoice yang dibawa collector sampai diterima customer.</p>
+            </div>
+            @if($arInvoice->exchangeCollector)
+                <span class="dms-badge dms-badge-info">Collector: {{ $arInvoice->exchangeCollector->name }}</span>
+            @endif
+        </div>
+        <form method="POST" action="{{ route('ar-invoices.exchange.update', $arInvoice) }}">
+            @csrf
+            @method('PUT')
+            <div class="dms-form-grid" style="align-items:end;">
+                <div class="form-group">
+                    <label class="form-label">Status Tukar Faktur</label>
+                    <select name="exchange_status" class="form-control" required>
+                        @foreach(\App\Models\ArInvoice::EXCHANGE_STATUS_LIST as $key => $label)
+                            <option value="{{ $key }}" {{ old('exchange_status', $arInvoice->exchange_status) === $key ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Jadwal Tukar</label>
+                    <input type="date" name="exchange_scheduled_date" class="form-control" value="{{ old('exchange_scheduled_date', $arInvoice->exchange_scheduled_date?->toDateString()) }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Next Follow Up</label>
+                    <input type="date" name="exchange_next_action_date" class="form-control" value="{{ old('exchange_next_action_date', $arInvoice->exchange_next_action_date?->toDateString()) }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Collector</label>
+                    <select name="exchange_collector_id" class="form-control">
+                        <option value="">Belum ditugaskan</option>
+                        @foreach($collectors as $collector)
+                            <option value="{{ $collector->id }}" {{ (string) old('exchange_collector_id', $arInvoice->exchange_collector_id) === (string) $collector->id ? 'selected' : '' }}>{{ $collector->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">No. Tanda Terima</label>
+                    <input type="text" name="exchange_receipt_number" class="form-control" value="{{ old('exchange_receipt_number', $arInvoice->exchange_receipt_number) }}" placeholder="Wajib jika diterima">
+                </div>
+                <div class="form-group dms-form-span-2">
+                    <label class="form-label">Alasan Ditolak/Revisi</label>
+                    <input type="text" name="exchange_rejection_reason" class="form-control" value="{{ old('exchange_rejection_reason', $arInvoice->exchange_rejection_reason) }}" placeholder="Contoh: PO belum dilampirkan / stempel kurang">
+                </div>
+                <div class="form-group dms-form-span-2">
+                    <label class="form-label">Catatan</label>
+                    <input type="text" name="exchange_notes" class="form-control" value="{{ old('exchange_notes', $arInvoice->exchange_notes) }}" placeholder="Catatan collector atau admin AR">
+                </div>
+                <div class="form-group" style="display:flex; justify-content:flex-end;">
+                    <button type="submit" class="dms-btn dms-btn-primary">
+                        <i class="bi bi-check2-circle"></i> Simpan Tukar Faktur
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+    @endif
+    @endcan
 
     <div class="dms-table-wrap">
         <table class="dms-table">

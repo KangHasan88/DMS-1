@@ -35,6 +35,16 @@ class ArInvoice extends Model
         'tax_exported_at',
         'tax_approved_at',
         'tax_error_message',
+        'exchange_status',
+        'exchange_scheduled_date',
+        'exchange_submitted_at',
+        'exchange_accepted_at',
+        'exchange_rejected_at',
+        'exchange_rejection_reason',
+        'exchange_next_action_date',
+        'exchange_collector_id',
+        'exchange_receipt_number',
+        'exchange_notes',
         'total_amount',
         'paid_amount',
         'credit_note_amount',
@@ -60,6 +70,11 @@ class ArInvoice extends Model
         'tax_invoice_date' => 'date',
         'tax_exported_at' => 'datetime',
         'tax_approved_at' => 'datetime',
+        'exchange_scheduled_date' => 'date',
+        'exchange_submitted_at' => 'datetime',
+        'exchange_accepted_at' => 'datetime',
+        'exchange_rejected_at' => 'datetime',
+        'exchange_next_action_date' => 'date',
         'total_amount' => 'integer',
         'paid_amount' => 'integer',
         'credit_note_amount' => 'integer',
@@ -80,6 +95,28 @@ class ArInvoice extends Model
     public const TAX_EXPORTED = 'exported';
     public const TAX_APPROVED = 'approved';
     public const TAX_REJECTED = 'rejected';
+
+    public const EXCHANGE_READY = 'ready';
+    public const EXCHANGE_SCHEDULED = 'scheduled';
+    public const EXCHANGE_SUBMITTED = 'submitted';
+    public const EXCHANGE_ACCEPTED = 'accepted';
+    public const EXCHANGE_REJECTED = 'rejected';
+
+    public const EXCHANGE_STATUS_LIST = [
+        self::EXCHANGE_READY => 'Belum Tukar Faktur',
+        self::EXCHANGE_SCHEDULED => 'Terjadwal',
+        self::EXCHANGE_SUBMITTED => 'Dibawa Collector',
+        self::EXCHANGE_ACCEPTED => 'Diterima Customer',
+        self::EXCHANGE_REJECTED => 'Ditolak/Revisi',
+    ];
+
+    public const EXCHANGE_BADGES = [
+        self::EXCHANGE_READY => 'warning',
+        self::EXCHANGE_SCHEDULED => 'info',
+        self::EXCHANGE_SUBMITTED => 'primary',
+        self::EXCHANGE_ACCEPTED => 'success',
+        self::EXCHANGE_REJECTED => 'danger',
+    ];
 
     public const TAX_STATUS_LIST = [
         self::TAX_NOT_REQUIRED => 'Tidak Wajib',
@@ -131,6 +168,11 @@ class ArInvoice extends Model
         return $this->belongsTo(User::class, 'issued_by');
     }
 
+    public function exchangeCollector(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'exchange_collector_id');
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(ArInvoiceItem::class);
@@ -159,6 +201,30 @@ class ArInvoice extends Model
     public function getTaxStatusLabelAttribute(): string
     {
         return self::TAX_STATUS_LIST[$this->tax_status] ?? str($this->tax_status)->headline()->toString();
+    }
+
+    public function getExchangeStatusLabelAttribute(): string
+    {
+        return self::EXCHANGE_STATUS_LIST[$this->exchange_status] ?? str($this->exchange_status)->headline()->toString();
+    }
+
+    public function getExchangeStatusBadgeAttribute(): string
+    {
+        return self::EXCHANGE_BADGES[$this->exchange_status] ?? 'secondary';
+    }
+
+    public function getNeedsInvoiceExchangeAttribute(): bool
+    {
+        return $this->outstanding_amount > 0
+            && !in_array($this->status, [self::STATUS_PAID, self::STATUS_VOID], true)
+            && $this->exchange_status !== self::EXCHANGE_ACCEPTED;
+    }
+
+    public function getExchangeActionDueAttribute(): bool
+    {
+        return $this->exchange_next_action_date
+            && $this->exchange_status === self::EXCHANGE_REJECTED
+            && $this->exchange_next_action_date->isPast();
     }
 
     public function getIsOverdueAttribute(): bool
@@ -239,6 +305,9 @@ class ArInvoice extends Model
                 'tax_rate' => (int) $order->ppn_amount > 0 ? 11 : 0,
                 'tax_transaction_code' => '01',
                 'tax_status' => (int) $order->ppn_amount > 0 ? self::TAX_DRAFT : self::TAX_NOT_REQUIRED,
+                'exchange_status' => self::EXCHANGE_READY,
+                'exchange_scheduled_date' => $dueDate,
+                'exchange_next_action_date' => $dueDate,
                 'total_amount' => $order->grand_total ?: $order->total,
                 'paid_amount' => 0,
                 'credit_note_amount' => 0,

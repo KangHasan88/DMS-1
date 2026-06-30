@@ -367,7 +367,7 @@ class ReportController extends Controller
             'companyBranches',
             'selectedBranchId',
             'canFilterBranches'
-        ));
+        ))->with('exchangeStatuses', ArInvoice::EXCHANGE_STATUS_LIST);
     }
 
     public function arAging(Request $request)
@@ -375,6 +375,7 @@ class ReportController extends Controller
         $request->validate([
             'as_of_date' => ['nullable', 'date'],
             'company_branch_id' => ['nullable', 'exists:company_branches,id'],
+            'exchange_status' => ['nullable', 'in:needs_exchange,' . implode(',', array_keys(ArInvoice::EXCHANGE_STATUS_LIST))],
         ]);
 
         $asOfDate = $request->filled('as_of_date')
@@ -388,7 +389,12 @@ class ReportController extends Controller
             ->where('outstanding_amount', '>', 0)
             ->whereNotIn('status', [ArInvoice::STATUS_PAID, ArInvoice::STATUS_VOID])
             ->when($branchScopeId, fn ($query) => $query->where('company_branch_id', $branchScopeId))
-            ->when(!$branchScopeId && $request->filled('company_branch_id'), fn ($query) => $query->where('company_branch_id', $request->company_branch_id));
+            ->when(!$branchScopeId && $request->filled('company_branch_id'), fn ($query) => $query->where('company_branch_id', $request->company_branch_id))
+            ->when($request->filled('exchange_status'), function ($query) use ($request) {
+                $request->exchange_status === 'needs_exchange'
+                    ? $query->where('exchange_status', '!=', ArInvoice::EXCHANGE_ACCEPTED)
+                    : $query->where('exchange_status', $request->exchange_status);
+            });
 
         $allOpenInvoices = (clone $baseQuery)->get();
         $bucketSummary = $this->emptyAgingBuckets();
@@ -438,7 +444,7 @@ class ReportController extends Controller
             'invoices',
             'companyBranches',
             'canFilterBranches'
-        ));
+        ))->with('exchangeStatuses', ArInvoice::EXCHANGE_STATUS_LIST);
     }
 
     public function apAging(Request $request)
@@ -847,6 +853,7 @@ class ReportController extends Controller
         $request->validate([
             'as_of_date' => ['nullable', 'date'],
             'company_branch_id' => ['nullable', 'exists:company_branches,id'],
+            'exchange_status' => ['nullable', 'in:needs_exchange,' . implode(',', array_keys(ArInvoice::EXCHANGE_STATUS_LIST))],
         ]);
 
         $asOfDate = $request->filled('as_of_date')
@@ -859,6 +866,11 @@ class ReportController extends Controller
             ->whereNotIn('status', [ArInvoice::STATUS_PAID, ArInvoice::STATUS_VOID])
             ->when($branchScopeId, fn ($query) => $query->where('company_branch_id', $branchScopeId))
             ->when(!$branchScopeId && $request->filled('company_branch_id'), fn ($query) => $query->where('company_branch_id', $request->company_branch_id))
+            ->when($request->filled('exchange_status'), function ($query) use ($request) {
+                $request->exchange_status === 'needs_exchange'
+                    ? $query->where('exchange_status', '!=', ArInvoice::EXCHANGE_ACCEPTED)
+                    : $query->where('exchange_status', $request->exchange_status);
+            })
             ->orderByRaw('due_date IS NULL')
             ->orderBy('due_date')
             ->get();
@@ -869,7 +881,7 @@ class ReportController extends Controller
             fputcsv($handle, ['Generated At', now()->toDateTimeString()]);
             fputcsv($handle, ['As Of Date', $asOfDate->toDateString()]);
             fputcsv($handle, []);
-            fputcsv($handle, ['No Invoice', 'Customer', 'Order', 'Cabang', 'Jatuh Tempo', 'Bucket', 'Hari Terlambat', 'Total Invoice', 'Terbayar', 'Credit Note', 'Outstanding']);
+            fputcsv($handle, ['No Invoice', 'Customer', 'Order', 'Cabang', 'Jatuh Tempo', 'Bucket', 'Tukar Faktur', 'Hari Terlambat', 'Total Invoice', 'Terbayar', 'Credit Note', 'Outstanding']);
 
             foreach ($invoices as $invoice) {
                 $bucket = $this->arAgingBucket($invoice, $asOfDate);
@@ -880,6 +892,7 @@ class ReportController extends Controller
                     $invoice->companyBranch?->name ?? '-',
                     $invoice->due_date?->toDateString() ?? '-',
                     $bucket['label'],
+                    $invoice->exchange_status_label,
                     $bucket['days_overdue'],
                     (int) $invoice->total_amount,
                     (int) $invoice->paid_amount,
@@ -929,6 +942,7 @@ class ReportController extends Controller
                     $invoice->companyBranch?->name ?? '-',
                     $invoice->due_date?->toDateString() ?? '-',
                     $bucket['label'],
+                    $invoice->exchange_status_label,
                     $bucket['days_overdue'],
                     (int) $invoice->total_amount,
                     (int) $invoice->paid_amount,

@@ -30,6 +30,15 @@
                     </option>
                 @endforeach
             </select>
+            <select name="exchange_status" onchange="window.location.href = this.value" class="form-control">
+                <option value="{{ route('ar-invoices.index', array_merge(request()->except('exchange_status'), ['exchange_status' => null])) }}">Semua Tukar Faktur</option>
+                <option value="{{ route('ar-invoices.index', array_merge(request()->except('exchange_status'), ['exchange_status' => 'needs_exchange'])) }}" {{ request('exchange_status') === 'needs_exchange' ? 'selected' : '' }}>Perlu Tukar Faktur</option>
+                @foreach($exchangeStatuses as $key => $label)
+                    <option value="{{ route('ar-invoices.index', array_merge(request()->except('exchange_status'), ['exchange_status' => $key])) }}" {{ request('exchange_status') === $key ? 'selected' : '' }}>
+                        {{ $label }}
+                    </option>
+                @endforeach
+            </select>
             @if($canFilterBranches)
                 <select name="company_branch_id" onchange="window.location.href = this.value" class="form-control">
                     <option value="{{ route('ar-invoices.index', array_merge(request()->except('company_branch_id'), ['company_branch_id' => null])) }}">Semua Cabang</option>
@@ -92,6 +101,7 @@
                     <th>Total</th>
                     <th>Outstanding</th>
                     <th>Status</th>
+                    <th>Tukar Faktur</th>
                     <th style="width: 120px;">Aksi</th>
                 </tr>
             </thead>
@@ -115,6 +125,14 @@
                             </span>
                         </td>
                         <td>
+                            <span class="dms-badge dms-badge-{{ $invoice->exchange_status_badge }}">
+                                {{ $invoice->exchange_status_label }}
+                            </span>
+                            @if($invoice->exchange_next_action_date && $invoice->exchange_status === \App\Models\ArInvoice::EXCHANGE_REJECTED)
+                                <div class="dms-muted" style="font-size:0.72rem; margin-top:0.2rem;">Next: {{ $invoice->exchange_next_action_date->format('d M Y') }}</div>
+                            @endif
+                        </td>
+                        <td>
                             <a href="{{ route('ar-invoices.show', $invoice) }}" class="dms-btn dms-btn-outline dms-btn-sm" title="Detail">
                                 <i class="bi bi-eye"></i>
                             </a>
@@ -122,7 +140,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="9" class="dms-empty">
+                        <td colspan="10" class="dms-empty">
                             <i class="bi bi-receipt"></i>
                             <p>Belum ada AR Invoice</p>
                         </td>

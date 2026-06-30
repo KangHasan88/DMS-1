@@ -1561,6 +1561,12 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a href="{{ route('ar-invoices.index', ['exchange_status' => 'needs_exchange']) }}" class="nav-link {{ request()->routeIs('ar-invoices.*') && request('exchange_status') ? 'active' : '' }}">
+                                <i class="bi bi-file-earmark-check"></i>
+                                <span>{{ __('navigation.invoice_exchange') }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a href="{{ route('ar-credit-notes.index') }}" class="nav-link {{ request()->routeIs('ar-credit-notes.*') ? 'active' : '' }}">
                                 <i class="bi bi-receipt-cutoff"></i>
                                 <span>{{ __('navigation.ar_credit_notes') }}</span>

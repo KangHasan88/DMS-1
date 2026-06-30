@@ -365,6 +365,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('ar-invoices/{arInvoice}/void', [ArInvoiceController::class, 'void'])
         ->middleware('permission:create invoice')
         ->name('ar-invoices.void');
+    Route::put('ar-invoices/{arInvoice}/exchange', [ArInvoiceController::class, 'updateExchange'])
+        ->middleware('permission:create invoice')
+        ->name('ar-invoices.exchange.update');
 
     Route::resource('ar-credit-notes', ArCreditNoteController::class)
         ->only(['index', 'show'])

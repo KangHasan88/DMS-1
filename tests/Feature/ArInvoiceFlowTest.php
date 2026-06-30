@@ -591,6 +591,82 @@ class ArInvoiceFlowTest extends TestCase
             ->assertSee('tax_invoice_number');
     }
 
+    public function test_finance_can_update_invoice_exchange_status_to_accepted(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-exchange-accepted@example.test');
+        [$order] = $this->deliveredOrder();
+        $invoice = ArInvoice::issueFromOrder($order, $finance);
+
+        $this->actingAs($finance)
+            ->put(route('ar-invoices.exchange.update', $invoice), [
+                'exchange_status' => ArInvoice::EXCHANGE_ACCEPTED,
+                'exchange_scheduled_date' => now()->toDateString(),
+                'exchange_next_action_date' => now()->addDays(7)->toDateString(),
+                'exchange_collector_id' => $finance->id,
+                'exchange_receipt_number' => 'TTF-001',
+                'exchange_notes' => 'Dokumen diterima toko.',
+            ])
+            ->assertRedirect(route('ar-invoices.show', $invoice));
+
+        $invoice->refresh();
+        $this->assertSame(ArInvoice::EXCHANGE_ACCEPTED, $invoice->exchange_status);
+        $this->assertSame('TTF-001', $invoice->exchange_receipt_number);
+        $this->assertSame($finance->id, $invoice->exchange_collector_id);
+        $this->assertNotNull($invoice->exchange_accepted_at);
+    }
+
+    public function test_invoice_exchange_rejected_requires_reason(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-exchange-reject@example.test');
+        [$order] = $this->deliveredOrder();
+        $invoice = ArInvoice::issueFromOrder($order, $finance);
+
+        $this->actingAs($finance)
+            ->put(route('ar-invoices.exchange.update', $invoice), [
+                'exchange_status' => ArInvoice::EXCHANGE_REJECTED,
+                'exchange_next_action_date' => now()->addDay()->toDateString(),
+            ])
+            ->assertSessionHas('error');
+
+        $this->assertSame(ArInvoice::EXCHANGE_READY, $invoice->fresh()->exchange_status);
+    }
+
+    public function test_ar_aging_can_filter_by_invoice_exchange_status(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-exchange-aging@example.test');
+        [$acceptedOrder] = $this->deliveredOrder();
+        [$rejectedOrder] = $this->deliveredOrder();
+        $accepted = ArInvoice::issueFromOrder($acceptedOrder, $finance);
+        $rejected = ArInvoice::issueFromOrder($rejectedOrder, $finance);
+
+        $accepted->forceFill([
+            'exchange_status' => ArInvoice::EXCHANGE_ACCEPTED,
+            'exchange_receipt_number' => 'TTF-OK',
+            'exchange_accepted_at' => now(),
+        ])->save();
+        $rejected->forceFill([
+            'exchange_status' => ArInvoice::EXCHANGE_REJECTED,
+            'exchange_rejection_reason' => 'PO belum lengkap',
+            'exchange_next_action_date' => now()->addDay(),
+        ])->save();
+
+        $this->actingAs($finance)
+            ->get(route('reports.ar-aging', ['exchange_status' => ArInvoice::EXCHANGE_REJECTED]))
+            ->assertOk()
+            ->assertSee($rejected->invoice_number)
+            ->assertDontSee($accepted->invoice_number);
+    }
+
+    public function test_sidebar_shows_invoice_exchange_menu_for_finance(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-exchange-menu@example.test');
+
+        $this->actingAs($finance)
+            ->get(route('ar-invoices.index'))
+            ->assertOk()
+            ->assertSee(__('navigation.invoice_exchange'));
+    }
+
     private function deliveredOrder(string $status = Order::STATUS_DELIVERED): array
     {
         $branch = CompanyBranch::where('is_active', true)->firstOrFail();

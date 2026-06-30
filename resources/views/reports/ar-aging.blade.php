@@ -18,6 +18,16 @@
                 <label class="form-label">Tanggal Analisis</label>
                 <input type="date" name="as_of_date" value="{{ $asOfDate->toDateString() }}" class="form-control">
             </div>
+            <div>
+                <label class="form-label">Tukar Faktur</label>
+                <select name="exchange_status" class="form-control">
+                    <option value="">Semua Status</option>
+                    <option value="needs_exchange" {{ request('exchange_status') === 'needs_exchange' ? 'selected' : '' }}>Perlu Tukar Faktur</option>
+                    @foreach($exchangeStatuses as $key => $label)
+                        <option value="{{ $key }}" {{ request('exchange_status') === $key ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
             @if($canFilterBranches)
                 <div>
                     <label class="form-label">Cabang</label>
@@ -30,7 +40,7 @@
                 </div>
             @endif
             <button class="dms-btn dms-btn-primary" type="submit">Filter</button>
-            <a class="dms-btn dms-btn-outline" href="{{ route('reports.export', array_merge(['type' => 'ar-aging'], request()->only(['as_of_date', 'company_branch_id']))) }}">
+            <a class="dms-btn dms-btn-outline" href="{{ route('reports.export', array_merge(['type' => 'ar-aging'], request()->only(['as_of_date', 'company_branch_id', 'exchange_status']))) }}">
                 <i class="bi bi-download"></i> Export CSV
             </a>
         </div>
@@ -63,6 +73,7 @@
                     <th style="text-align: right;">Jatuh Tempo</th>
                     <th style="text-align: right;">Hari Terlambat</th>
                     <th style="text-align: center;">Bucket</th>
+                    <th style="text-align: center;">Tukar Faktur</th>
                     <th style="text-align: right;">Total</th>
                     <th style="text-align: right;">Terbayar</th>
                     <th style="text-align: right;">Credit Note</th>
@@ -79,6 +90,7 @@
                         <td style="text-align: right; white-space: nowrap;">{{ $invoice->due_date?->format('d M Y') ?? '-' }}</td>
                         <td style="text-align: right; white-space: nowrap;">{{ $invoice->days_overdue > 0 ? number_format($invoice->days_overdue) . ' hari' : '-' }}</td>
                         <td style="text-align: center;"><span class="dms-badge dms-badge-{{ $invoice->aging_badge }}">{{ $invoice->aging_bucket }}</span></td>
+                        <td style="text-align: center;"><span class="dms-badge dms-badge-{{ $invoice->exchange_status_badge }}">{{ $invoice->exchange_status_label }}</span></td>
                         <td class="dms-money" style="text-align: right;">Rp {{ number_format($invoice->total_amount, 0, ',', '.') }}</td>
                         <td class="dms-money" style="text-align: right;">Rp {{ number_format($invoice->paid_amount, 0, ',', '.') }}</td>
                         <td class="dms-money" style="text-align: right;">Rp {{ number_format($invoice->credit_note_amount, 0, ',', '.') }}</td>
@@ -91,7 +103,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="11" class="dms-empty">
+                        <td colspan="12" class="dms-empty">
                             <i class="bi bi-check2-circle"></i>
                             <p>Tidak ada piutang terbuka</p>
                         </td>
