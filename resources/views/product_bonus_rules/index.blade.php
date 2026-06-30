@@ -1,7 +1,7 @@
 @extends('layouts.sidebar')
 
-@section('page-title', 'Aturan Bonus')
-@section('breadcrumb', 'Katalog / Aturan Bonus')
+@section('page-title', 'Promo & Bonus')
+@section('breadcrumb', 'Katalog / Promo & Bonus')
 
 @section('content')
 <style>
@@ -52,8 +52,8 @@
         <div class="bonus-rule-title">
             <div class="bonus-rule-icon"><i class="bi bi-gift"></i></div>
             <div>
-                <h3 class="dms-section-title">Aturan Bonus</h3>
-                <p class="dms-section-subtitle">Atur promo bonus barang berdasarkan produk pembelian, minimum qty, customer, segment, cabang, dan periode berlaku.</p>
+                <h3 class="dms-section-title">Promo & Bonus</h3>
+                <p class="dms-section-subtitle">Atur promo bundling dan bonus barang berdasarkan produk pembelian, minimum qty, customer, segment, cabang, dan periode berlaku.</p>
             </div>
         </div>
         <form action="{{ route('product-bonus-rules.index') }}" method="GET" class="dms-search-form">
@@ -75,6 +75,21 @@
     @can('edit products')
         <form action="{{ route('product-bonus-rules.store') }}" method="POST" class="bonus-rule-form">
             @csrf
+            <div class="form-group">
+                <label class="form-label">Kode Promo</label>
+                <input type="text" name="promo_code" value="{{ old('promo_code') }}" class="form-control" placeholder="Contoh: BNDL-Q3">
+                @error('promo_code') <span class="dms-error">{{ $message }}</span> @enderror
+            </div>
+            <div class="form-group span-2">
+                <label class="form-label">Nama Promo</label>
+                <input type="text" name="promo_name" value="{{ old('promo_name') }}" class="form-control" placeholder="Contoh: Bundle Display Toko Q3">
+                @error('promo_name') <span class="dms-error">{{ $message }}</span> @enderror
+            </div>
+            <div class="form-group">
+                <label class="form-label">Tipe Reward</label>
+                <input type="text" class="form-control" value="Bonus / FOC" disabled>
+                <small class="dms-form-help">Reward promo otomatis terhubung ke bonus barang.</small>
+            </div>
             <div class="form-group span-2">
                 <label class="form-label">Produk Dibeli <span class="text-danger">*</span></label>
                 <select name="trigger_product_id" class="form-control" required>
@@ -156,7 +171,7 @@
                 </div>
                 <div class="bonus-rule-submit-panel">
                     <span class="dms-muted">Sistem akan membuat rule terpisah untuk setiap customer khusus yang dipilih.</span>
-                    <button type="submit" class="dms-btn dms-btn-primary"><i class="bi bi-plus-circle"></i> Tambah Bonus</button>
+                    <button type="submit" class="dms-btn dms-btn-primary"><i class="bi bi-plus-circle"></i> Tambah Promo</button>
                 </div>
             </div>
 
@@ -222,7 +237,8 @@
                 @forelse($rules as $rule)
                     <tr>
                         <td>
-                            <strong>{{ $rule->bonus_label }}</strong>
+                            <strong>{{ $rule->promo_label }}</strong>
+                            <div class="dms-muted">{{ $rule->bonus_label }}</div>
                             @if($rule->notes)<div class="dms-muted">{{ $rule->notes }}</div>@endif
                         </td>
                         <td><span class="bonus-rule-scope">{{ $rule->scope_label }}</span></td>
@@ -249,6 +265,8 @@
                                             <summary><i class="bi bi-arrow-repeat"></i> Ganti Aturan</summary>
                                             <form action="{{ route('product-bonus-rules.replace', $rule) }}" method="POST">
                                                 @csrf
+                                                <input type="text" name="promo_code" class="form-control" value="{{ $rule->promo_code }}" placeholder="Kode promo">
+                                                <input type="text" name="promo_name" class="form-control" value="{{ $rule->promo_name }}" placeholder="Nama promo">
                                                 <select name="bonus_product_id" class="form-control" required>
                                                     @foreach($products as $product)
                                                         <option value="{{ $product->id }}" {{ (int) $rule->bonus_product_id === (int) $product->id ? 'selected' : '' }}>{{ $product->display_name }}</option>

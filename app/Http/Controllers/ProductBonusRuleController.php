@@ -23,6 +23,8 @@ class ProductBonusRuleController extends Controller
                     $searchQuery->whereHas('triggerProduct', fn ($product) => $product->where('name', 'like', "%{$search}%"))
                         ->orWhereHas('bonusProduct', fn ($product) => $product->where('name', 'like', "%{$search}%"))
                         ->orWhereHas('customer', fn ($customer) => $customer->where('name', 'like', "%{$search}%"))
+                        ->orWhere('promo_code', 'like', "%{$search}%")
+                        ->orWhere('promo_name', 'like', "%{$search}%")
                         ->orWhere('customer_type', 'like', "%{$search}%")
                         ->orWhere('notes', 'like', "%{$search}%");
                 });
@@ -43,6 +45,8 @@ class ProductBonusRuleController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'promo_code' => ['nullable', 'string', 'max:50'],
+            'promo_name' => ['nullable', 'string', 'max:120'],
             'trigger_product_id' => ['required', 'exists:products,id'],
             'bonus_product_id' => ['required', 'exists:products,id', 'different:trigger_product_id'],
             'customer_ids' => ['nullable', 'array'],
@@ -58,6 +62,7 @@ class ProductBonusRuleController extends Controller
 
         $customerIds = collect($validated['customer_ids'] ?? [])->filter()->unique()->values();
         unset($validated['customer_ids']);
+        $validated['promo_code'] = $this->normalizePromoCode($validated['promo_code'] ?? null);
         $validated['is_active'] = true;
 
         if ($customerIds->isNotEmpty()) {
@@ -95,6 +100,8 @@ class ProductBonusRuleController extends Controller
     public function replace(Request $request, ProductBonusRule $productBonusRule)
     {
         $validated = $request->validate([
+            'promo_code' => ['nullable', 'string', 'max:50'],
+            'promo_name' => ['nullable', 'string', 'max:120'],
             'bonus_product_id' => ['required', 'exists:products,id'],
             'bonus_quantity' => ['required', 'integer', 'min:1'],
             'starts_at' => ['required', 'date', 'after_or_equal:today'],
@@ -107,6 +114,8 @@ class ProductBonusRuleController extends Controller
                 'bonus_product_id' => 'Produk bonus harus berbeda dari produk yang dibeli.',
             ]);
         }
+
+        $validated['promo_code'] = $this->normalizePromoCode($validated['promo_code'] ?? null);
 
         $newStart = Carbon::parse($validated['starts_at'])->startOfDay();
         $oldStart = $productBonusRule->starts_at?->copy()->startOfDay();
@@ -128,6 +137,8 @@ class ProductBonusRuleController extends Controller
 
             $newRule = $oldRule->replicate();
             $newRule->fill([
+                'promo_code' => $validated['promo_code'] ?? $oldRule->promo_code,
+                'promo_name' => $validated['promo_name'] ?? $oldRule->promo_name,
                 'bonus_product_id' => $validated['bonus_product_id'],
                 'bonus_quantity' => $validated['bonus_quantity'],
                 'starts_at' => $newStart->toDateString(),
@@ -193,5 +204,12 @@ class ProductBonusRuleController extends Controller
     private function whereNullableValue($query, string $column, mixed $value)
     {
         return filled($value) ? $query->where($column, $value) : $query->whereNull($column);
+    }
+
+    private function normalizePromoCode(?string $value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : str($value)->upper()->replace(' ', '-')->toString();
     }
 }

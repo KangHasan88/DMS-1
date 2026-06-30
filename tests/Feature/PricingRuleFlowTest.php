@@ -340,7 +340,7 @@ class PricingRuleFlowTest extends TestCase
         $this->actingAs($admin)
             ->get(route('product-bonus-rules.index'))
             ->assertOk()
-            ->assertSee('Aturan Bonus')
+            ->assertSee('Promo &amp; Bonus', false)
             ->assertSee('Pilih Customer Khusus')
             ->assertSee('Pilih Customer')
             ->assertSee('bonus-customer-picker-modal')
@@ -465,6 +465,8 @@ class PricingRuleFlowTest extends TestCase
             'is_active' => true,
         ]);
         ProductBonusRule::create([
+            'promo_code' => 'BNDL-Q3',
+            'promo_name' => 'Bundle Display Toko Q3',
             'trigger_product_id' => $triggerProduct->id,
             'bonus_product_id' => $bonusProduct->id,
             'customer_type' => 'wholesale',
@@ -485,11 +487,67 @@ class PricingRuleFlowTest extends TestCase
             ->assertOk()
             ->assertJson([
                 'price' => 30000,
+                'promo_code' => 'BNDL-Q3',
+                'promo_name' => 'Bundle Display Toko Q3',
+                'promo_label' => 'Bundle Display Toko Q3 (BNDL-Q3)',
                 'bonus_product_id' => $bonusProduct->id,
                 'bonus_quantity' => 1,
             ]);
 
         $this->assertStringContainsString('Produk Bonus Preview', $response->json('bonus_label'));
+    }
+
+    public function test_bonus_rule_page_can_create_promo_bundling_rule(): void
+    {
+        $admin = $this->userWithRole('admin', 'promo-bundling-admin@example.test');
+        $branch = CompanyBranch::where('is_active', true)->firstOrFail();
+        $triggerProduct = Product::create([
+            'name' => 'Produk Trigger Bundling',
+            'category' => 'Demo',
+            'price' => 32000,
+            'base_price' => 19000,
+            'is_active' => true,
+        ]);
+        $bonusProduct = Product::create([
+            'name' => 'Produk Reward Bundling',
+            'category' => 'Demo',
+            'price' => 8000,
+            'base_price' => 4000,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('product-bonus-rules.store'), [
+                'promo_code' => 'bundle q3',
+                'promo_name' => 'Bundle Launching Q3',
+                'trigger_product_id' => $triggerProduct->id,
+                'bonus_product_id' => $bonusProduct->id,
+                'customer_type' => 'regular',
+                'company_branch_id' => $branch->id,
+                'min_quantity' => 5,
+                'bonus_quantity' => 2,
+                'starts_at' => now()->toDateString(),
+                'notes' => 'Promo bundling principal',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('product_bonus_rules', [
+            'promo_code' => 'BUNDLE-Q3',
+            'promo_name' => 'Bundle Launching Q3',
+            'trigger_product_id' => $triggerProduct->id,
+            'bonus_product_id' => $bonusProduct->id,
+            'customer_type' => 'regular',
+            'company_branch_id' => $branch->id,
+            'min_quantity' => 5,
+            'bonus_quantity' => 2,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('product-bonus-rules.index', ['search' => 'Launching Q3']))
+            ->assertOk()
+            ->assertSee('Bundle Launching Q3');
     }
 
     public function test_bonus_rule_rejects_overlapping_active_rule_for_same_scope(): void

@@ -34,7 +34,7 @@ return [
     'price_lists' => 'Daftar Harga',
     'price_impact_review' => 'Review Dampak Harga',
     'discount_rules' => 'Aturan Diskon',
-    'bonus_rules' => 'Aturan Bonus',
+    'bonus_rules' => 'Promo & Bonus',
     'finance' => 'Keuangan',
     'accounting' => 'Akuntansi',
     'chart_accounts' => 'Daftar Akun',

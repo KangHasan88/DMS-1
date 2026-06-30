@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ProductBonusRule extends Model
 {
     protected $fillable = [
+        'promo_code',
+        'promo_name',
         'trigger_product_id',
         'bonus_product_id',
         'customer_id',
@@ -73,6 +75,15 @@ class ProductBonusRule extends Model
             ' dapat ' . number_format($this->bonus_quantity, 0, ',', '.') .
             ' ' . ($this->bonusProduct?->unit?->name ?? 'pcs') .
             ' ' . ($this->bonusProduct?->name ?? 'produk bonus');
+    }
+
+    public function getPromoLabelAttribute(): string
+    {
+        if ($this->promo_name && $this->promo_code) {
+            return $this->promo_name . ' (' . $this->promo_code . ')';
+        }
+
+        return $this->promo_name ?: ($this->promo_code ?: 'Promo bundling');
     }
 
     public function getIsExpiredAttribute(): bool

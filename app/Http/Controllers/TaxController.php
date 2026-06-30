@@ -526,10 +526,12 @@ class TaxController extends Controller
     private function applyOutputPeriod($query, Carbon $periodStart, Carbon $periodEnd)
     {
         return $query->where(function ($dateQuery) use ($periodStart, $periodEnd) {
-            $dateQuery->whereBetween('tax_invoice_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
+            $dateQuery->whereDate('tax_invoice_date', '>=', $periodStart->toDateString())
+                ->whereDate('tax_invoice_date', '<=', $periodEnd->toDateString())
                 ->orWhere(function ($fallback) use ($periodStart, $periodEnd) {
                     $fallback->whereNull('tax_invoice_date')
-                        ->whereBetween('invoice_date', [$periodStart->toDateString(), $periodEnd->toDateString()]);
+                        ->whereDate('invoice_date', '>=', $periodStart->toDateString())
+                        ->whereDate('invoice_date', '<=', $periodEnd->toDateString());
                 });
         });
     }
@@ -537,10 +539,12 @@ class TaxController extends Controller
     private function applyInputPeriod($query, Carbon $periodStart, Carbon $periodEnd)
     {
         return $query->where(function ($dateQuery) use ($periodStart, $periodEnd) {
-            $dateQuery->whereBetween('supplier_tax_invoice_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
+            $dateQuery->whereDate('supplier_tax_invoice_date', '>=', $periodStart->toDateString())
+                ->whereDate('supplier_tax_invoice_date', '<=', $periodEnd->toDateString())
                 ->orWhere(function ($fallback) use ($periodStart, $periodEnd) {
                     $fallback->whereNull('supplier_tax_invoice_date')
-                        ->whereBetween('invoice_date', [$periodStart->toDateString(), $periodEnd->toDateString()]);
+                        ->whereDate('invoice_date', '>=', $periodStart->toDateString())
+                        ->whereDate('invoice_date', '<=', $periodEnd->toDateString());
                 });
         });
     }

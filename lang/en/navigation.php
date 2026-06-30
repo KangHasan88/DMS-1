@@ -34,7 +34,7 @@ return [
     'price_lists' => 'Price Lists',
     'price_impact_review' => 'Price Impact Review',
     'discount_rules' => 'Discount Rules',
-    'bonus_rules' => 'Bonus Rules',
+    'bonus_rules' => 'Promo & Bonus',
     'finance' => 'Finance',
     'accounting' => 'Accounting',
     'chart_accounts' => 'Chart of Accounts',

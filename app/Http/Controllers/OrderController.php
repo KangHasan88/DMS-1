@@ -16,6 +16,7 @@ use App\Models\DeliveryTimeSlot;
 use App\Services\OrderReturnablePackagingService;
 use App\Services\ProductBonusService;
 use App\Services\ProductDiscountService;
+use App\Services\ProductPromoBundlingService;
 use App\Services\ProductPricingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -434,6 +435,7 @@ class OrderController extends Controller
                 return $rule ? [
                     'item' => $item,
                     'rule' => $rule,
+                    'promo_label' => $rule->promo_label,
                     'bonus_product' => $rule->bonusProduct,
                     'bonus_quantity' => $rule->bonus_quantity,
                 ] : null;
@@ -1069,7 +1071,7 @@ class OrderController extends Controller
         $discount = app(ProductDiscountService::class)->resolveItemDiscount($product, $price, $quantity, $customer, $companyBranchId);
         $discountAmount = (int) ($discount['amount'] ?? 0);
         $discountRule = $discount['rule'] ?? null;
-        $bonusRule = app(ProductBonusService::class)->resolveBonus($product, $quantity, $customer, $companyBranchId);
+        $bonusRule = app(ProductPromoBundlingService::class)->resolvePromo($product, $quantity, $customer, $companyBranchId);
 
         return response()->json([
             'price' => $price,
@@ -1078,6 +1080,9 @@ class OrderController extends Controller
             'formatted_auto_discount' => 'Rp ' . number_format($discountAmount, 0, ',', '.'),
             'auto_discount_label' => $discountRule ? $discountRule->discount_label : null,
             'bonus_label' => $bonusRule ? $bonusRule->bonus_label : null,
+            'promo_label' => $bonusRule ? $bonusRule->promo_label : null,
+            'promo_code' => $bonusRule?->promo_code,
+            'promo_name' => $bonusRule?->promo_name,
             'bonus_product_id' => $bonusRule?->bonus_product_id,
             'bonus_quantity' => $bonusRule?->bonus_quantity,
         ]);
