@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AccountingPeriodLock;
 use App\Models\ApInvoice;
 use App\Models\ApDebitNote;
 use App\Models\ChartAccount;
@@ -550,6 +551,113 @@ class ApInvoiceFlowTest extends TestCase
         $this->assertDatabaseCount('supplier_payments', 0);
     }
 
+    public function test_supplier_payment_is_rejected_when_accounting_period_is_locked(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ap-payment-period-locked@example.test');
+        [$purchaseOrder] = $this->receivedPurchaseOrder();
+        $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, $finance);
+
+        AccountingPeriodLock::create([
+            'company_branch_id' => $invoice->company_branch_id,
+            'date_from' => now()->toDateString(),
+            'date_to' => now()->toDateString(),
+            'status' => AccountingPeriodLock::STATUS_LOCKED,
+            'reason' => 'Closing AP payment',
+            'locked_by' => $finance->id,
+            'locked_at' => now(),
+        ]);
+
+        $this->actingAs($finance)
+            ->from(route('ap-invoices.show', $invoice))
+            ->post(route('supplier-payments.store'), [
+                'ap_invoice_id' => $invoice->id,
+                'payment_date' => now()->toDateString(),
+                'payment_method' => SupplierPayment::METHOD_TRANSFER,
+                'amount' => 20000,
+            ])
+            ->assertRedirect(route('ap-invoices.show', $invoice))
+            ->assertSessionHas('error');
+
+        $invoice->refresh();
+
+        $this->assertDatabaseCount('supplier_payments', 0);
+        $this->assertSame(0, $invoice->paid_amount);
+        $this->assertSame(60000, $invoice->outstanding_amount);
+        $this->assertDatabaseMissing('journal_entries', [
+            'source_type' => SupplierPayment::class,
+        ]);
+    }
+
+    public function test_ap_debit_note_is_rejected_when_accounting_period_is_locked(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ap-debit-note-period-locked@example.test');
+        [$purchaseOrder] = $this->receivedPurchaseOrder();
+        $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, $finance);
+
+        AccountingPeriodLock::create([
+            'company_branch_id' => $invoice->company_branch_id,
+            'date_from' => now()->toDateString(),
+            'date_to' => now()->toDateString(),
+            'status' => AccountingPeriodLock::STATUS_LOCKED,
+            'reason' => 'Closing AP debit note',
+            'locked_by' => $finance->id,
+            'locked_at' => now(),
+        ]);
+
+        $this->actingAs($finance)
+            ->from(route('ap-invoices.show', $invoice))
+            ->post(route('ap-debit-notes.store'), [
+                'ap_invoice_id' => $invoice->id,
+                'note_date' => now()->toDateString(),
+                'reason_type' => ApDebitNote::REASON_PRICE_ADJUSTMENT,
+                'amount' => 10000,
+            ])
+            ->assertRedirect(route('ap-invoices.show', $invoice))
+            ->assertSessionHas('error');
+
+        $invoice->refresh();
+
+        $this->assertDatabaseCount('ap_debit_notes', 0);
+        $this->assertSame(0, $invoice->debit_note_amount);
+        $this->assertSame(60000, $invoice->outstanding_amount);
+        $this->assertDatabaseMissing('journal_entries', [
+            'source_type' => ApDebitNote::class,
+        ]);
+    }
+
+    public function test_ap_invoice_void_is_rejected_when_source_period_is_locked(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ap-void-period-locked@example.test');
+        [$purchaseOrder] = $this->receivedPurchaseOrder();
+        $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, $finance);
+
+        AccountingPeriodLock::create([
+            'company_branch_id' => $invoice->company_branch_id,
+            'date_from' => $invoice->invoice_date->toDateString(),
+            'date_to' => $invoice->invoice_date->toDateString(),
+            'status' => AccountingPeriodLock::STATUS_LOCKED,
+            'reason' => 'Closing AP invoice',
+            'locked_by' => $finance->id,
+            'locked_at' => now(),
+        ]);
+
+        $this->actingAs($finance)
+            ->from(route('ap-invoices.show', $invoice))
+            ->post(route('ap-invoices.void', $invoice), [
+                'void_reason' => 'Salah terbit AP invoice',
+            ])
+            ->assertRedirect(route('ap-invoices.show', $invoice))
+            ->assertSessionHas('error');
+
+        $invoice->refresh();
+
+        $this->assertSame(ApInvoice::STATUS_ISSUED, $invoice->status);
+        $this->assertSame(60000, $invoice->outstanding_amount);
+        $this->assertNull($invoice->voided_at);
+        $this->assertDatabaseMissing('journal_entries', [
+            'source_type' => JournalEntry::class,
+        ]);
+    }
     public function test_ap_auto_journals_flow_into_trial_balance(): void
     {
         $finance = $this->userWithRole('finance', 'finance-ap-trial@example.test');
