@@ -320,7 +320,12 @@ class ReportController extends Controller
         $statusOptions = Delivery::STATUS_LIST;
 
         $deliveryQuery = Delivery::with('order.user', 'kurir')
-            ->whereBetween('created_at', [$startDate, $endDate])
+            ->where(function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('created_at', [$startDate, $endDate])
+                    ->orWhereHas('order', function ($orderQuery) use ($startDate, $endDate) {
+                        $orderQuery->whereBetween('delivery_date', [$startDate->toDateString(), $endDate->toDateString()]);
+                    });
+            })
             ->when($filters['status'], fn ($query, string $status) => $query->where('status', $status))
             ->when($filters['search'], function ($query, string $search) {
                 $query->where(function ($query) use ($search) {
@@ -638,7 +643,12 @@ class ReportController extends Controller
         ];
 
         $deliveries = Delivery::with(['order.user', 'kurir'])
-            ->whereBetween('created_at', [$startDate, $endDate])
+            ->where(function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('created_at', [$startDate, $endDate])
+                    ->orWhereHas('order', function ($orderQuery) use ($startDate, $endDate) {
+                        $orderQuery->whereBetween('delivery_date', [$startDate->toDateString(), $endDate->toDateString()]);
+                    });
+            })
             ->when($filters['status'], fn ($query, string $status) => $query->where('status', $status))
             ->when($filters['search'], function ($query, string $search) {
                 $query->where(function ($query) use ($search) {

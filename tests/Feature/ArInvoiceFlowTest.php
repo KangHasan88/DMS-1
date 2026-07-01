@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AccountingPeriodLock;
 use App\Models\ArInvoice;
 use App\Models\ArCreditNote;
 use App\Models\ChartAccount;
@@ -378,6 +379,113 @@ class ArInvoiceFlowTest extends TestCase
         $this->assertSame(ArInvoice::STATUS_PARTIALLY_PAID, $invoice->fresh()->status);
     }
 
+    public function test_customer_payment_is_rejected_when_accounting_period_is_locked(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-payment-period-locked@example.test');
+        [$order] = $this->deliveredOrder();
+        $invoice = ArInvoice::issueFromOrder($order, $finance);
+
+        AccountingPeriodLock::create([
+            'company_branch_id' => $invoice->company_branch_id,
+            'date_from' => now()->toDateString(),
+            'date_to' => now()->toDateString(),
+            'status' => AccountingPeriodLock::STATUS_LOCKED,
+            'reason' => 'Closing AR payment',
+            'locked_by' => $finance->id,
+            'locked_at' => now(),
+        ]);
+
+        $this->actingAs($finance)
+            ->from(route('ar-invoices.show', $invoice))
+            ->post(route('customer-payments.store'), [
+                'ar_invoice_id' => $invoice->id,
+                'payment_date' => now()->toDateString(),
+                'payment_method' => CustomerPayment::METHOD_TRANSFER,
+                'amount' => 20000,
+            ])
+            ->assertRedirect(route('ar-invoices.show', $invoice))
+            ->assertSessionHas('error');
+
+        $invoice->refresh();
+
+        $this->assertDatabaseCount('customer_payments', 0);
+        $this->assertSame(0, $invoice->paid_amount);
+        $this->assertSame(50000, $invoice->outstanding_amount);
+        $this->assertDatabaseMissing('journal_entries', [
+            'source_type' => CustomerPayment::class,
+        ]);
+    }
+
+    public function test_ar_credit_note_is_rejected_when_accounting_period_is_locked(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-credit-note-period-locked@example.test');
+        [$order] = $this->deliveredOrder();
+        $invoice = ArInvoice::issueFromOrder($order, $finance);
+
+        AccountingPeriodLock::create([
+            'company_branch_id' => $invoice->company_branch_id,
+            'date_from' => now()->toDateString(),
+            'date_to' => now()->toDateString(),
+            'status' => AccountingPeriodLock::STATUS_LOCKED,
+            'reason' => 'Closing AR credit note',
+            'locked_by' => $finance->id,
+            'locked_at' => now(),
+        ]);
+
+        $this->actingAs($finance)
+            ->from(route('ar-invoices.show', $invoice))
+            ->post(route('ar-credit-notes.store'), [
+                'ar_invoice_id' => $invoice->id,
+                'note_date' => now()->toDateString(),
+                'reason_type' => ArCreditNote::REASON_PRICE_ADJUSTMENT,
+                'amount' => 10000,
+            ])
+            ->assertRedirect(route('ar-invoices.show', $invoice))
+            ->assertSessionHas('error');
+
+        $invoice->refresh();
+
+        $this->assertDatabaseCount('ar_credit_notes', 0);
+        $this->assertSame(0, $invoice->credit_note_amount);
+        $this->assertSame(50000, $invoice->outstanding_amount);
+        $this->assertDatabaseMissing('journal_entries', [
+            'source_type' => ArCreditNote::class,
+        ]);
+    }
+
+    public function test_ar_invoice_void_is_rejected_when_source_period_is_locked(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ar-void-period-locked@example.test');
+        [$order] = $this->deliveredOrder();
+        $invoice = ArInvoice::issueFromOrder($order, $finance);
+
+        AccountingPeriodLock::create([
+            'company_branch_id' => $invoice->company_branch_id,
+            'date_from' => $invoice->invoice_date->toDateString(),
+            'date_to' => $invoice->invoice_date->toDateString(),
+            'status' => AccountingPeriodLock::STATUS_LOCKED,
+            'reason' => 'Closing AR invoice',
+            'locked_by' => $finance->id,
+            'locked_at' => now(),
+        ]);
+
+        $this->actingAs($finance)
+            ->from(route('ar-invoices.show', $invoice))
+            ->post(route('ar-invoices.void', $invoice), [
+                'void_reason' => 'Salah terbit invoice',
+            ])
+            ->assertRedirect(route('ar-invoices.show', $invoice))
+            ->assertSessionHas('error');
+
+        $invoice->refresh();
+
+        $this->assertSame(ArInvoice::STATUS_ISSUED, $invoice->status);
+        $this->assertSame(50000, $invoice->outstanding_amount);
+        $this->assertNull($invoice->voided_at);
+        $this->assertDatabaseMissing('journal_entries', [
+            'source_type' => JournalEntry::class,
+        ]);
+    }
     public function test_ar_auto_journals_flow_into_trial_balance(): void
     {
         $finance = $this->userWithRole('finance', 'finance-ar-trial@example.test');
