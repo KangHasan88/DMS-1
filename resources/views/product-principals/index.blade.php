@@ -5,64 +5,39 @@
 
 @section('content')
 <style>
-    .principal-form-panel {
-        margin-bottom: 1.25rem;
-        padding: 0.9rem 1rem 1rem;
-        border: 1px solid var(--k-gray-200);
-        border-radius: 8px;
-        background: var(--k-gray-50);
-    }
-
-    .principal-form-heading {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 1rem;
-        margin-bottom: 0.85rem;
-        padding-bottom: 0.75rem;
-        border-bottom: 1px solid var(--k-gray-200);
-    }
-
-    .principal-form-title-wrap {
-        display: flex;
-        align-items: flex-start;
-        gap: 0.75rem;
-    }
-
-    .principal-form-icon {
-        width: 42px;
-        height: 42px;
-        flex: 0 0 42px;
-    }
-
-    .principal-form-title {
-        margin: 0;
-        font-size: 1rem;
-        font-weight: 700;
-        color: var(--k-navy);
-    }
-
-    .principal-form-copy {
-        margin: 0.25rem 0 0;
-        font-size: 0.82rem;
-        color: var(--k-gray-600);
-    }
-
     .principal-form-grid {
         display: grid;
-        grid-template-columns: minmax(150px, 0.75fr) minmax(260px, 1.35fr) minmax(200px, 1fr) minmax(170px, 0.85fr) minmax(100px, 0.45fr) auto;
-        gap: 0.75rem;
+        grid-template-columns: minmax(150px, 0.8fr) minmax(260px, 1.4fr) repeat(2, minmax(180px, 1fr)) minmax(90px, 0.5fr);
+        gap: 1rem;
         align-items: end;
     }
 
     .principal-form-actions {
         display: flex;
         justify-content: flex-end;
+        padding-top: 0.9rem;
+        margin-top: 0.9rem;
+        border-top: 1px solid var(--k-border);
     }
 
-    @media (max-width: 900px) {
+    @media (max-width: 1100px) {
+        .principal-form-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 760px) {
         .principal-form-grid {
             grid-template-columns: 1fr;
+        }
+
+        .principal-form-actions {
+            justify-content: stretch;
+        }
+
+        .principal-form-actions .dms-btn {
+            width: 100%;
+            justify-content: center;
         }
     }
 </style>
@@ -93,50 +68,50 @@
     </div>
 
     @can('edit products')
-    <div class="principal-form-panel">
-        <div class="principal-form-heading">
-            <div class="principal-form-title-wrap">
-                <div class="dms-avatar-soft principal-form-icon">
+    <div class="dms-form-card">
+        <div class="dms-form-card-header">
+            <div class="dms-form-title-row">
+                <div class="dms-avatar-soft dms-form-icon">
                     <i class="bi bi-building"></i>
                 </div>
                 <div>
-                    <h4 class="principal-form-title">Tambah Principal</h4>
-                    <p class="principal-form-copy">Gunakan untuk mengelompokkan produk berdasarkan pemilik brand atau principal.</p>
+                    <h4 class="dms-form-panel-title">Tambah Principal</h4>
+                    <p class="dms-form-panel-copy">Gunakan untuk mengelompokkan produk berdasarkan pemilik brand atau principal.</p>
                 </div>
             </div>
         </div>
 
         <form action="{{ route('product-principals.store') }}" method="POST">
             @csrf
-            <div class="principal-form-grid">
-                <div class="form-group" style="margin-bottom: 0;">
+            <div class="principal-form-grid dms-form-compact">
+                <div class="form-group">
                     <label class="form-label">Kode <span class="dms-required">*</span></label>
                     <input type="text" name="code" value="{{ old('code') }}" class="form-control" placeholder="UNILEVER" required>
                     @error('code') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group">
                     <label class="form-label">Nama Principal <span class="dms-required">*</span></label>
                     <input type="text" name="name" value="{{ old('name') }}" class="form-control" placeholder="Unilever Indonesia" required>
                     @error('name') <span class="dms-error">{{ $message }}</span> @enderror
                 </div>
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group">
                     <label class="form-label">Contact Person</label>
                     <input type="text" name="contact_person" value="{{ old('contact_person') }}" class="form-control" placeholder="Nama kontak">
                 </div>
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group">
                     <label class="form-label">Telepon</label>
                     <input type="text" name="phone" value="{{ old('phone') }}" class="form-control" placeholder="08xx">
                 </div>
-                <div class="form-group" style="margin-bottom: 0;">
+                <div class="form-group">
                     <label class="form-label">Urutan</label>
                     <input type="number" name="sort_order" value="{{ old('sort_order', 0) }}" class="form-control" min="0">
                 </div>
-                <div class="principal-form-actions">
-                    <input type="hidden" name="is_active" value="1">
-                    <button type="submit" class="dms-btn dms-btn-primary" style="white-space: nowrap;">
-                        <i class="bi bi-plus-circle"></i> Tambah
-                    </button>
-                </div>
+            </div>
+            <div class="principal-form-actions">
+                <input type="hidden" name="is_active" value="1">
+                <button type="submit" class="dms-btn dms-btn-primary">
+                    <i class="bi bi-plus-circle"></i> Tambah Principal
+                </button>
             </div>
         </form>
     </div>
@@ -173,9 +148,9 @@
                         </td>
                         <td>
                             @can('edit products')
-                            <form action="{{ route('product-principals.toggle-status', $principal) }}" method="POST" style="display: inline-flex;">
+                            <form action="{{ route('product-principals.toggle-status', $principal) }}" method="POST" class="dms-table-action-form">
                                 @csrf
-                                <button type="submit" class="dms-btn dms-btn-outline dms-btn-sm" style="white-space: nowrap; min-width: 132px; justify-content: center;">
+                                <button type="submit" class="dms-btn dms-btn-outline dms-table-action-button">
                                     <i class="bi {{ $principal->is_active ? 'bi-pause-circle' : 'bi-play-circle' }}"></i>
                                     {{ $principal->is_active ? 'Nonaktifkan' : 'Aktifkan' }}
                                 </button>

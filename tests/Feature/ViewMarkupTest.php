@@ -161,9 +161,28 @@ class ViewMarkupTest extends TestCase
     {
         $layout = file_get_contents(resource_path('views/layouts/sidebar.blade.php'));
 
-        foreach (['.dms-form-header', '.dms-form-grid', '.dms-form-actions', '.dms-form-error', '.dms-form-help'] as $class) {
+        foreach ([
+            '.dms-form-header',
+            '.dms-form-grid',
+            '.dms-form-grid-3',
+            '.dms-form-panel',
+            '.dms-form-card',
+            '.dms-form-actions',
+            '.dms-form-error',
+            '.dms-form-help',
+            '.dms-table-action-button',
+        ] as $class) {
             $this->assertStringContainsString($class, $layout);
         }
+
+        $principal = file_get_contents(resource_path('views/product-principals/index.blade.php'));
+        $purchaseOrderCreate = file_get_contents(resource_path('views/purchase-orders/create.blade.php'));
+
+        $this->assertStringContainsString('dms-form-card', $principal);
+        $this->assertStringContainsString('dms-table-action-button', $principal);
+        $this->assertStringContainsString('dms-form-panel', $purchaseOrderCreate);
+        $this->assertStringContainsString('dms-form-grid-3', $purchaseOrderCreate);
+        $this->assertStringContainsString('dms-form-total-box', $purchaseOrderCreate);
 
         foreach ([
             resource_path('views/products/create.blade.php'),

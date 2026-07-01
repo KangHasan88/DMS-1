@@ -23,50 +23,52 @@
     <form action="{{ route('purchase-orders.store') }}" method="POST">
         @csrf
 
-        <section style="border: 1px solid var(--k-border); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem; background: var(--k-white);">
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 0.85rem;">
+        <section class="dms-form-panel">
+            <div class="dms-form-panel-header">
                 <div>
-                    <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--k-navy); margin: 0;">Informasi Dokumen</h4>
-                    <p class="dms-form-subtitle" style="margin: 0.2rem 0 0;">Data header PO yang menjadi dasar approval dan penerimaan barang.</p>
+                    <h4 class="dms-form-panel-title">Informasi Dokumen</h4>
+                    <p class="dms-form-panel-copy">Data header PO yang menjadi dasar approval dan penerimaan barang.</p>
                 </div>
             </div>
 
-            <div class="dms-form-grid" style="grid-template-columns: minmax(320px, 1.4fr) minmax(180px, 0.8fr) minmax(180px, 0.8fr); gap: 1rem; align-items: start;">
-                <div class="form-group">
-                    <label class="form-label">Pemasok <span class="dms-required">*</span></label>
-                    <select name="supplier_id" class="form-control" required>
-                        <option value="">-- Pilih Pemasok --</option>
-                        @foreach($suppliers as $supplier)
-                            <option value="{{ $supplier->id }}" {{ (int) old('supplier_id') === $supplier->id ? 'selected' : '' }}>
-                                {{ $supplier->name }}{{ $supplier->phone ? ' (' . $supplier->phone . ')' : '' }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <small class="dms-form-help">
-                        <a href="{{ route('suppliers.create') }}" target="_blank" style="color: var(--k-navy); font-weight: 700;">+ Tambah Pemasok Baru</a>
-                    </small>
-                    @error('supplier_id') <span class="dms-error">{{ $message }}</span> @enderror
-                </div>
+            <div class="dms-form-panel-body">
+                <div class="dms-form-grid-3">
+                    <div class="form-group">
+                        <label class="form-label">Pemasok <span class="dms-required">*</span></label>
+                        <select name="supplier_id" class="form-control" required>
+                            <option value="">-- Pilih Pemasok --</option>
+                            @foreach($suppliers as $supplier)
+                                <option value="{{ $supplier->id }}" {{ (int) old('supplier_id') === $supplier->id ? 'selected' : '' }}>
+                                    {{ $supplier->name }}{{ $supplier->phone ? ' (' . $supplier->phone . ')' : '' }}
+                                </option>
+                            @endforeach
+                        </select>
+                        <small class="dms-form-help">
+                            <a href="{{ route('suppliers.create') }}" target="_blank" style="color: var(--k-blue-darker); font-weight: 700;">+ Tambah Pemasok Baru</a>
+                        </small>
+                        @error('supplier_id') <span class="dms-error">{{ $message }}</span> @enderror
+                    </div>
 
-                <div class="form-group">
-                    <label class="form-label">Tanggal PO <span class="dms-required">*</span></label>
-                    <input type="date" name="order_date" class="form-control" value="{{ old('order_date', date('Y-m-d')) }}" required>
-                    @error('order_date') <span class="dms-error">{{ $message }}</span> @enderror
-                </div>
+                    <div class="form-group">
+                        <label class="form-label">Tanggal PO <span class="dms-required">*</span></label>
+                        <input type="date" name="order_date" class="form-control" value="{{ old('order_date', date('Y-m-d')) }}" required>
+                        @error('order_date') <span class="dms-error">{{ $message }}</span> @enderror
+                    </div>
 
-                <div class="form-group">
-                    <label class="form-label">Estimasi Datang</label>
-                    <input type="date" name="expected_delivery_date" class="form-control" value="{{ old('expected_delivery_date') }}">
-                    @error('expected_delivery_date') <span class="dms-error">{{ $message }}</span> @enderror
+                    <div class="form-group">
+                        <label class="form-label">Estimasi Datang</label>
+                        <input type="date" name="expected_delivery_date" class="form-control" value="{{ old('expected_delivery_date') }}">
+                        @error('expected_delivery_date') <span class="dms-error">{{ $message }}</span> @enderror
+                    </div>
                 </div>
             </div>
         </section>
 
-        <section style="border: 1px solid var(--k-border); border-radius: 8px; margin-bottom: 1.25rem; background: var(--k-white); overflow: hidden;">
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.95rem 1rem; border-bottom: 1px solid var(--k-border); background: var(--k-gray-50);">
+        <section class="dms-form-panel">
+            <div class="dms-form-panel-header">
                 <div>
-                    <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--k-navy); margin: 0;">Item Pembelian</h4>
-                    <p class="dms-form-subtitle" style="margin: 0.2rem 0 0;">Masukkan produk, qty, harga beli, dan catatan item.</p>
+                    <h4 class="dms-form-panel-title">Item Pembelian</h4>
+                    <p class="dms-form-panel-copy">Masukkan produk, qty, harga beli, dan catatan item.</p>
                 </div>
                 <button type="button" class="dms-btn dms-btn-outline" onclick="addProductRow()">
                     <i class="bi bi-plus-circle"></i> Tambah Produk
@@ -75,8 +77,8 @@
 
             @error('items') <span class="dms-error" style="display: block; margin: 0.75rem 1rem 0;">{{ $message }}</span> @enderror
 
-            <div style="overflow-x: auto; padding: 0.85rem 1rem 1rem;">
-                <table class="dms-table" id="products-table" style="border: 1px solid var(--k-border); border-radius: 8px; overflow: hidden;">
+            <div class="dms-form-table-wrap">
+                <table class="dms-table dms-form-table" id="products-table">
                     <thead>
                         <tr>
                             <th style="width: 36%;">Produk</th>
@@ -125,7 +127,7 @@
                                     <input type="text" name="items[{{ $index }}][notes]" class="form-control" value="{{ $item['notes'] ?? '' }}" placeholder="Opsional">
                                 </td>
                                 <td style="text-align: center;">
-                                    <button type="button" class="dms-btn dms-btn-outline" style="padding: 0.35rem 0.55rem; color: var(--k-red);" onclick="removeProductRow(this)">
+                                    <button type="button" class="dms-btn dms-btn-outline dms-btn-sm dms-btn-icon" style="color: var(--k-red);" onclick="removeProductRow(this)" aria-label="Hapus item">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </td>
@@ -136,9 +138,9 @@
                         <tr style="background: var(--k-gray-50);">
                             <td colspan="6" style="padding: 0.9rem 1rem;">
                                 <div style="display: flex; justify-content: flex-end;">
-                                    <div style="min-width: 300px; display: flex; justify-content: space-between; align-items: center; gap: 2rem; padding: 0.75rem 1rem; border: 1px solid var(--k-border); border-radius: 8px; background: var(--k-white);">
-                                        <span style="font-size: 0.8rem; font-weight: 800; color: var(--k-gray-600); text-transform: uppercase;">Total PO</span>
-                                        <span id="grand-total" style="font-weight: 900; color: var(--k-navy); font-size: 1.05rem;">Rp 0</span>
+                                    <div class="dms-form-total-box">
+                                        <span class="dms-form-total-label">Total PO</span>
+                                        <span id="grand-total" class="dms-form-total-value">Rp 0</span>
                                     </div>
                                 </div>
                                 <input type="hidden" name="total" id="total-input" value="0">
@@ -149,8 +151,15 @@
             </div>
         </section>
 
-        <section style="border: 1px solid var(--k-border); border-radius: 8px; padding: 1rem; margin-bottom: 1.25rem; background: var(--k-white);">
-            <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem;">
+        <section class="dms-form-panel">
+            <div class="dms-form-panel-header">
+                <div>
+                    <h4 class="dms-form-panel-title">Catatan</h4>
+                    <p class="dms-form-panel-copy">Pisahkan catatan untuk pemasok dan catatan internal approval.</p>
+                </div>
+            </div>
+            <div class="dms-form-panel-body">
+                <div class="dms-form-grid">
                 <div class="form-group">
                     <label class="form-label">Catatan Pemasok</label>
                     <textarea name="notes" class="form-control" rows="2" placeholder="Catatan yang relevan untuk pemasok">{{ old('notes') }}</textarea>
@@ -159,6 +168,7 @@
                 <div class="form-group">
                     <label class="form-label">Catatan Internal</label>
                     <textarea name="internal_notes" class="form-control" rows="2" placeholder="Catatan internal untuk proses approval">{{ old('internal_notes') }}</textarea>
+                </div>
                 </div>
             </div>
         </section>
@@ -215,7 +225,7 @@ function addProductRow() {
             <input type="text" name="items[${productIndex}][notes]" class="form-control" placeholder="Opsional">
         </td>
         <td style="text-align: center;">
-            <button type="button" class="dms-btn dms-btn-outline" style="padding: 0.35rem 0.55rem; color: var(--k-red);" onclick="removeProductRow(this)">
+            <button type="button" class="dms-btn dms-btn-outline dms-btn-sm dms-btn-icon" style="color: var(--k-red);" onclick="removeProductRow(this)" aria-label="Hapus item">
                 <i class="bi bi-trash"></i>
             </button>
         </td>

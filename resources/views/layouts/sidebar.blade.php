@@ -88,6 +88,7 @@
             --k-shadow-md: 0 10px 28px rgba(15, 23, 42, 0.06);
             --k-shadow-lg: 0 18px 44px rgba(15, 23, 42, 0.10);
             --k-shadow-green: 0 8px 18px rgba(18, 59, 122, 0.12);
+            --k-border: var(--k-gray-200);
 
             --k-font-xs: 0.72rem;
             --k-font-sm: 0.78rem;
@@ -934,11 +935,15 @@
 
         .dms-btn-sm {
             min-width: 32px;
-            width: 32px;
             height: 32px;
-            padding: 0;
+            padding: 0 0.65rem;
             font-size: 0.65rem;
             justify-content: center;
+        }
+
+        .dms-btn-icon {
+            width: 32px;
+            padding: 0;
             flex: 0 0 32px;
         }
 
@@ -1020,6 +1025,20 @@
             gap: 1rem;
         }
 
+        .dms-form-grid-3 {
+            display: grid;
+            grid-template-columns: minmax(280px, 1.4fr) repeat(2, minmax(180px, 0.8fr));
+            gap: 1rem;
+            align-items: start;
+        }
+
+        .dms-form-grid-auto {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            align-items: start;
+        }
+
         .dms-form-grid-wide {
             display: grid;
             grid-template-columns: 250px minmax(0, 1fr);
@@ -1033,6 +1052,112 @@
 
         .dms-form-section {
             margin-bottom: 1.25rem;
+        }
+
+        .dms-form-panel {
+            margin-bottom: 1.25rem;
+            border: 1px solid var(--k-border);
+            border-radius: 8px;
+            background: var(--k-white);
+            overflow: hidden;
+        }
+
+        .dms-form-panel-body {
+            padding: 1rem;
+        }
+
+        .dms-form-panel-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 0.95rem 1rem;
+            border-bottom: 1px solid var(--k-border);
+            background: var(--k-gray-50);
+        }
+
+        .dms-form-panel-title {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: var(--k-blue-darker);
+            margin: 0;
+            line-height: 1.25;
+        }
+
+        .dms-form-panel-copy {
+            margin: 0.2rem 0 0;
+            color: #5d7088;
+            font-size: var(--k-font-sm);
+        }
+
+        .dms-form-card {
+            padding: 0.9rem 1rem 1rem;
+            border: 1px solid var(--k-border);
+            border-radius: 8px;
+            background: #fbfdff;
+        }
+
+        .dms-form-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 0.85rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--k-border);
+        }
+
+        .dms-form-title-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .dms-form-icon {
+            width: 42px;
+            height: 42px;
+            flex: 0 0 42px;
+        }
+
+        .dms-form-compact .form-group {
+            margin-bottom: 0;
+        }
+
+        .dms-form-table-wrap {
+            overflow-x: auto;
+            padding: 0.85rem 1rem 1rem;
+        }
+
+        .dms-form-table {
+            border: 1px solid var(--k-border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .dms-form-total-box {
+            min-width: 280px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 2rem;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--k-border);
+            border-radius: 8px;
+            background: var(--k-white);
+        }
+
+        .dms-form-total-label {
+            font-size: var(--k-font-xs);
+            font-weight: 800;
+            color: var(--k-gray-600);
+            text-transform: uppercase;
+        }
+
+        .dms-form-total-value {
+            font-weight: 900;
+            color: var(--k-blue-darker);
+            font-size: 1.05rem;
+            white-space: nowrap;
         }
 
         .dms-form-section-title {
@@ -1062,6 +1187,16 @@
             flex-wrap: wrap;
         }
 
+        .dms-table-action-form {
+            display: inline-flex;
+        }
+
+        .dms-table-action-button {
+            min-width: 132px;
+            justify-content: center;
+            white-space: nowrap;
+        }
+
         .dms-form-help,
         .dms-help {
             display: block;
@@ -1085,7 +1220,8 @@
             margin-top: 0.3rem;
             color: var(--k-red);
             font-size: 0.68rem;
-            font-weight: 600;
+            font-weight: 500;
+            line-height: 1.35;
         }
 
         .dms-required {
@@ -1191,8 +1327,16 @@
             }
 
             .dms-form-grid,
+            .dms-form-grid-3,
+            .dms-form-grid-auto,
             .dms-form-grid-wide {
                 grid-template-columns: 1fr;
+            }
+
+            .dms-form-panel-header,
+            .dms-form-card-header {
+                align-items: stretch;
+                flex-direction: column;
             }
 
             .dms-form-span-2 {
