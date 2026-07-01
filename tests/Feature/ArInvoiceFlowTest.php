@@ -699,6 +699,38 @@ class ArInvoiceFlowTest extends TestCase
             ->assertSee('tax_invoice_number');
     }
 
+    public function test_output_tax_import_skips_invoice_that_was_not_exported_to_coretax(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ar-tax-import-guard@example.test');
+        [$order] = $this->deliveredOrder();
+        $order->forceFill([
+            'subtotal' => 100000,
+            'total' => 111000,
+            'grand_total' => 111000,
+            'include_ppn' => true,
+            'ppn_amount' => 11000,
+        ])->save();
+        $invoice = ArInvoice::issueFromOrder($order, $finance);
+        $invoice->forceFill([
+            'tax_status' => ArInvoice::TAX_READY,
+            'tax_invoice_number' => '010.000-26.00000010',
+            'tax_invoice_date' => now()->toDateString(),
+        ])->save();
+        $file = UploadedFile::fake()->createWithContent(
+            'output-tax-results.csv',
+            "invoice_number,tax_status,tax_invoice_number,tax_invoice_date,tax_error_message\n"
+            . $invoice->invoice_number . ",approved,010.000-26.00000010," . now()->toDateString() . ",\n"
+        );
+
+        $this->actingAs($finance)
+            ->post(route('tax.output.import-results'), ['result_file' => $file])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $invoice->refresh();
+        $this->assertSame(ArInvoice::TAX_READY, $invoice->tax_status);
+        $this->assertNull($invoice->tax_approved_at);
+    }
     public function test_finance_can_update_invoice_exchange_status_to_accepted(): void
     {
         $finance = $this->userWithRole('finance', 'finance-exchange-accepted@example.test');

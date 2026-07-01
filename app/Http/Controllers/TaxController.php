@@ -154,6 +154,10 @@ class TaxController extends Controller
                 return false;
             }
 
+            if ($invoice->tax_status !== ArInvoice::TAX_EXPORTED) {
+                return false;
+            }
+
             $payload = [
                 'tax_status' => $status,
                 'tax_invoice_number' => $row['tax_invoice_number'] ?? $invoice->tax_invoice_number,
@@ -320,6 +324,10 @@ class TaxController extends Controller
             $invoice = ApInvoice::where('invoice_number', $invoiceNumber)->first();
 
             if (!$invoice || !$this->canAccessBranch($invoice->company_branch_id)) {
+                return false;
+            }
+
+            if ($invoice->tax_status !== ApInvoice::TAX_EXPORTED) {
                 return false;
             }
 

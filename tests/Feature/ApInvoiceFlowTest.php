@@ -840,6 +840,34 @@ class ApInvoiceFlowTest extends TestCase
             ->assertSee('supplier_tax_invoice_number');
     }
 
+    public function test_input_tax_import_skips_invoice_that_was_not_exported_to_coretax(): void
+    {
+        $finance = $this->userWithRole('finance', 'finance-ap-tax-import-guard@example.test');
+        [$purchaseOrder] = $this->receivedPurchaseOrder();
+        $invoice = ApInvoice::issueFromPurchaseOrder($purchaseOrder, $finance);
+        $invoice->forceFill([
+            'ppn_amount' => 6000,
+            'tax_base_amount' => 60000,
+            'tax_rate' => 11,
+            'tax_status' => ApInvoice::TAX_CLAIMABLE,
+            'supplier_tax_invoice_number' => '010.000-26.00000011',
+            'supplier_tax_invoice_date' => now()->toDateString(),
+        ])->save();
+        $file = UploadedFile::fake()->createWithContent(
+            'input-tax-results.csv',
+            "invoice_number,tax_status,supplier_tax_invoice_number,supplier_tax_invoice_date,tax_error_message\n"
+            . $invoice->invoice_number . ",approved,010.000-26.00000011," . now()->toDateString() . ",\n"
+        );
+
+        $this->actingAs($finance)
+            ->post(route('tax.input.import-results'), ['result_file' => $file])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $invoice->refresh();
+        $this->assertSame(ApInvoice::TAX_CLAIMABLE, $invoice->tax_status);
+        $this->assertNull($invoice->tax_approved_at);
+    }
     private function receivedPurchaseOrder(
         string $status = PurchaseOrder::STATUS_RECEIVED,
         int $receivedQuantity = 3,
