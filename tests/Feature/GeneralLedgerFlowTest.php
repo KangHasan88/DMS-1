@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AccountingPeriodLock;
 use App\Models\ChartAccount;
 use App\Models\CompanyBranch;
 use App\Models\CompanyProfile;
@@ -197,6 +198,99 @@ class GeneralLedgerFlowTest extends TestCase
         $this->assertTrue($journal->lines->contains(fn ($line) => $line->account->code === '1101' && $line->credit_amount === 1000000));
     }
 
+    public function test_cash_bank_operational_expense_is_rejected_when_accounting_period_is_locked(): void
+    {
+        $finance = $this->userWithRole('finance');
+        $cash = ChartAccount::create([
+            'code' => '1107',
+            'name' => 'Kas Kecil Operasional',
+            'account_type' => ChartAccount::TYPE_ASSET,
+            'normal_balance' => ChartAccount::BALANCE_DEBIT,
+            'is_cash_account' => true,
+            'is_active' => true,
+        ]);
+        $fuelExpense = ChartAccount::create([
+            'code' => '6107',
+            'name' => 'Biaya BBM',
+            'account_type' => ChartAccount::TYPE_EXPENSE,
+            'normal_balance' => ChartAccount::BALANCE_DEBIT,
+            'is_cash_account' => false,
+            'is_active' => true,
+        ]);
+
+        AccountingPeriodLock::create([
+            'date_from' => '2026-06-20',
+            'date_to' => '2026-06-20',
+            'status' => AccountingPeriodLock::STATUS_LOCKED,
+            'reason' => 'Closing petty cash',
+            'locked_by' => $finance->id,
+            'locked_at' => now(),
+        ]);
+
+        $this->actingAs($finance)
+            ->from(route('cash-bank.index', ['chart_account_id' => $cash->id]))
+            ->post(route('cash-bank.expenses.store'), [
+                'transaction_date' => '2026-06-20',
+                'cash_account_id' => $cash->id,
+                'expense_account_id' => $fuelExpense->id,
+                'amount' => 75000,
+                'reference_number' => 'BBM-LOCKED',
+                'description' => 'BBM kendaraan delivery',
+            ])
+            ->assertRedirect(route('cash-bank.index', ['chart_account_id' => $cash->id]))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseMissing('journal_entries', [
+            'description' => 'Biaya Operasional - BBM kendaraan delivery (BBM-LOCKED)',
+        ]);
+    }
+
+    public function test_cash_bank_transfer_is_rejected_when_accounting_period_is_locked(): void
+    {
+        $finance = $this->userWithRole('finance');
+        $bank = ChartAccount::create([
+            'code' => '1108',
+            'name' => 'Bank BCA Operasional',
+            'account_type' => ChartAccount::TYPE_ASSET,
+            'normal_balance' => ChartAccount::BALANCE_DEBIT,
+            'is_cash_account' => true,
+            'is_active' => true,
+        ]);
+        $pettyCash = ChartAccount::create([
+            'code' => '1109',
+            'name' => 'Kas Kecil Operasional',
+            'account_type' => ChartAccount::TYPE_ASSET,
+            'normal_balance' => ChartAccount::BALANCE_DEBIT,
+            'is_cash_account' => true,
+            'is_active' => true,
+        ]);
+
+        AccountingPeriodLock::create([
+            'date_from' => '2026-06-21',
+            'date_to' => '2026-06-21',
+            'status' => AccountingPeriodLock::STATUS_LOCKED,
+            'reason' => 'Closing cash transfer',
+            'locked_by' => $finance->id,
+            'locked_at' => now(),
+        ]);
+
+        $this->actingAs($finance)
+            ->from(route('cash-bank.index', ['chart_account_id' => $bank->id]))
+            ->post(route('cash-bank.transfers.store'), [
+                'transfer_date' => '2026-06-21',
+                'from_cash_account_id' => $bank->id,
+                'to_cash_account_id' => $pettyCash->id,
+                'amount' => 1000000,
+                'reference_number' => 'TRF-LOCKED',
+                'description' => 'Isi kas kecil operasional',
+            ])
+            ->assertRedirect(route('cash-bank.index', ['chart_account_id' => $bank->id]))
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseMissing('journal_entries', [
+            'description' => 'Transfer Kas/Bank - Isi kas kecil operasional (TRF-LOCKED)',
+        ]);
+    }
     public function test_branch_finance_only_sees_scoped_ledger_accounts(): void
     {
         [$branchA, $branchB] = $this->twoCompanyBranches();
