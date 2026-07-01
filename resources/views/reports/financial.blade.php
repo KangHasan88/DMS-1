@@ -95,6 +95,11 @@
             <div class="stat-value" style="font-size: 1rem;">{{ $formatMoney($balanceSheet['total_assets']) }}</div>
             <div class="dms-muted">Per {{ $endDate->format('d M Y') }}</div>
         </div>
+        <div class="stat-card">
+            <div class="stat-label">Kas Akhir</div>
+            <div class="stat-value" style="font-size: 1rem;">{{ $formatMoney($cashFlow['ending_balance']) }}</div>
+            <div class="dms-muted">Kas masuk {{ $formatMoney($cashFlow['cash_in']) }}</div>
+        </div>
     </div>
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1rem; align-items: start;">
@@ -204,6 +209,51 @@
                 </tbody>
             </table>
             </div>
+        </div>
+    </div>
+
+    <div style="background: #fff; border: 1px solid var(--k-border); border-radius: 8px; padding: 1rem; min-width: 0;">
+        <div class="dms-section-header">
+            <div>
+                <h4 class="dms-section-title" style="font-size: 1.05rem;">Arus Kas</h4>
+                <p class="dms-section-subtitle">Mutasi akun kas dan bank periode {{ $startDate->format('d M Y') }} - {{ $endDate->format('d M Y') }}</p>
+            </div>
+        </div>
+        <div class="dms-table-wrap">
+        <table class="dms-table" style="min-width: 760px;">
+            <thead>
+                <tr>
+                    <th>Akun Kas/Bank</th>
+                    <th class="dms-money" style="text-align: right;">Saldo Awal</th>
+                    <th class="dms-money" style="text-align: right;">Kas Masuk</th>
+                    <th class="dms-money" style="text-align: right;">Kas Keluar</th>
+                    <th class="dms-money" style="text-align: right;">Mutasi Bersih</th>
+                    <th class="dms-money" style="text-align: right;">Saldo Akhir</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($cashFlow['accounts'] as $row)
+                    <tr>
+                        <td>{!! $accountLabel($row) !!}</td>
+                        <td class="dms-money" style="text-align: right;">{{ $formatMoney($row['opening_balance']) }}</td>
+                        <td class="dms-money" style="text-align: right;">{{ $formatMoney($row['cash_in']) }}</td>
+                        <td class="dms-money" style="text-align: right;">{{ $formatMoney($row['cash_out']) }}</td>
+                        <td class="dms-money" style="text-align: right;">{{ $formatMoney($row['net_change']) }}</td>
+                        <td class="dms-money" style="text-align: right;">{{ $formatMoney($row['ending_balance']) }}</td>
+                    </tr>
+                @empty
+                    <tr><td colspan="6" class="dms-muted">Belum ada mutasi kas atau bank pada periode ini.</td></tr>
+                @endforelse
+                <tr>
+                    <th>Total</th>
+                    <th class="dms-money" style="text-align: right;">{{ $formatMoney($cashFlow['opening_balance']) }}</th>
+                    <th class="dms-money" style="text-align: right;">{{ $formatMoney($cashFlow['cash_in']) }}</th>
+                    <th class="dms-money" style="text-align: right;">{{ $formatMoney($cashFlow['cash_out']) }}</th>
+                    <th class="dms-money" style="text-align: right;">{{ $formatMoney($cashFlow['net_change']) }}</th>
+                    <th class="dms-money" style="text-align: right;">{{ $formatMoney($cashFlow['ending_balance']) }}</th>
+                </tr>
+            </tbody>
+        </table>
         </div>
     </div>
 </div>

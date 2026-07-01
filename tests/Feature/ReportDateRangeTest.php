@@ -485,7 +485,7 @@ class ReportDateRangeTest extends TestCase
     public function test_financial_report_uses_posted_journals_for_profit_loss_and_balance_sheet(): void
     {
         $user = $this->superAdmin();
-        $cash = $this->account('1110', 'Kas dan Bank', ChartAccount::TYPE_ASSET);
+        $cash = $this->account('1110', 'Kas dan Bank', ChartAccount::TYPE_ASSET, isCashAccount: true);
         $revenue = $this->account('4101', 'Pendapatan Penjualan', ChartAccount::TYPE_REVENUE);
         $expense = $this->account('6101', 'Beban Operasional', ChartAccount::TYPE_EXPENSE);
 
@@ -504,6 +504,9 @@ class ReportDateRangeTest extends TestCase
             ->assertSee('Laporan Keuangan')
             ->assertSee('Laba Rugi')
             ->assertSee('Neraca')
+            ->assertSee('Arus Kas')
+            ->assertSee('Kas Masuk')
+            ->assertSee('Kas Keluar')
             ->assertSee('Pendapatan Penjualan')
             ->assertSee('Beban Operasional')
             ->assertSee('Kas dan Bank')
@@ -526,7 +529,7 @@ class ReportDateRangeTest extends TestCase
     public function test_financial_export_contains_profit_loss_and_balance_sheet_rows(): void
     {
         $user = $this->superAdmin();
-        $cash = $this->account('1110', 'Kas dan Bank', ChartAccount::TYPE_ASSET);
+        $cash = $this->account('1110', 'Kas dan Bank', ChartAccount::TYPE_ASSET, isCashAccount: true);
         $revenue = $this->account('4101', 'Pendapatan Penjualan', ChartAccount::TYPE_REVENUE);
 
         $this->postJournal('2026-06-10', [
@@ -544,6 +547,7 @@ class ReportDateRangeTest extends TestCase
         $this->assertStringContainsString('Laporan Keuangan', $content);
         $this->assertStringContainsString('Laba Rugi', $content);
         $this->assertStringContainsString('Neraca', $content);
+        $this->assertStringContainsString('Arus Kas', $content);
         $this->assertStringContainsString('Pendapatan Penjualan', $content);
         $this->assertStringContainsString('Kas dan Bank', $content);
         $this->assertStringContainsString('150000', $content);
@@ -638,13 +642,14 @@ class ReportDateRangeTest extends TestCase
         ]);
     }
 
-    private function account(string $code, string $name, string $type): ChartAccount
+    private function account(string $code, string $name, string $type, bool $isCashAccount = false): ChartAccount
     {
         return ChartAccount::create([
             'code' => $code,
             'name' => $name,
             'account_type' => $type,
             'normal_balance' => ChartAccount::defaultNormalBalance($type),
+            'is_cash_account' => $isCashAccount,
             'is_active' => true,
         ]);
     }

@@ -362,11 +362,12 @@ class ReportController extends Controller
         $selectedBranchId = $this->selectedReportBranchId($request);
         $canFilterBranches = !auth()->user()?->scopedCompanyBranchId();
         $companyBranches = CompanyBranch::where('is_active', true)->orderBy('name')->get();
-        ['profitLoss' => $profitLoss, 'balanceSheet' => $balanceSheet] = $this->financialStatements($startDate, $endDate, $selectedBranchId);
+        ['profitLoss' => $profitLoss, 'balanceSheet' => $balanceSheet, 'cashFlow' => $cashFlow] = $this->financialStatements($startDate, $endDate, $selectedBranchId);
 
         return view('reports.financial', compact(
             'profitLoss',
             'balanceSheet',
+            'cashFlow',
             'startDate',
             'endDate',
             'companyBranches',
@@ -968,9 +969,9 @@ class ReportController extends Controller
     private function exportFinancial(Request $request, $startDate, $endDate): StreamedResponse
     {
         $selectedBranchId = $this->selectedReportBranchId($request);
-        ['profitLoss' => $profitLoss, 'balanceSheet' => $balanceSheet] = $this->financialStatements($startDate, $endDate, $selectedBranchId);
+        ['profitLoss' => $profitLoss, 'balanceSheet' => $balanceSheet, 'cashFlow' => $cashFlow] = $this->financialStatements($startDate, $endDate, $selectedBranchId);
 
-        return response()->streamDownload(function () use ($profitLoss, $balanceSheet, $startDate, $endDate, $selectedBranchId) {
+        return response()->streamDownload(function () use ($profitLoss, $balanceSheet, $cashFlow, $startDate, $endDate, $selectedBranchId) {
             $handle = fopen('php://output', 'w');
             fputcsv($handle, ['Report', 'Laporan Keuangan']);
             fputcsv($handle, ['Generated At', now()->toDateTimeString()]);
@@ -996,6 +997,13 @@ class ReportController extends Controller
             $this->writeFinancialRows($handle, 'Ekuitas', $balanceSheet['equity']);
             fputcsv($handle, ['Total Kewajiban + Ekuitas', '', '', $balanceSheet['total_liabilities_equity']]);
             fputcsv($handle, ['Balance Status', '', '', $balanceSheet['is_balanced'] ? 'Balance' : 'Tidak Balance']);
+            fputcsv($handle, []);
+            fputcsv($handle, ['Arus Kas']);
+            fputcsv($handle, ['Code', 'Account', 'Saldo Awal', 'Kas Masuk', 'Kas Keluar', 'Mutasi Bersih', 'Saldo Akhir']);
+            foreach ($cashFlow['accounts'] as $row) {
+                fputcsv($handle, [$row['code'], $row['name'], $row['opening_balance'], $row['cash_in'], $row['cash_out'], $row['net_change'], $row['ending_balance']]);
+            }
+            fputcsv($handle, ['Total', '', $cashFlow['opening_balance'], $cashFlow['cash_in'], $cashFlow['cash_out'], $cashFlow['net_change'], $cashFlow['ending_balance']]);
             fclose($handle);
         }, 'financial-report-' . now()->format('Ymd-His') . '.csv');
     }
@@ -1080,6 +1088,7 @@ class ReportController extends Controller
         ];
         $balanceSheet['total_liabilities_equity'] = $balanceSheet['total_liabilities'] + $balanceSheet['total_equity'];
         $balanceSheet['is_balanced'] = $balanceSheet['total_assets'] === $balanceSheet['total_liabilities_equity'];
+        $cashFlow = $this->cashFlowStatement($startDate, $endDate, $selectedBranchId);
 
         return [
             'profitLoss' => [
@@ -1093,6 +1102,60 @@ class ReportController extends Controller
                 'net_income' => $netIncome,
             ],
             'balanceSheet' => $balanceSheet,
+            'cashFlow' => $cashFlow,
+        ];
+    }
+
+    private function cashFlowStatement($startDate, $endDate, mixed $selectedBranchId): array
+    {
+        $accounts = ChartAccount::query()
+            ->where('is_active', true)
+            ->where('is_cash_account', true)
+            ->when($branchScopeId = auth()->user()?->scopedCompanyBranchId(), function ($accountQuery) use ($branchScopeId) {
+                $accountQuery->where(function ($scopeQuery) use ($branchScopeId) {
+                    $scopeQuery->whereNull('company_branch_id')
+                        ->orWhere('company_branch_id', $branchScopeId);
+                });
+            })
+            ->when(!auth()->user()?->scopedCompanyBranchId() && $selectedBranchId, function ($accountQuery) use ($selectedBranchId) {
+                $selectedBranchId === 'global'
+                    ? $accountQuery->whereNull('company_branch_id')
+                    : $accountQuery->where(function ($scopeQuery) use ($selectedBranchId) {
+                        $scopeQuery->whereNull('company_branch_id')
+                            ->orWhere('company_branch_id', $selectedBranchId);
+                    });
+            })
+            ->orderBy('code')
+            ->get()
+            ->map(function (ChartAccount $account) use ($startDate, $endDate, $selectedBranchId) {
+                $openingDebit = $this->financialLineSum($account, $selectedBranchId, fn ($journal) => $journal->where('journal_date', '<', $startDate->toDateString()), 'debit_amount');
+                $openingCredit = $this->financialLineSum($account, $selectedBranchId, fn ($journal) => $journal->where('journal_date', '<', $startDate->toDateString()), 'credit_amount');
+                $cashIn = $this->financialLineSum($account, $selectedBranchId, fn ($journal) => $journal->whereBetween('journal_date', [$startDate->toDateString(), $endDate->toDateString()]), 'debit_amount');
+                $cashOut = $this->financialLineSum($account, $selectedBranchId, fn ($journal) => $journal->whereBetween('journal_date', [$startDate->toDateString(), $endDate->toDateString()]), 'credit_amount');
+                $opening = $this->signedFinancialBalance($account, (int) $openingDebit, (int) $openingCredit);
+                $netChange = (int) $cashIn - (int) $cashOut;
+
+                return [
+                    'id' => $account->id,
+                    'code' => $account->code,
+                    'name' => $account->name,
+                    'opening_balance' => $opening,
+                    'cash_in' => (int) $cashIn,
+                    'cash_out' => (int) $cashOut,
+                    'net_change' => $netChange,
+                    'ending_balance' => $opening + $netChange,
+                ];
+            })
+            ->filter(fn (array $row) => $row['opening_balance'] !== 0 || $row['cash_in'] !== 0 || $row['cash_out'] !== 0 || $row['ending_balance'] !== 0)
+            ->values();
+
+        return [
+            'accounts' => $accounts,
+            'opening_balance' => $accounts->sum('opening_balance'),
+            'cash_in' => $accounts->sum('cash_in'),
+            'cash_out' => $accounts->sum('cash_out'),
+            'net_change' => $accounts->sum('net_change'),
+            'ending_balance' => $accounts->sum('ending_balance'),
         ];
     }
 
