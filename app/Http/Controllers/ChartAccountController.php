@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\ChartAccount;
 use App\Models\CompanyBranch;
+use App\Models\JournalEntryLine;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class ChartAccountController extends Controller
 {
@@ -95,6 +97,8 @@ class ChartAccountController extends Controller
         $validated['is_cash_account'] = $request->boolean('is_cash_account');
         $validated['updated_by'] = Auth::id();
 
+        $this->ensureUsedAccountStructureNotChanged($chartAccount, $validated);
+
         $chartAccount->update($validated);
 
         return redirect()->route('chart-accounts.index')
@@ -121,7 +125,7 @@ class ChartAccountController extends Controller
             ? ['nullable', Rule::in([(string) $branchScopeId])]
             : ['nullable', 'exists:company_branches,id'];
 
-        return $request->validate([
+        $validated = $request->validate([
             'code' => [
                 'required',
                 'string',
@@ -135,8 +139,60 @@ class ChartAccountController extends Controller
             'company_branch_id' => $branchRule,
             'description' => ['nullable', 'string', 'max:500'],
         ]);
+
+        $this->ensureParentAccountInScope(
+            $validated['parent_id'] ?? null,
+            $this->resolvedBranchId($validated['company_branch_id'] ?? null)
+        );
+
+        return $validated;
     }
 
+    private function ensureParentAccountInScope(?int $parentId, ?int $targetBranchId): void
+    {
+        if (!$parentId) {
+            return;
+        }
+
+        $parent = ChartAccount::find($parentId);
+        $parentBranchId = $parent?->company_branch_id;
+        $allowed = $targetBranchId
+            ? (!$parentBranchId || (int) $parentBranchId === (int) $targetBranchId)
+            : !$parentBranchId;
+
+        if (!$allowed) {
+            throw ValidationException::withMessages([
+                'parent_id' => 'Parent akun harus global atau berada di cabang yang sama.',
+            ]);
+        }
+    }
+    private function ensureUsedAccountStructureNotChanged(ChartAccount $account, array $validated): void
+    {
+        $hasJournalLines = JournalEntryLine::where('chart_account_id', $account->id)->exists();
+
+        if (!$hasJournalLines) {
+            return;
+        }
+
+        $lockedFields = [
+            'code' => 'Kode akun',
+            'account_type' => 'Tipe akun',
+            'normal_balance' => 'Saldo normal',
+            'parent_id' => 'Parent akun',
+            'company_branch_id' => 'Scope cabang',
+        ];
+
+        foreach ($lockedFields as $field => $label) {
+            $newValue = $validated[$field] ?? null;
+            $oldValue = $account->{$field};
+
+            if ((string) $oldValue !== (string) $newValue) {
+                throw ValidationException::withMessages([
+                    $field => "{$label} tidak bisa diubah karena akun sudah memiliki histori jurnal.",
+                ]);
+            }
+        }
+    }
     private function currentBranchScopeId(): ?int
     {
         return Auth::user()?->scopedCompanyBranchId();

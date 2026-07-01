@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Models\ChartAccount;
 use App\Models\CompanyBranch;
 use App\Models\CompanyProfile;
+use App\Models\JournalEntry;
 use App\Models\User;
+use Illuminate\Support\Carbon;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -102,6 +104,102 @@ class ChartAccountFlowTest extends TestCase
             ->assertDontSee($other->name);
     }
 
+    public function test_branch_finance_cannot_use_parent_account_from_other_branch(): void
+    {
+        [$branchA, $branchB] = $this->twoCompanyBranches();
+        $finance = $this->userWithRole('finance', ['company_branch_id' => $branchA->id]);
+        $otherBranchParent = ChartAccount::create([
+            'code' => '1200',
+            'name' => 'Piutang Cabang B',
+            'account_type' => ChartAccount::TYPE_ASSET,
+            'normal_balance' => ChartAccount::BALANCE_DEBIT,
+            'company_branch_id' => $branchB->id,
+        ]);
+
+        $this->actingAs($finance)
+            ->post(route('chart-accounts.store'), [
+                'code' => '1201',
+                'name' => 'Piutang Cabang A',
+                'account_type' => ChartAccount::TYPE_ASSET,
+                'parent_id' => $otherBranchParent->id,
+                'company_branch_id' => $branchA->id,
+            ])
+            ->assertSessionHasErrors('parent_id');
+
+        $this->assertDatabaseMissing('chart_accounts', [
+            'code' => '1201',
+            'name' => 'Piutang Cabang A',
+        ]);
+    }
+
+    public function test_global_account_cannot_use_branch_parent_account(): void
+    {
+        [, $branchB] = $this->twoCompanyBranches();
+        $finance = $this->userWithRole('finance');
+        $branchParent = ChartAccount::create([
+            'code' => '1300',
+            'name' => 'Persediaan Cabang B',
+            'account_type' => ChartAccount::TYPE_ASSET,
+            'normal_balance' => ChartAccount::BALANCE_DEBIT,
+            'company_branch_id' => $branchB->id,
+        ]);
+
+        $this->actingAs($finance)
+            ->post(route('chart-accounts.store'), [
+                'code' => '1301',
+                'name' => 'Persediaan Global Salah Parent',
+                'account_type' => ChartAccount::TYPE_ASSET,
+                'parent_id' => $branchParent->id,
+                'company_branch_id' => null,
+            ])
+            ->assertSessionHasErrors('parent_id');
+
+        $this->assertDatabaseMissing('chart_accounts', [
+            'code' => '1301',
+            'name' => 'Persediaan Global Salah Parent',
+        ]);
+    }
+    public function test_used_chart_account_cannot_change_accounting_structure(): void
+    {
+        $finance = $this->userWithRole('finance');
+        $account = ChartAccount::create([
+            'code' => '1400',
+            'name' => 'Persediaan Barang',
+            'account_type' => ChartAccount::TYPE_ASSET,
+            'normal_balance' => ChartAccount::BALANCE_DEBIT,
+        ]);
+        $journal = JournalEntry::create([
+            'journal_number' => 'JRN-TEST-001',
+            'journal_date' => Carbon::today(),
+            'description' => 'Test used account',
+            'status' => JournalEntry::STATUS_POSTED,
+            'debit_total' => 10000,
+            'credit_total' => 10000,
+            'posted_by' => $finance->id,
+            'posted_at' => now(),
+        ]);
+        $journal->lines()->create([
+            'chart_account_id' => $account->id,
+            'description' => 'Used line',
+            'debit_amount' => 10000,
+            'credit_amount' => 0,
+        ]);
+
+        $this->actingAs($finance)
+            ->put(route('chart-accounts.update', $account), [
+                'code' => '1400',
+                'name' => 'Persediaan Barang',
+                'account_type' => ChartAccount::TYPE_LIABILITY,
+                'normal_balance' => ChartAccount::BALANCE_CREDIT,
+                'parent_id' => null,
+                'company_branch_id' => null,
+            ])
+            ->assertSessionHasErrors('account_type');
+
+        $account->refresh();
+        $this->assertSame(ChartAccount::TYPE_ASSET, $account->account_type);
+        $this->assertSame(ChartAccount::BALANCE_DEBIT, $account->normal_balance);
+    }
     private function userWithRole(string $role, array $attributes = []): User
     {
         $user = User::factory()->create($attributes);
