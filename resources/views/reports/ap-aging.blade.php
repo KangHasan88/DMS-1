@@ -27,7 +27,16 @@
                     @endforeach
                 </select>
             </div>
-            <button class="dms-btn dms-btn-primary" type="submit">Filter</button>
+            <div>
+                <label class="form-label">Per Halaman</label>
+                <select name="per_page" class="form-control">
+                    @foreach([10, 25, 50, 100] as $pageSize)
+                        <option value="{{ $pageSize }}" {{ (int) request('per_page', 25) === $pageSize ? 'selected' : '' }}>
+                            {{ $pageSize }} data
+                        </option>
+                    @endforeach
+                </select>
+            </div>            <button class="dms-btn dms-btn-primary" type="submit">Filter</button>
             <a class="dms-btn dms-btn-outline" href="{{ route('reports.export', array_merge(['type' => 'ap-aging'], request()->only(['as_of_date', 'supplier_id']))) }}">
                 <i class="bi bi-download"></i> Export CSV
             </a>

@@ -429,7 +429,7 @@ class ReportController extends Controller
         $invoices = (clone $baseQuery)
             ->orderByRaw('due_date IS NULL')
             ->orderBy('due_date')
-            ->paginate($request->get('per_page', 20))
+            ->paginate($this->reportPerPage($request))
             ->withQueryString();
 
         $invoices->getCollection()->transform(function (ArInvoice $invoice) use ($asOfDate) {
@@ -496,7 +496,7 @@ class ReportController extends Controller
         $invoices = (clone $baseQuery)
             ->orderByRaw('due_date IS NULL')
             ->orderBy('due_date')
-            ->paginate($request->get('per_page', 20))
+            ->paginate($this->reportPerPage($request))
             ->withQueryString();
 
         $invoices->getCollection()->transform(function (ApInvoice $invoice) use ($asOfDate) {
@@ -953,7 +953,6 @@ class ReportController extends Controller
                     $invoice->companyBranch?->name ?? '-',
                     $invoice->due_date?->toDateString() ?? '-',
                     $bucket['label'],
-                    $invoice->exchange_status_label,
                     $bucket['days_overdue'],
                     (int) $invoice->total_amount,
                     (int) $invoice->paid_amount,

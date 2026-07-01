@@ -482,6 +482,46 @@ class ReportDateRangeTest extends TestCase
             ->assertDontSee('AP-VOID');
     }
 
+    public function test_ap_aging_export_columns_match_header(): void
+    {
+        $user = $this->superAdmin();
+        $this->createApInvoice($user, 'AP-EXPORT-COLUMNS', '2026-06-12', 220000);
+
+        $response = $this->actingAs($user)
+            ->get('/reports/export/ap-aging?as_of_date=2026-06-22');
+
+        $response->assertOk();
+        $content = $response->streamedContent();
+        $rows = array_values(array_filter(explode("\n", trim($content)), fn ($line) => trim($line) !== ''));
+        $header = str_getcsv($rows[3]);
+        $data = str_getcsv($rows[4]);
+
+        $this->assertSame(['No Invoice', 'Pemasok', 'PO', 'Cabang', 'Jatuh Tempo', 'Bucket', 'Hari Terlambat', 'Total Invoice', 'Terbayar', 'Debit Note', 'Outstanding'], $header);
+        $this->assertCount(count($header), $data);
+        $this->assertSame('AP-EXPORT-COLUMNS', $data[0]);
+        $this->assertSame('10', $data[6]);
+        $this->assertSame('220000', $data[7]);
+    }
+    public function test_aging_reports_use_standard_page_size_controls(): void
+    {
+        $user = $this->superAdmin();
+
+        for ($i = 1; $i <= 12; $i++) {
+            $this->createApInvoice($user, 'AP-PAGE-' . str_pad((string) $i, 2, '0', STR_PAD_LEFT), '2026-06-12', 100000 + $i);
+        }
+
+        $this->actingAs($user)
+            ->get('/reports/ap-aging?as_of_date=2026-06-22&per_page=10')
+            ->assertOk()
+            ->assertSee('10 data')
+            ->assertSee('Menampilkan 1 - 10 dari 12 invoice');
+
+        $this->actingAs($user)
+            ->get('/reports/ap-aging?as_of_date=2026-06-22&per_page=999')
+            ->assertOk()
+            ->assertSee('25 data')
+            ->assertSee('Menampilkan 1 - 12 dari 12 invoice');
+    }
     public function test_financial_report_uses_posted_journals_for_profit_loss_and_balance_sheet(): void
     {
         $user = $this->superAdmin();
